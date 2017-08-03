@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import time
 
 def moyenne(value, index, period):
     res = 0
@@ -95,7 +96,9 @@ def get_indicators(stock):
 
 def open_row():
     reader = pd.read_excel('EUR_USD.xls')
-    return reader
+    files = "EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
+    csv = pd.read_csv(files, error_bad_lines=False)
+    return csv
 
 def is_sort(data):
     a = 0
@@ -127,7 +130,7 @@ def del_fail(data):
     tmpp = pd.DataFrame(price, columns=['price'])
     tmpt = pd.DataFrame(time, columns=['time'])
     tmpt = tmpt.join(tmpp)
-    print(len(tmpt['price']), len(data['Price']))
+    print("Parsing accuracy :",(len(tmpt['price']) / len(data['Price'])) * 100,"%", "|", "Total number of tick in file :", len(tmpt['price'])-1)
     return tmpt
 
 def tick_to_1m(data):
@@ -160,5 +163,5 @@ def tick_to_1m(data):
     prices = prices.join(low)
     prices = prices.drop(len(prices) - 1)
     prices = prices.drop(0)
-    #print(prices)
-tick_to_1m(del_fail(open_row()))
+
+print("Is_sorted :",is_sort(del_fail(open_row())['time']))

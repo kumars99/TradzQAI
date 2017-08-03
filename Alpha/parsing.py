@@ -13,8 +13,13 @@ area = {'top': 250, 'left':78, 'width':200, 'height':820}
 
 #def check_is_valid(data):
 def save_to_xls(daily):
-    date = "EUR_USD.csv"
-    daily.to_csv(date)
+    date = "EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
+    daily.to_csv(date, mode='a', header=False)
+    new = pd.DataFrame()
+    tmp = pd.DataFrame()
+    new = daily[len(daily) - 6:len(daily) - 1]
+    new.reset_index(drop=True, inplace=True)
+    return new
 
 def add_new_daily_data(daily, last, c):
     is_new = 0
@@ -94,9 +99,10 @@ def extract_new_data(data):
 def parsing():
     with mss() as sct:
         daily_data = None
-        sec = 0
+        sec = 60
         frames = 0
         c = 0
+        count = 0
         start_time = time.time()
         while True:
             buff = ""
@@ -114,9 +120,10 @@ def parsing():
             buff = str(pytesseract.image_to_string(gray))
             data = extract_new_data(buff)
             daily_data, c = add_new_daily_data(daily_data, data, c)
-            print("Daily len :", len(daily_data))
             #print(daily_data)
             if cv2.waitKey(25) & 0xFF == ord('q'):
+                print(len(daily_data) - 1 ,"data saved before exit")
+                daily_data = save_to_xls(daily_data)
                 cv2.destroyAllWindows()
                 break
             #time.sleep(5)
@@ -126,9 +133,11 @@ def parsing():
                 #print("Frames :", frames)
                 frames = 0
             if sec > 60:
-                save_to_xls(daily_data)
+                count += len(daily_data) - 1
+                print("Number of tick per min (save time):", len(daily_data) - 1, "|", "Total number of tick since start :", count, "|", "time since start :", round(time.time()-start_time, 2),"s")
+                daily_data = save_to_xls(daily_data)
                 sec = 0
             #time.sleep(0.2)
-            print ("Loop time :", round(time.time()-last_time, 5), "s", " Time since start :", round(time.time()-start_time, 5), "s")
+            #print ("Loop time :", round(time.time()-last_time, 5), "s", " Time since start :", round(time.time()-start_time, 5), "s")
 
 parsing()
