@@ -2,6 +2,30 @@ import numpy as np
 import pandas as pd
 import time
 
+class environnement():
+
+    def __init__(self):
+        self.new_ticks = None
+        self.new_1m = None
+        self.path = "./dataset/"
+
+
+    def set_1m(self, onem):
+        self.new_1m = onem
+        return self.new_1m
+
+    def get_1m(self):
+        return self.new_1m
+
+    def set_ticks(self, ticks):
+        self.new_ticks = ticks
+        return self.new_ticks
+
+    def get_ticks(self):
+        return self.new_ticks
+
+
+
 def moyenne(value, index, period):
     res = 0
     time = period
@@ -94,10 +118,10 @@ def get_indicators(stock):
             indics[name[i]] = calc_MME(stock['Close'], period[i])
     return (indics)
 
-def open_row():
-    reader = pd.read_excel('EUR_USD.xls')
-    files = "EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
-    csv = pd.read_csv(files, error_bad_lines=False)
+def open_row(files, names):
+    #files = "./dataset/"+"EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
+    print ("Opening :", files)
+    csv = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';')
     return csv
 
 def is_sort(data):
@@ -113,9 +137,10 @@ def del_fail(data):
     time = []
     price = []
     i = 0
-    while i < (len(data['Time']) - 1):
+    while i < (len(data) - 1):
             a += 1
             l = 0
+            
             if a == len(data['Time']) - 1:
                 break
             if data['Time'][a] < data['Time'][i]:
@@ -130,7 +155,7 @@ def del_fail(data):
     tmpp = pd.DataFrame(price, columns=['price'])
     tmpt = pd.DataFrame(time, columns=['time'])
     tmpt = tmpt.join(tmpp)
-    print("Parsing accuracy :",(len(tmpt['price']) / len(data['Price'])) * 100,"%", "|", "Total number of tick in file :", len(tmpt['price'])-1)
+    print("Parsing accuracy :",(len(tmpt['price']) / len(data['Price'])) * 100,"%", "|", "Total number of valid tick in file :", len(tmpt['price'])-1)
     return tmpt
 
 def tick_to_1m(data):
@@ -162,6 +187,15 @@ def tick_to_1m(data):
     prices = prices.join(high)
     prices = prices.join(low)
     prices = prices.drop(len(prices) - 1)
-    prices = prices.drop(0)
+    return prices
 
-print("Is_sorted :",is_sort(del_fail(open_row())['time']))
+def auto_save(onem, tick, period, stock_name):
+    while True:
+        time.sleep(period)
+        files = stock_name + time.strftime("_%d_%m_%y") + ".csv"
+        onem.to_csv(files, mode='a')
+        tick.to_csv(files, mode='a')
+
+def get_data():
+    files = ""
+    return tick_to_1m(del_fail(open_row(files)))
