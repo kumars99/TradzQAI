@@ -31,8 +31,7 @@ def moyenne(value, index, period):
     time = period
     if (len(value) - index < period):
         time = len(value) - index
-    for i in range (time):
-        res += value[i + index]
+    res = sum(value[index : index + time])
     if (time == 0):
         return value
     res/=time
@@ -43,8 +42,7 @@ def calc_MME(stock, period):
     A = (2 / ( 1 + period ))
     for i in range (len(stock)):
         if (i + 1) < len(stock):
-            result.append(moyenne(stock, i, period) * A + 
-            moyenne(stock, i + 1, period) * (1 - A))
+            result.append(moyenne(stock, i, period) * A + moyenne(stock, i + 1, period) * (1 - A))
         else:
             result.append(moyenne(stock, i, period))
     return result
@@ -75,17 +73,14 @@ def calc_D(K, period):
 def calc_K(stock, period):
     result = []
     for i in range (len(stock)):
-        result.append(100 * ((src_close(stock['Close'], i) -
-        src_lin_period(stock['Low'], period)) /
-        (src_hin_period(stock['High'], period) -
+        result.append(100 * ((src_close(stock['Close'], i) - \
+        src_lin_period(stock['Low'], period)) / \
+        (src_hin_period(stock['High'], period) - \
         src_lin_period(stock['Low'], period))))
     return result
 
 def difference(A, B):
-    result = []
-    for i in range (len(A)):
-        result.append(A[i] - B[i])
-    return result
+    return A - B
 
 def calc_rsi(stock):
     res = []
@@ -106,7 +101,7 @@ def calc_stochastique(stock):
 
 
 def get_indicators(stock):
-    name = ['MME20', 'MME50', 'MME100', 'Stoch', 'RSI']
+    name = ['MME20', 'MME50', 'MME100']
     period = [20, 50, 100]
     indics = pd.DataFrame(columns=name)
     for i in range (len(name)):
@@ -116,6 +111,7 @@ def get_indicators(stock):
             indics['RSI'] = calc_rsi(stock)
         else:
             indics[name[i]] = calc_MME(stock['Close'], period[i])
+        print(name[i], "Loaded")
     return (indics)
 
 def open_row(files, names):

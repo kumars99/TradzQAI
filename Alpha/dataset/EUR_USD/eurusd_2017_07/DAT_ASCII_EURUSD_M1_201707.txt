@@ -109,6 +109,11 @@ Gap of 63s found between 20170727171252 and 20170727171402.
 Gap of 65s found between 20170727184132 and 20170727184243.
 Gap of 67s found between 20170727190945 and 20170727191058.
 Gap of 61s found between 20170727192450 and 20170727192557.
+Gap of 73s found between 20170730170735 and 20170730170855.
+Gap of 60s found between 20170730171525 and 20170730171632.
+Gap of 75s found between 20170730173417 and 20170730173538.
+Gap of 73s found between 20170730174329 and 20170730174448.
+Gap of 76s found between 20170731170124 and 20170731170246.
 
-Average tick interval: 5197 miliseconds.
+Average tick interval: 5195 miliseconds.
 Maximum tick interval found: 161000 miliseconds.

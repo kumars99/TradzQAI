@@ -1,5 +1,60 @@
-DAX30.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 1000 | 10 hidden | 128 - 64 - 16 - 1 | V_split : 0.2
-DAX30_2.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 128 - 64 - 16 - 1 | V_split : 0.2
+// init : 'RandomNormal'
+
+
+/// open,high,close
+
+
+//// Batch_size = 512
+
+DAX30.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 1000 | 10 hidden | 128 - 64 - 16 - 1 | V_split : 0.2 
+
+Score +/- 5 pips \\ DAX30_2.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 128 - 64 - 16 - 1 | V_split : 0.2 
+
 DAX30_3.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.1
+
 DAX30_4.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 1000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.1
+
+DAX30_5.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset = dataset | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.1
+
+DAX30_6.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset = dataset | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.2
+
+DAX30_7.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset = dataset | 10 hidden | 128 - 64 - 16 - 1 | V_split : 0.2
+
+DAX30_8.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset = dataset | 10 hidden | 128 - 64 - 16 - 1 | V_split : 0.1
+
+
+
+// init : 'RandomUniform'
+
+
+/// open,high,close
+
+
+//// Batch_size = 512
+
+Score +/- 40 pips \\ DAX30_9.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 1000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.2
+
+Score +/- 10 pips \\ DAX30_10.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.2
+
+
+/// open,high,close,low
+
+
+//// Batch_size = 256
+
+Score +/- 200 pips \\ DAX30_11.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 128 - 64 - 16 - 1 | V_split : 0.2
+
+//// Batch_size = 64
+
+Score +/-  200 pips \\ DAX30_12.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.2 
+
+Score +/- 3 pips \\ DAX30_13.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.1 
+
+Score +/- 3 pips \\ DAX30_14.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 512 - 256 - 16 - 1 | V_split : 0.1 (A tester sur le prog complet, semble trop lourd a gerer avec mon hardware)
+
+Score +/-  pips \\ DAX30_15.HD5F -> trained on all dax dataset 10 epochs by year 25 epochs by mounth | dataset /= 10000 | 10 hidden | 512 - 256 - 16 - 1 | V_split : 0.05 
+
+#Other LSTM settings
+
+Score +/-  pips \\ DAX30_16.HD5F -> trained on all dax dataset 10 epochs by year 25 epochs by mounth | dataset /= 10000 | 10 hidden | 512 - 256 - 16 - 1 | V_split : 0.1
 
