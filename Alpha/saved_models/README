@@ -48,13 +48,24 @@ Score +/- 200 pips \\ DAX30_11.HD5F -> trained on all dax dataset 20 epochs by y
 
 Score +/-  200 pips \\ DAX30_12.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.2 
 
-Score +/- 3 pips \\ DAX30_13.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.1 
+Score +/- 3 pips \\ DAX30_13.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.1 (Bon suivis des mouvements | Best perf for now)
 
-Score +/- 3 pips \\ DAX30_14.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 512 - 256 - 16 - 1 | V_split : 0.1 (A tester sur le prog complet, semble trop lourd a gerer avec mon hardware)
+Score +/- 2 pips \\ DAX30_14.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by mounth | dataset /= 10000 | 10 hidden | 512 - 256 - 16 - 1 | V_split : 0.1 (A tester sur le prog complet, semble trop lourd a gerer avec mon hardware | Mauvais suivis)
 
-Score +/-  pips \\ DAX30_15.HD5F -> trained on all dax dataset 10 epochs by year 25 epochs by mounth | dataset /= 10000 | 10 hidden | 512 - 256 - 16 - 1 | V_split : 0.05 
+Score +/- 150 pips \\ DAX30_15.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by month | dataset /= 10000 | 10 hidden | 512 - 256 - 32 - 1 | V_split : 0.1
 
-#Other LSTM settings
+Score +/- 100 pips \\ DAX30_16.HD5F -> trained on all dax dataset 20 epochs by year 50 epochs by month | dataset /= 10000 | 10 hidden | 256 - 128 - 16 - 1 | V_split : 0.1 | With callbacks (saving on min val_loss)
 
-Score +/-  pips \\ DAX30_16.HD5F -> trained on all dax dataset 10 epochs by year 25 epochs by mounth | dataset /= 10000 | 10 hidden | 512 - 256 - 16 - 1 | V_split : 0.1
+
+#Other LSTM settings | val_loss callback
+
+/ BS : 64 | OHCL | init : RU
+
+
+// LSTM | activ : relu | bias init : GU
+
+
+Score +/-  300 pips \\ DAX30_21.HD5F -> trained on dax 2x 30 epochs by month | dataset /= 10000 | 10 hidden | 512 - 256 - 16 - 1 | V_split : 0.2
+
+
 
