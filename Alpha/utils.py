@@ -47,12 +47,16 @@ def calc_MME(stock, period):
             result.append(moyenne(stock, i, period))
     return result
 
+# Seqrch High in period
+
 def src_hin_period(stock, period):
     h = 0
     for i in range (period):
         if (stock[i] > h):
             h = stock[i];
     return h
+
+# Search low in period
 
 def src_lin_period(stock, period):
     l = 100
@@ -61,14 +65,22 @@ def src_lin_period(stock, period):
             l = stock[i]
     return l
 
+# Search close with start index
+
 def src_close(stock, index):
     return stock[index]
+
+# Calc stochastique
+
+## Calc %D of stoch
 
 def calc_D(K, period):
     result = []
     for i in range (len(K)):
         result.append(moyenne(K, i, period))
     return result
+
+## Calc %K of stoch
 
 def calc_K(stock, period):
     result = []
@@ -81,6 +93,8 @@ def calc_K(stock, period):
 
 def difference(A, B):
     return A - B
+
+# Calc RSI
 
 def calc_rsi(stock):
     res = []

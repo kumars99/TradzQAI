@@ -19,7 +19,7 @@ class RNN():
         self.path = None
         self.model_path = './saved_models/DAX30_16.HDF5'
         self.model_name = (self.model_path.replace("./saved_models/", "")).replace(".HDF5", "")
-        self.window = 10
+        self.window = 50
         self.predict = None
         self.tbCallback = []
         self.epochs = 0
@@ -125,6 +125,7 @@ new.get_model()
 new.Callback()
 i = 1
 
+'''
 while i < 7:
     new.path = "dataset/DAX30/dax30_201"+str(i)+"/DAT_ASCII_GRXEUR_M1_201"+str(i)+".csv"
     new.epochs = 20
@@ -132,20 +133,19 @@ while i < 7:
     new.train(X_train, y_train, X_test, y_test)
     save_m(new.model, new.model_path)
     ret = get_accuracy(new.window, new.get_model(), X_test, y_test)
-    '''
     plt.plot(ret, color='green', label='predictions')
     plt.plot(y_test, color='red', label='y_test')
     plt.legend(loc='upper left')
     plt.show()
-    '''
     #new.tbCallback[1] = keras.callbacks.TensorBoard(log_dir="./Graph/"+str(new.model_name+"/"+str(i)), histogram_freq=1, write_graph=False, write_images=False, write_grads=True)
     i += 1
 
 count = i - 1
 
 i = 1
+'''
 
-while i < 8:
+while i < 11:
     new.path = "dataset/DAX30/dax30_2017_0"+str(i)+"/DAT_ASCII_GRXEUR_M1_20170"+str(i)+".csv"
     new.epochs = 50
     X_train, y_train, X_test, y_test = new.get_data()
