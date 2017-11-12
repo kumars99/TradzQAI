@@ -17,9 +17,9 @@ class RNN():
         self.model = None
         self.data = None
         self.path = None
-        self.model_path = './saved_models/DAX30_16.HDF5'
+        self.model_path = './saved_models/old/DAX30_16.HDF5'
         self.model_name = (self.model_path.replace("./saved_models/", "")).replace(".HDF5", "")
-        self.window = 50
+        self.window = 30
         self.predict = None
         self.tbCallback = []
         self.epochs = 0
