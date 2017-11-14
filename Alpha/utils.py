@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import time
+import os
 
 class environnement():
 
@@ -24,45 +25,59 @@ class environnement():
     def get_ticks(self):
         return self.new_ticks
 
-
+##### Indicators #####
 
 def moyenne(value, index, period):
     res = 0
     time = period
-    if (len(value) - index < period):
-        time = len(value) - index
-    res = sum(value[index : index + time])
+    if (index - time < 1):
+        time = index
     if (time == 0):
         return value
-    res/=time
+    res = sum(value[index - time : index])
+    res /= time
     return (res)
 
 def calc_MME(stock, period):
     result = []
     A = (2 / ( 1 + period ))
     for i in range (len(stock)):
-        if (i + 1) < len(stock):
-            result.append(moyenne(stock, i, period) * A + moyenne(stock, i + 1, period) * (1 - A))
+        if (i - 1) > -1:
+            result.append(moyenne(stock, i, period) * A + moyenne(stock, i - 1, period) * (1 - A))
         else:
             result.append(moyenne(stock, i, period))
     return result
 
-# Seqrch High in period
+# Search High in period
 
-def src_hin_period(stock, period):
+def src_hin_period(stock, period, index):
     h = 0
-    for i in range (period):
-        if (stock[i] > h):
-            h = stock[i];
+    if index - period < 1:
+        index = 0
+    else:
+        index = index - period
+    if index == 0:
+        return stock[index]
+    while index < period:
+        if (stock[index] > h):
+            h = stock[index]
+        index += 1
     return h
 
 # Search low in period
 
-def src_lin_period(stock, period):
-    l = 100
-    for i in range (period):
-        if (stock[i] < l):
-            l = stock[i]
+def src_lin_period(stock, period, index):
+    l = 100000
+    if index - period < 1:
+        index = 0
+    else:
+        index = index - period
+    if index == 0:
+        return stock[index]
+    while index < period:
+        if (stock[index] < l):
+            l = stock[index]
+        index += 1
     return l
 
 # Search close with start index
@@ -85,24 +100,57 @@ def calc_D(K, period):
 def calc_K(stock, period):
     result = []
     for i in range (len(stock)):
-        result.append(100 * ((src_close(stock['Close'], i) - \
-        src_lin_period(stock['Low'], period)) / \
-        (src_hin_period(stock['High'], period) - \
-        src_lin_period(stock['Low'], period))))
+        result.append(100 * ((src_close(stock['Close'], i) - src_lin_period(stock['Low'], period, i)) / (src_hin_period(stock['High'], period, i) - src_lin_period(stock['Low'], period, i))))
     return result
 
 def difference(A, B):
     return A - B
+
+def hmvt_avg(stock, period, index):
+    h = []
+    i = 0
+    last = 0
+    if index - period < 1:
+        index = 0
+    else:
+        index = index - period
+    if index == 0:
+        return stock[index]
+    while index < period:
+        last = stock[index]
+        if (stock[index] > last):
+            h += stock[index]
+        i += 1
+        index += 1
+    h /= i
+    return h
+
+def lmvt_avg(stock, period, index):
+    l = []
+    i = 0
+    last = 0
+    if index - period < 1:
+        index = 0
+    else:
+        index = index - period
+    if index == 0:
+        return stock[index]
+    while index < period:
+        last = stock[index]
+        if (stock[index] < last):
+            l += stock[index]
+        i += 1
+        index += 1
+    l /= i
+    return l
 
 # Calc RSI
 
 def calc_rsi(stock):
     res = []
     period = 14
-    high = calc_MME(stock['High'], period)
-    low = calc_MME(stock['Low'], period)
     for i in range (len(stock)):
-        res.append( 100 * ( high[i] / ( high[i] + low[i] ) ) )
+        res.append(100 - ( 100 / (hmvt_avg(stock['Open'], period, i) + lmvt_avg(stock['Open'], period, i))))
     return res
 
 def calc_stochastique(stock):
@@ -114,25 +162,100 @@ def calc_stochastique(stock):
     return difference(stoch['K'], stoch['D'])
 
 
-def get_indicators(stock):
-    name = ['MME20', 'MME50', 'MME100']
+# Indicators managment
+
+## Indicators builder
+
+def build_indics(stock, name):
     period = [20, 50, 100]
     indics = pd.DataFrame(columns=name)
     for i in range (len(name)):
         if (name[i] == 'Stoch'):
+            print ('Building %s' % (name[i]))
             indics[name[i]] = calc_stochastique(stock)
         elif (name[i] == 'RSI'):
+            print ('Building %s' % (name[i]))
             indics['RSI'] = calc_rsi(stock)
         else:
-            indics[name[i]] = calc_MME(stock['Close'], period[i])
-        print(name[i], "Loaded")
-    return (indics)
+            print ('Building %s' % (name[i]))
+            indics[name[i]] = calc_MME(stock['Open'], period[i])
+    return indics
+
+def save_indics(path, indics):
+    indics.to_csv(path)
+    print ("Indicators saved in %s" % path)
+
+def load_indics(files):
+    names = ['ID' ,'MME20', 'MME50', 'MME100', 'Stoch', 'RSI']
+    indics = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';')
+    indics.drop(indics.columns[[0]], axis = 1, inplace = True)
+    print ("Indicators loaded from %s" % files)
+    return indics
+
+## Check if Indicators are already builded and build if needed
+
+def check_indics(data_name, stock):
+    path = "./indicators"
+    name = ['MME20', 'MME50', 'MME100', 'Stoch', 'RSI']
+    indics_path = path + "/" + data_name
+    print ("Cheking indicators")
+    if os.path.exists(path) is False:
+        print ("%s not founded" % indics_path)
+        print ("Building %s" % indics_path)
+        os.makedirs(indics_path)
+        indics = build_indics(stock, name)
+        save_indics(indics_path+"/indics", indics)
+    else:
+        if os.path.exists(indics_path) is False:
+            print ("%s not founded" % indics_path)
+            print ("Building %s" % indics_path)
+            os.mkdir(indics_path)
+            indics = build_indics(stock, name)
+            save_indics(indics_path+"/indics", indics)
+        else:
+            print ("%s founded" % indics_path)
+            indics = load_indics(indics_path+"/indics")
+    return indics
+
+####################
+
+#### Data managment ####
+
+# Getting data
 
 def open_row(files, names):
     #files = "./dataset/"+"EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
     print ("Opening :", files)
     csv = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';')
     return csv
+
+# Get all data
+
+def get_all_data(path, names):
+    # list path directoy
+    dirs = os.listdir(path)
+    data = None
+    dirs.sort()
+    for d in dirs:
+        # list files in directoy
+        n = str(path)+"/"+str(d)
+        files = os.listdir(n)
+        for f in files:
+            # check if file is csv
+            if ".csv" in f:
+                n = str(path)+"/"+str(d)+"/"+str(f)
+                print ("Opening :", n)
+                # Opening csv file
+                csv = pd.read_csv(n, names=names, header = 0, error_bad_lines=False, sep=';')
+                csv.drop(csv.columns[[0, 5]], axis = 1, inplace = True)
+                indics = check_indics(d, csv)
+                csv = csv.join(indics)
+                if data is None:
+                    data = csv
+                else:
+                    data = data.append(csv, ignore_index=True)
+    print ("All files opened")
+    return data
 
 def is_sort(data):
     a = 0
@@ -150,7 +273,6 @@ def del_fail(data):
     while i < (len(data) - 1):
             a += 1
             l = 0
-            
             if a == len(data['Time']) - 1:
                 break
             if data['Time'][a] < data['Time'][i]:
@@ -209,3 +331,5 @@ def auto_save(onem, tick, period, stock_name):
 def get_data():
     files = ""
     return tick_to_1m(del_fail(open_row(files)))
+
+############################
