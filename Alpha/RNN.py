@@ -16,7 +16,7 @@ class RNN():
         self.model = None
         self.data = None
         self.path = None
-        self.model_path = './saved_models/open/DAX30_O_test.HDF5'
+        self.model_path = './saved_models/open/DAX30_O_test2.HDF5'
         self.model_name = (self.model_path.replace("./saved_models/", "")).replace(".HDF5", "")
         self.window = 50
         self.predict = None
@@ -30,18 +30,18 @@ class RNN():
         #new.set_model(self.model)
         #self.tbCallback.append(new)
 
-    def get_data(self):
+    def get_data(self, d):
         names = ['Time', 'Open', 'High', 'Low', 'Close', '']
-        self.data = get_all_data(self.path, names)
+        self.data = open_row(self.path, names, d)
         self.last = self.data.copy(deep=True)
-        self.data.drop(self.data.columns[[1]], axis=1, inplace=True)
-        self.last.drop(self.last.columns[[0, 2, 3, 4, 5]], axis=1, inplace=True)
+        self.data.drop(self.data.columns[[0]], axis=1, inplace=True)
+        self.last.drop(self.last.columns[[1, 2, 3, 4, 5, 6]], axis=1, inplace=True)
         self.last['Open'] /= 10000
         self.data['High'] /= 10000
         self.data['Close'] /= 10000
         self.data['Low'] /= 10000
-        self.data = indicators.join(self.data)
-        return reshape_data(indicators[::-1], self.window)
+        self.data = self.data.join(self.last)
+        return reshape_data(self.data[::-1], self.window)
 
     def get_model(self):
         self.model = load_m(self.model_path, self.window)
@@ -83,7 +83,7 @@ def get_accuracy(predict, model, X_test, y_test):
         acc += ret[i] - y_test[i]
         accu += abs(ret[i] / y_test[i])
         predict += 1
-    accu = (accu * -1) / i
+    accu /= i
     acc /= i
     print ("Accuracy : ", accu)
     print ("Ecart pips moyen :", acc * 10000)
@@ -93,7 +93,7 @@ def load_m(model_path, predict):
     if os.path.isfile(model_path):
         model = load_model(model_path)
     else:
-        model = build_model([9, predict, 1])
+        model = build_model([7, predict, 1])
         open(model_path, 'w')
         save_m(model, model_path)
     return model
@@ -119,17 +119,33 @@ def reshape_data(data, len_predict):
     x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], amount_of_features))
     return [x_train, y_train, x_test, y_test]
 
-new = RNN()
-new.get_model()
-#new.Callback()
-new.path = "./dataset/DAX30"
-new.epochs = 20
-X_train, y_train, X_test, y_test = new.get_data()
-new.train(X_train, y_train, X_test, y_test)
-save_m(new.model, new.model_path)
-ret = get_accuracy(new.window, new.get_model(), X_test, y_test)
-plt.plot(ret, color='green', label='predictions')
-plt.plot(y_test, color='red', label='y_test')
-plt.legend(loc='upper left')
-plt.show()
-#new.tbCallback[1] = keras.callbacks.TensorBoard(log_dir="./Graph/"+str(new.model_name+"/"+str(i)), histogram_freq=1, write_graph=False, write_images=False, write_grads=True)
+def full_run():
+    new = RNN()
+    new.get_model()
+    #new.Callback()
+    new.path = "./dataset/DAX30"
+    dirs = os.listdir(new.path)
+    data = None
+    dirs.sort()
+    for d in dirs:
+        new.path = "./dataset/DAX30"
+        n = str(new.path)+"/"+str(d)
+        files = os.listdir(n)
+        for f in files:
+            if ".csv" in f:
+                if "_2017_" in f:
+                    new.epochs = 20
+                else:
+                    new.epochs = 10
+                new.path = n + "/" + str(f)
+                X_train, y_train, X_test, y_test = new.get_data(d)
+                new.train(X_train, y_train, X_test, y_test)
+                save_m(new.model, new.model_path)
+                ret = get_accuracy(new.window, new.get_model(), X_test, y_test)
+                plt.plot(ret, color='green', label='predictions')
+                plt.plot(y_test, color='red', label='y_test')
+                plt.legend(loc='upper left')
+                plt.show()
+                #new.tbCallback[1] = keras.callbacks.TensorBoard(log_dir="./Graph/"+str(new.model_name+"/"+str(i)), histogram_freq=1, write_graph=False, write_images=False, write_grads=True)
+
+full_run()

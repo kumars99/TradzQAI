@@ -33,7 +33,7 @@ def moyenne(value, index, period):
     if (index - time < 1):
         time = index
     if (time == 0):
-        return value
+        return value[time]
     res = sum(value[index - time : index])
     res /= time
     return (res)
@@ -42,7 +42,7 @@ def calc_MME(stock, period):
     result = []
     A = (2 / ( 1 + period ))
     for i in range (len(stock)):
-        if (i - 1) > -1:
+        if i > 0:
             result.append(moyenne(stock, i, period) * A + moyenne(stock, i - 1, period) * (1 - A))
         else:
             result.append(moyenne(stock, i, period))
@@ -55,10 +55,10 @@ def src_hin_period(stock, period, index):
     if index - period < 1:
         index = 0
     else:
-        index = index - period
+        index = index - period + 1
     if index == 0:
         return stock[index]
-    while index < period:
+    while index <= period:
         if (stock[index] > h):
             h = stock[index]
         index += 1
@@ -71,10 +71,10 @@ def src_lin_period(stock, period, index):
     if index - period < 1:
         index = 0
     else:
-        index = index - period
+        index = index - period + 1
     if index == 0:
         return stock[index]
-    while index < period:
+    while index <= period:
         if (stock[index] < l):
             l = stock[index]
         index += 1
@@ -107,9 +107,10 @@ def difference(A, B):
     return A - B
 
 def hmvt_avg(stock, period, index):
-    h = []
+    h = 0
     i = 0
     last = 0
+    z = 0
     if index - period < 1:
         index = 0
     else:
@@ -117,18 +118,23 @@ def hmvt_avg(stock, period, index):
     if index == 0:
         return stock[index]
     while index < period:
-        last = stock[index]
+        if z > 0:
+            last = stock[index - 1]
+        z = 1
         if (stock[index] > last):
             h += stock[index]
-        i += 1
+            i += 1
         index += 1
+    if i == 0:
+        return h
     h /= i
     return h
 
 def lmvt_avg(stock, period, index):
-    l = []
+    l = 0
     i = 0
-    last = 0
+    last = l
+    z = 0
     if index - period < 1:
         index = 0
     else:
@@ -136,11 +142,15 @@ def lmvt_avg(stock, period, index):
     if index == 0:
         return stock[index]
     while index < period:
-        last = stock[index]
+        if z > 0:
+            last = stock[index - 1]
+        z = 1
         if (stock[index] < last):
             l += stock[index]
-        i += 1
+            i += 1
         index += 1
+    if i == 0:
+        return l
     l /= i
     return l
 
@@ -168,25 +178,25 @@ def calc_stochastique(stock):
 
 def build_indics(stock, name):
     period = [20, 50, 100]
-    indics = pd.DataFrame(columns=name)
+    indics = pd.DataFrame(columns = name)
     for i in range (len(name)):
         if (name[i] == 'Stoch'):
             print ('Building %s' % (name[i]))
             indics[name[i]] = calc_stochastique(stock)
         elif (name[i] == 'RSI'):
             print ('Building %s' % (name[i]))
-            indics['RSI'] = calc_rsi(stock)
+            indics[name[i]] = calc_rsi(stock)
         else:
             print ('Building %s' % (name[i]))
             indics[name[i]] = calc_MME(stock['Open'], period[i])
     return indics
 
 def save_indics(path, indics):
-    indics.to_csv(path)
+    indics.to_csv(path, sep = ';', mode = 'w')
     print ("Indicators saved in %s" % path)
 
 def load_indics(files):
-    names = ['ID' ,'MME20', 'MME50', 'MME100', 'Stoch', 'RSI']
+    names = ['ID' ,'MME20', 'MME50', 'MME100']
     indics = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';')
     indics.drop(indics.columns[[0]], axis = 1, inplace = True)
     print ("Indicators loaded from %s" % files)
@@ -196,7 +206,7 @@ def load_indics(files):
 
 def check_indics(data_name, stock):
     path = "./indicators"
-    name = ['MME20', 'MME50', 'MME100', 'Stoch', 'RSI']
+    name = ['MME20', 'MME50', 'MME100']
     indics_path = path + "/" + data_name
     print ("Cheking indicators")
     if os.path.exists(path) is False:
@@ -206,10 +216,11 @@ def check_indics(data_name, stock):
         indics = build_indics(stock, name)
         save_indics(indics_path+"/indics", indics)
     else:
-        if os.path.exists(indics_path) is False:
-            print ("%s not founded" % indics_path)
-            print ("Building %s" % indics_path)
-            os.mkdir(indics_path)
+        if os.path.exists(indics_path + "/indics") is False:
+            print ("%s not founded" % (indics_path + "/indics"))
+            if os.path.exists(indics_path) is False:
+                print ("Building %s" % indics_path)
+                os.mkdir(indics_path)
             indics = build_indics(stock, name)
             save_indics(indics_path+"/indics", indics)
         else:
@@ -223,10 +234,16 @@ def check_indics(data_name, stock):
 
 # Getting data
 
-def open_row(files, names):
+def open_row(files, names, d):
     #files = "./dataset/"+"EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
-    print ("Opening :", files)
+    print ("Opening : %s" % files)
     csv = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';')
+    csv.drop(csv.columns[[0, 5]], axis = 1, inplace = True)
+    indics = check_indics(d, csv)
+    indics['MME20'] /= 10000
+    indics['MME50'] /= 10000
+    indics['MME100'] /= 10000
+    csv = csv.join(indics)
     return csv
 
 # Get all data
@@ -249,6 +266,9 @@ def get_all_data(path, names):
                 csv = pd.read_csv(n, names=names, header = 0, error_bad_lines=False, sep=';')
                 csv.drop(csv.columns[[0, 5]], axis = 1, inplace = True)
                 indics = check_indics(d, csv)
+                indics['MME20'] /= 10000
+                indics['MME50'] /= 10000
+                indics['MME100'] /= 10000
                 csv = csv.join(indics)
                 if data is None:
                     data = csv
@@ -256,6 +276,25 @@ def get_all_data(path, names):
                     data = data.append(csv, ignore_index=True)
     print ("All files opened")
     return data
+
+# Change tick to 10s
+
+def build_10s():
+
+
+def save_10s(stock, path):
+    stock.to_csv(path, sep = ';', mode = 'w')
+    print ("Data saved in %s" % path)
+
+def load_10s(path):
+    names = []
+    stock = pd.read_csv(path, names=names, header = 0, error_bad_lines=False, sep=';')
+    print ("Data loaded from %s" % path)
+    return stock
+
+def check_10s():
+
+
 
 def is_sort(data):
     a = 0
