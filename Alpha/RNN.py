@@ -16,7 +16,7 @@ class RNN():
         self.model = None
         self.data = None
         self.path = None
-        self.model_path = './saved_models/open/DAX30_O_test2.HDF5'
+        self.model_path = './saved_models/open/DAX30_O_test3.HDF5'
         self.model_name = (self.model_path.replace("./saved_models/", "")).replace(".HDF5", "")
         self.window = 50
         self.predict = None
@@ -30,12 +30,12 @@ class RNN():
         #new.set_model(self.model)
         #self.tbCallback.append(new)
 
-    def get_data(self, d):
+    def get_data(self, f):
         names = ['Time', 'Open', 'High', 'Low', 'Close', '']
-        self.data = open_row(self.path, names, d)
+        self.data = check_10s(self.path, f)
         self.last = self.data.copy(deep=True)
-        self.data.drop(self.data.columns[[0]], axis=1, inplace=True)
-        self.last.drop(self.last.columns[[1, 2, 3, 4, 5, 6]], axis=1, inplace=True)
+        self.data.drop(self.data.columns[[0, 1]], axis=1, inplace=True)
+        self.last.drop(self.last.columns[[0, 2, 3, 4]], axis=1, inplace=True)
         self.last['Open'] /= 10000
         self.data['High'] /= 10000
         self.data['Close'] /= 10000
@@ -52,7 +52,7 @@ class RNN():
         return self.predict
 
     def train(self, X_train, y_train, X_test, y_test):
-        self.model.fit(X_train, y_train, batch_size = 64, epochs = self.epochs, validation_split = 0.1, verbose = 1)
+        self.model.fit(X_train, y_train, batch_size = 64, epochs = self.epochs, validation_split = 0.2, verbose = 1)
         trainScore = self.model.evaluate(X_train, y_train, verbose=0)
         print('Train Score : %.4f MSE MSE (%.4f RMSE)' % (trainScore[0], math.sqrt(trainScore[0])))
         testScore = self.model.evaluate(X_test, y_test, verbose=0)
@@ -78,22 +78,29 @@ def get_accuracy(predict, model, X_test, y_test):
     i = 0
     acc = 0
     accu = 0
+    lower = 100000
+    higher = 0
     while i < len(ret) - 1:
         i += 1
         acc += ret[i] - y_test[i]
-        accu += abs(ret[i] / y_test[i])
+        accu += ret[i] / y_test[i]
+        if lower > ret[i] - y_test[i]:
+            lower = ret[i]
+        if higher < ret[i] - y_test[i]:
+            higher = ret[i]
         predict += 1
     accu /= i
     acc /= i
     print ("Accuracy : ", accu)
     print ("Ecart pips moyen :", acc * 10000)
+    print ("Lower :",lower, "Higher :", higher)
     return ret
 
 def load_m(model_path, predict):
     if os.path.isfile(model_path):
         model = load_model(model_path)
     else:
-        model = build_model([7, predict, 1])
+        model = build_model([4, predict, 1])
         open(model_path, 'w')
         save_m(model, model_path)
     return model
@@ -123,29 +130,32 @@ def full_run():
     new = RNN()
     new.get_model()
     #new.Callback()
-    new.path = "./dataset/DAX30"
+    new.path = "./dataset/DAX30/Tick"
+    new.epochs = 10
     dirs = os.listdir(new.path)
     data = None
     dirs.sort()
     for d in dirs:
-        new.path = "./dataset/DAX30"
+        new.path = "./dataset/DAX30/Tick"
         n = str(new.path)+"/"+str(d)
-        files = os.listdir(n)
-        for f in files:
-            if ".csv" in f:
-                if "_2017_" in f:
-                    new.epochs = 20
-                else:
-                    new.epochs = 10
-                new.path = n + "/" + str(f)
-                X_train, y_train, X_test, y_test = new.get_data(d)
-                new.train(X_train, y_train, X_test, y_test)
-                save_m(new.model, new.model_path)
-                ret = get_accuracy(new.window, new.get_model(), X_test, y_test)
-                plt.plot(ret, color='green', label='predictions')
-                plt.plot(y_test, color='red', label='y_test')
-                plt.legend(loc='upper left')
-                plt.show()
-                #new.tbCallback[1] = keras.callbacks.TensorBoard(log_dir="./Graph/"+str(new.model_name+"/"+str(i)), histogram_freq=1, write_graph=False, write_images=False, write_grads=True)
+        path = os.listdir(n)
+        path.sort()
+        for p in path:
+            new.path = "./dataset/DAX30/Tick"
+            n = str(new.path)+"/"+str(d) +"/"+str(p)
+            files = os.listdir(n)
+            for f in files:
+                if ".csv" in f:
+                    new.path = n + "/" + str(f)
+                    X_train, y_train, X_test, y_test = new.get_data(f)
+                    new.train(X_train, y_train, X_test, y_test)
+                    save_m(new.model, new.model_path)
+                    ret = get_accuracy(new.window, new.get_model(), X_test, y_test)
+                    '''
+                    plt.plot(ret, color='green', label='predictions')
+                    plt.plot(y_test, color='red', label='y_test')
+                    plt.legend(loc='upper left')
+                    plt.show()
+                    '''
+                    #new.tbCallback[1] = keras.callbacks.TensorBoard(log_dir="./Graph/"+str(new.model_name+"/"+str(i)), histogram_freq=1, write_graph=False, write_images=False, write_grads=True)
 
-full_run()

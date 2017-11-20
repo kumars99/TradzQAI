@@ -279,20 +279,94 @@ def get_all_data(path, names):
 
 # Change tick to 10s
 
-def build_10s():
+def open_tick(path):
+    names = ['Time', 'BID', 'ASK', 'Volume']
+    print ("Opening : %s" % path)
+    tick = pd.read_csv(path, names=names, header = 0, error_bad_lines=False, sep=',')
+    tick.drop(tick.columns[[2, 3]], axis = 1, inplace = True)
+    return tick
+
+def build_10s(path):
+    tick = open_tick(path)
+    hi = []
+    lo = []
+    op = []
+    cl = []
+    t = []
+    i = 0
+    o = tick['BID'][i]
+    h = o
+    l = o
+    while i <len(tick['BID']) - 1:
+        if float(h) < float(tick['BID'][i]):
+            h = tick['BID'][i]
+        if float(l) > float(tick['BID'][i]):
+            l = tick['BID'][i]
+        if tick['Time'][i][13] != tick['Time'][i + 1][13]:
+            if ((int(tick['Time'][i][13]) + 1) % 6) != int(tick['Time'][i + 1][13]):
+                ti = tick['Time'][i]
+                n = int(tick['Time'][i][13])
+                while n != int(tick['Time'][i + 1][13]):
+                    n = (n + 1) % 6
+                    ti = ti[:13] + str(n) + ti[14:]
+                    cl.append(tick['BID'][i])
+                    op.append(o)
+                    hi.append(h)
+                    lo.append(l)
+                    t.append(ti)
+            else:
+                cl.append(tick['BID'][i])
+                op.append(o)
+                hi.append(h)
+                lo.append(l)
+                t.append(tick['Time'][i])
+            o = tick['BID'][i + 1]
+            h = o
+            l = o
+        i += 1
+    t = pd.DataFrame(t, columns=['Time'])
+    low = pd.DataFrame(lo, columns=['Low'])
+    high = pd.DataFrame(hi, columns=['High'])
+    close = pd.DataFrame(cl, columns=['Close'])
+    opening = pd.DataFrame(op, columns=['Open'])
+    ret = t.join(opening)
+    ret = ret.join(high)
+    ret = ret.join(low)
+    ret = ret.join(close)
+    return ret
 
 
-def save_10s(stock, path):
+def save_10s(path, stock):
     stock.to_csv(path, sep = ';', mode = 'w')
     print ("Data saved in %s" % path)
 
 def load_10s(path):
-    names = []
+    names = ['Time', 'Open', 'High', 'Low', 'Close']
     stock = pd.read_csv(path, names=names, header = 0, error_bad_lines=False, sep=';')
     print ("Data loaded from %s" % path)
     return stock
 
-def check_10s():
+def check_10s(path, f):
+    tick_path = "./dataset/DAX30/10S"
+    name = (path.replace("./dataset/DAX30/Tick", "")).replace(f, "")
+    print ("Cheking 10S bar")
+    if os.path.exists(tick_path) is False:
+        print ("%s not founded" % tick_path)
+        print ("Building %s" % tick_path)
+        os.makedirs(tick_path+name)
+        ret = build_10s(path)
+        save_10s(tick_path+name+f, ret)
+    else:
+        if os.path.exists(tick_path + name + f) is False:
+            print ("%s not founded" % (tick_path + name))
+            print ("Building %s" % tick_path + name)
+            os.mkdir(tick_path+name)
+            ret = build_10s(path)
+            save_10s(tick_path+name+f, ret)
+        else:
+            print ("%s founded" % (tick_path+name))
+            ret = load_10s(tick_path+name+f)
+    return ret
 
 
 
@@ -337,7 +411,6 @@ def tick_to_1m(data):
     low = []
     h = 0
     l = data['price'][0]
-    tmp = None
     for i in range(len(data['time']) - 1):
         if h < data['price'][i]:
             h = data['price'][i]
