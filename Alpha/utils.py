@@ -3,28 +3,6 @@ import pandas as pd
 import time
 import os
 
-class environnement():
-
-    def __init__(self):
-        self.new_ticks = None
-        self.new_1m = None
-        self.path = "./dataset/"
-
-
-    def set_1m(self, onem):
-        self.new_1m = onem
-        return self.new_1m
-
-    def get_1m(self):
-        return self.new_1m
-
-    def set_ticks(self, ticks):
-        self.new_ticks = ticks
-        return self.new_ticks
-
-    def get_ticks(self):
-        return self.new_ticks
-
 ##### Indicators #####
 
 def moyenne(value, index, period):
