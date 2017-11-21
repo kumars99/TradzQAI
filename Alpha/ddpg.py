@@ -281,8 +281,8 @@ class DDPG(object):
         
         # build graph for citic training
         self.action = tf.placeholder(tf.float32, [None, self.n_stock])
+        print ("raw:", raw, "\nsmoothed:",smoothed, "\ndown:", down, "\nslef.action:", self.action)
         input_q = [raw,] +  smoothed + down + [self.action,]
-        print ("OK1")
         self.Q = tf.squeeze(self.critic(input_q))
         # target network
         # for double q-learning we use actor network not for target network
@@ -331,7 +331,6 @@ class DDPG(object):
         recieve convereted tensor: raw_data, smooted_data, and downsampled_data
         """
         # lower layer
-        print ("OK2")
         lower_model = [self.build_network(self.model_config['critic_lower'], input_shape=(self.history_length, self.n_stock, 1)) for _ in range(1 + self.n_smooth + self.n_down)]
         merged = concatenate(lower_model)
         # upper layer
