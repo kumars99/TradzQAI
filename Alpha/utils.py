@@ -212,16 +212,19 @@ def check_indics(data_name, stock):
 
 # Getting data
 
-def open_row(files, names, d):
+def open_row(files):
     #files = "./dataset/"+"EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
+    names = ['Time', 'Open', 'High', 'Low', 'Close', '']
     print ("Opening : %s" % files)
     csv = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';')
     csv.drop(csv.columns[[0, 5]], axis = 1, inplace = True)
+    '''
     indics = check_indics(d, csv)
     indics['MME20'] /= 10000
     indics['MME50'] /= 10000
     indics['MME100'] /= 10000
     csv = csv.join(indics)
+    '''
     return csv
 
 # Get all data
@@ -349,10 +352,8 @@ def check_10s(path, f):
 
 
 def is_sort(data):
-    a = 0
     for i in range(len(data) - 1):
-        a += 1
-        if data[i] > data[a]:
+        if data[i] > data[i + 1]:
             return False
     return True
 

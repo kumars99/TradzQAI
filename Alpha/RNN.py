@@ -8,7 +8,9 @@ from keras.layers.core import Dense, Dropout, Activation
 from keras.layers import LSTM, CuDNNLSTM
 import keras
 from utils import *
+from environnement import *
 
+env = environnement()
 
 class RNN():
 
@@ -33,13 +35,13 @@ class RNN():
     def get_data(self, f):
         names = ['Time', 'Open', 'High', 'Low', 'Close', '']
         self.data = check_10s(self.path, f)
-        self.last = self.data.copy(deep=True)
-        self.data.drop(self.data.columns[[0, 1]], axis=1, inplace=True)
-        self.last.drop(self.last.columns[[0, 2, 3, 4]], axis=1, inplace=True)
-        self.last['Open'] /= 10000
+        self.data['Open'] /= 10000
         self.data['High'] /= 10000
         self.data['Close'] /= 10000
         self.data['Low'] /= 10000
+        self.last = self.data.copy(deep=True)
+        self.data.drop(self.data.columns[[0, 1]], axis=1, inplace=True)
+        self.last.drop(self.last.columns[[0, 2, 3, 4]], axis=1, inplace=True)
         self.data = self.data.join(self.last)
         return reshape_data(self.data[::-1], self.window)
 
