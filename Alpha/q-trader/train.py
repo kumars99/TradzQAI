@@ -93,10 +93,7 @@ for e in range(episode_count + 1):
                 '''
                 print ("Sell: " + formatPrice(sell_price) + "| Profit: " + formatPrice(profit), "| total:", formatPrice(total_profit)," Data :", t, "/", l)
             else:
-                if POS > max_order:
-                    reward = -(POS ** unposed)
-                else:
-                    reward = -(2**unposed)
+                reward = -(POS * unposed)
                 unposed += 1
             '''
                 print ("Data :", t, "/", l)
