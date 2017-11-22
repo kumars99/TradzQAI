@@ -12,12 +12,11 @@ stock_name, window_size, episode_count = sys.argv[1], int(sys.argv[2]), int(sys.
 agent = Agent(window_size)
 data = getStockDataVec(stock_name)
 l = len(data) - 1
-batch_size = 32
+batch_size = 64
 contract_price = 5
 columns = ['Price', 'POS']
 max_order = 5
 spread = 1
-unposed = 1
 
 def src_sell(inventory):
     i = 0
@@ -56,7 +55,6 @@ for e in range(episode_count + 1):
             sell_price = float(data[t]) - spread / 2
 
             if action == 1: # buy
-                unposed = 1
                 POS_SELL = src_sell(agent.inventory['POS'])
                 profit = 0
                 if POS_SELL == -1:
@@ -73,7 +71,6 @@ for e in range(episode_count + 1):
                 print ("Buy: " + formatPrice(buy_price) + "| Profit: " + formatPrice(profit), "| total:", formatPrice(total_profit)," Data :", t, "/", l)
 
             elif action == 2: # sell
-                unposed = 1
                 POS_BUY = src_buy(agent.inventory['POS'])
                 profit = 0
                 if POS_BUY == -1:
@@ -93,8 +90,10 @@ for e in range(episode_count + 1):
                 '''
                 print ("Sell: " + formatPrice(sell_price) + "| Profit: " + formatPrice(profit), "| total:", formatPrice(total_profit)," Data :", t, "/", l)
             else:
-                reward = -(POS * unposed)
-                unposed += 1
+                if POS > max_order:
+                    reward = -POS
+                else:
+                    reward = -1
             '''
                 print ("Data :", t, "/", l)
             '''
