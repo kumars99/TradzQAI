@@ -35,7 +35,8 @@ class train(environnement):
     def update_env(self, env):
         env.POS_SELL = self.env.POS_SELL
         env.POS_BUY = self.env.POS_BUY
-        env.data = self.data
+        env.cdatai = self.env.cdatai
+        env.data = self.l
         env.contract_price = self.contract_price
         env.max_order = self.max_order
         env.spread = self.spread
@@ -73,6 +74,7 @@ class train(environnement):
             self.agent.inventory = pd.DataFrame(columns = self.columns)
 
             for t in range(self.l):
+                self.env.cdatai = t
                 self.cdata = self.data[t]
                 self.env.POS_SELL = -1
                 self.env.POS_BUY = -1

@@ -30,6 +30,9 @@ class interface(Frame):
 
         self.inventory = LabelFrame(window, text="Agent inventory", padx=2, pady=2)
         self.inventory.pack(fill="both", expand="no", side=RIGHT)
+        
+        self.da = LabelFrame(window, text="Data", padx=2, pady=2)
+        self.da.pack(fill="both", expand="no", side=BOTTOM)
 
         self.order = LabelFrame(window, text="Agent trade", padx=2, pady=2)
         self.order.pack(fill="both", expand="no")
@@ -60,6 +63,9 @@ class interface(Frame):
     def init_ltxt(self):
         self.manage_orders()
 
+        self.d = StringVar()
+        self.d.set("Current data : " +str(env.cdatai)+ " / " +str(env.data))
+
         self.p = StringVar()
         self.p.set("Profit : " + str(env.profit))
 
@@ -86,6 +92,7 @@ class interface(Frame):
         Label(self.l, textvariable=self.tp).pack()
         Label(self.inventory, textvariable=self.inv).pack()
         Label(self.order, textvariable=self.ord).pack()
+        Label(self.da, textvariable=self.d).pack()
         
 
     def go_run(self):
@@ -105,6 +112,7 @@ class interface(Frame):
         self.o.set("Order type : " + str(env.corder))
         self.inv.set(str(env.inventory))
         self.ord.set(str(self.ordr))
+        self.d.set("Current data : " +str(env.cdatai)+ " / " +str(env.data))
         self.l.update_idletasks()
 
 class my_thread(Thread):
