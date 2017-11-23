@@ -14,6 +14,7 @@ class train(environnement):
         self.interface = interface
         self.window_size = env.window_size
         self.agent = Agent(self.window_size)
+        self.agent.model_name = "model_" + str(self.stock_name) + "_ws_" + str(self.window_size)
         self.stock_name = env.stock_name
         self.data = getStockDataVec(self.stock_name)
         self.l = len(self.data) - 1
@@ -64,6 +65,7 @@ class train(environnement):
 
     def training(self):
         for e in range(self.episode_count + 1):
+            g = 0
 
             if self.b == 1:
                 while (self.b==1):
@@ -92,6 +94,7 @@ class train(environnement):
                 self.profit = 0
 
                 if action == 1: # buy
+                    g = 0
                     self.corder = "BUY"
                     POS_SELL = self.src_sell(self.agent.inventory['POS'])
                     self.env.POS_SELL = POS_SELL
@@ -104,11 +107,14 @@ class train(environnement):
                         self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_SELL])).reset_index(drop=True)
                     if self.profit > 0:
                         self.reward = self.profit
-                    if POS > self.max_order:
-                        self.reward = -(POS)
+                    else:
+                        self.reward = self.profit / self.contract_price
+                    if POS > self.max_order and POS_SELL == -1:
+                        self.reward += -(POS)
                    # print ("Buy: " + formatPrice(self.buy_price) + "| Profit: " + formatPrice(self.profit), "| total:", formatPrice(self.total_profit)," Data :", t, "/", self.l)
 
                 elif action == 2: # sell
+                    g = 0
                     self.corder = "SELL"
                     POS_BUY = self.src_buy(self.agent.inventory['POS'])
                     self.env.POS_BUY = POS_BUY
@@ -121,14 +127,16 @@ class train(environnement):
                         self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_BUY])).reset_index(drop=True)
                     if self.profit > 0:
                         self.reward = self.profit
-                    if POS > self.max_order:
-                        self.reward = -(POS)
-                    #print ("Sell: " + formatPrice(self.sell_price) + "| Profit: " + formatPrice(self.profit), "| total:", formatPrice(self.total_profit)," Data :", t, "/", self.l)
-                else:
-                    if POS > self.max_order:
-                        self.reward = -POS
                     else:
-                        self.reward = -1
+                        self.reward = self.profit / self.contract_price
+                    if POS > self.max_order and POS_BUY == -1:
+                        self.reward += -(POS)
+                    #print ("Sell: " + formatPrice(self.sell_price) + "| Profit: " + formatPrice(self.profit), "| total:", formatPrice(self.total_profit)," Data :", t, "/", self.l)
+
+                else:
+                    self.reward = -(int(sqrt(g)**sqrt(POS)))
+                    g += 1
+
                 done = True if t == self.l - 1 else False
                 self.agent.memory.append((state, action, self.reward, next_state, done))
                 state = next_state
@@ -137,16 +145,5 @@ class train(environnement):
                 self.update_env(self.env)
                 self.interface.update()
 
-            if e % 10 == 0:
-                self.agent.model.save("models/model_" + str(self.stock_name) + "_ws_" + str(self.window_size) +"_ep_" + str(e))
-
-        
-
-'''
-if len(sys.argv) != 4:
-	print ("Usage: python train.py [stock] [window] [episodes]")
-	exit()
-
-
-t = train(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
-'''
+                if t % 1000 == 0:
+                    self.agent.model.save("models/model_" + str(self.stock_name) + "_ws_" + str(self.window_size))

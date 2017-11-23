@@ -44,12 +44,14 @@ class interface(Frame):
         self.w.pack(side=TOP, pady=2, padx=2)
         self.w.pack()
         '''
-        self.parsing = Button(self, text="Pause", command=self.m.p)
-        self.parsing.pack(side=RIGHT, fill=BOTH)
-        self.but = Button(self, text="Resume", command=self.m.r)
-        self.but.pack(fill=BOTH, side=RIGHT)
+        self.quit = Button(self, text="Quit", command=quit)
+        self.quit.pack(side=RIGHT, fill=BOTH)
         self.run_ai = Button(self, text="Run", command=self.go_run)
-        self.run_ai.pack(side=RIGHT, fill=BOTH)
+        self.run_ai.pack(side=LEFT, fill=BOTH)
+        self.parsing = Button(self, text="Pause", command=self.m.p)
+        self.parsing.pack(side=LEFT, fill=BOTH)
+        self.but = Button(self, text="Resume", command=self.m.r)
+        self.but.pack(fill=BOTH, side=LEFT)
 
     def manage_orders(self):
         if len(self.ordr['Orders']) > 40:
