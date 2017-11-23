@@ -18,7 +18,7 @@ class RNN():
         self.model = None
         self.data = None
         self.path = None
-        self.model_path = './saved_models/open/DAX30_O_test3.HDF5'
+        self.model_path = './models/RNN/open/DAX30_O_test2.HDF5'
         self.model_name = (self.model_path.replace("./saved_models/", "")).replace(".HDF5", "")
         self.window = 50
         self.predict = None
@@ -149,15 +149,16 @@ def full_run():
             for f in files:
                 if ".csv" in f:
                     new.path = n + "/" + str(f)
+                    check_10s(new.path, f)
+                    '''
                     X_train, y_train, X_test, y_test = new.get_data(f)
                     new.train(X_train, y_train, X_test, y_test)
                     save_m(new.model, new.model_path)
                     ret = get_accuracy(new.window, new.get_model(), X_test, y_test)
-                    '''
                     plt.plot(ret, color='green', label='predictions')
                     plt.plot(y_test, color='red', label='y_test')
                     plt.legend(loc='upper left')
                     plt.show()
                     '''
                     #new.tbCallback[1] = keras.callbacks.TensorBoard(log_dir="./Graph/"+str(new.model_name+"/"+str(i)), histogram_freq=1, write_graph=False, write_images=False, write_grads=True)
-
+full_run()
