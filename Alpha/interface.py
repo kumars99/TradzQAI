@@ -49,11 +49,11 @@ class interface(Frame):
         self.run_ai.pack(side=RIGHT, fill=BOTH)
 
     def manage_orders(self):
-        if len(self.ordr['Orders']) > 30:
+        if len(self.ordr['Orders']) > 40:
             self.ordr = (self.ordr.drop(0)).reset_index(drop=True)
         if env.POS_BUY > -1 or env.POS_SELL > -1:
             if len(env.inventory['Price']) > 0:
-                new = ["Close : " + str(env.cdata) + " -> " + str(env.corder) + " : " + str((env.inventory['Price']).iloc[0])]
+                new = [str((env.inventory['POS']).iloc[0]) + " : " + str(env.cdata) + " -> " + str(env.corder) + " : " + str((env.inventory['Price']).iloc[0]) + " | Profit : " + str(env.profit)]
                 tmp = pd.DataFrame(new, columns = ['Orders'])
                 self.ordr = self.ordr.append(tmp, ignore_index=True)
 
