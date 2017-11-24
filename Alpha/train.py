@@ -13,9 +13,8 @@ class train(environnement):
         self.env = env
         self.interface = interface
         self.window_size = env.window_size
-        self.agent = Agent(self.window_size)
-        self.agent.model_name = "model_" + str(self.stock_name) + "_ws_" + str(self.window_size)
         self.stock_name = env.stock_name
+        self.agent = Agent(self.window_size, model_name= "model_" + str(self.stock_name) + "_ws_" + str(self.window_size))
         self.data = getStockDataVec(self.stock_name)
         self.l = len(self.data) - 1
         self.batch_size = 32
@@ -32,15 +31,13 @@ class train(environnement):
         self.b = 0
         self.corder = ""
         self.cdata = 0
+        self.cd = 0
 
     def update_env(self, env):
         env.POS_SELL = self.env.POS_SELL
         env.POS_BUY = self.env.POS_BUY
         env.cdatai = self.env.cdatai
         env.data = self.l
-        env.contract_price = self.contract_price
-        env.max_order = self.max_order
-        env.spread = self.spread
         env.total_profit = self.total_profit
         env.reward = self.reward
         env.profit = self.profit
@@ -50,14 +47,92 @@ class train(environnement):
         env.corder = self.corder
         env.inventory = self.agent.inventory
         env.cdata = self.cdata
+        env.cd = self.cd
+
+    def inventory_managment(self, order):
+        POS = len(self.agent.inventory['POS']) # Number of contract in inventory
+        if "BUY" in order:
+            POS_SELL = self.src_sell(self.agent.inventory['POS']) # Check if SELL order in inventory
+            self.env.POS_SELL = POS_SELL # Put check in env
+
+            if POS_SELL == -1: # No SELL order in inventory
+                buy = (pd.DataFrame([self.buy_price], columns = [self.columns[0]])).join(pd.DataFrame(["BUY"], columns = [self.columns[1]]))
+                self.agent.inventory = self.agent.inventory.append(buy, ignore_index=True)
+
+            else:# Sell order in inventory
+                '''
+                Selling order from inventory list
+                Calc profit and total profit
+                Add last Sell order to env
+                '''
+                self.profit = (self.agent.inventory['Price'][POS_SELL] - self.sell_price) * self.contract_price 
+                self.total_profit += self.profit
+                self.cd = (self.agent.inventory['Price']).iloc[POS_SELL]
+                self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_SELL])).reset_index(drop=True)
+
+            '''
+            Add reward, if profit is positiv, add it with order price 
+            else add it without to no penaliz to much
+            '''
+            if self.profit > 0:
+                self.reward = self.profit
+            else:
+                self.reward = self.profit / self.contract_price
+
+            if POS > self.max_order and POS_SELL == -1:
+                '''
+                Add a negativ reward for contract overtaking
+                '''
+                self.reward += -(POS)
+
+        elif "SELL" in order:
+            POS_BUY = self.src_buy(self.agent.inventory['POS']) # Check if BUY order in inventory
+            self.env.POS_BUY = POS_BUY # Put check in env
+
+            if POS_BUY == -1:# No BUY order in inventory
+                sell = (pd.DataFrame([self.sell_price], columns = [self.columns[0]])).join(pd.DataFrame(["SELL"], columns = [self.columns[1]]))
+                self.agent.inventory = self.agent.inventory.append(sell, ignore_index=True)
+
+            else:# Sell order in inventory
+                '''
+                Selling order from inventory list
+                Calc profit and total profit
+                Add last Sell order to env
+                '''
+                self.profit = (self.buy_price - self.agent.inventory['Price'][POS_BUY]) * self.contract_price
+                self.total_profit += self.profit
+                self.cd = (self.agent.inventory['Price']).iloc[POS_BUY]
+                self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_BUY])).reset_index(drop=True)
+
+            '''
+            Add reward, if profit is positiv, add it with order price 
+            else add it without to no penaliz to much
+            '''
+            if self.profit > 0:
+                self.reward = self.profit
+            else:
+                self.reward = self.profit / self.contract_price
+
+            if POS > self.max_order and POS_BUY == -1:
+                '''
+                Add a negativ reward for contract overtaking
+                '''
+                self.reward += -(POS)
+
 
     def src_sell(self, inventory):
+        '''
+        Search for first sell order
+        '''
         for i  in range(len(inventory)):
             if "SELL" in inventory.loc[i]:
                 return (i)
         return (-1)
 
     def src_buy(self, inventory):
+        '''
+        Search for first buy order
+        '''
         for i  in range(len(inventory)):
             if "BUY" in inventory.loc[i]:
                 return (i)
@@ -71,9 +146,9 @@ class train(environnement):
                 while (self.b==1):
                     time.sleep(self.b)
 
-            print ("Episode " + str(e) + "/" + str(self.episode_count))
+            #print ("Episode " + str(e) + "/" + str(self.episode_count))
             state = getState(self.data, 0, self.window_size + 1)
-            self.agent.inventory = pd.DataFrame(columns = self.columns)
+            self.agent.inventory = pd.DataFrame(columns = self.columns) # Init agent inventory
 
             for t in range(self.l):
                 self.env.cdatai = t
@@ -86,64 +161,40 @@ class train(environnement):
                         time.sleep(self.b)
 
                 POS = len(self.agent.inventory['POS'])
-                action = self.agent.act(state)
-                next_state = getState(self.data, t + 1, self.window_size + 1)
-                self.buy_price = float(self.data[t]) + self.spread / 2
-                self.sell_price = float(self.data[t]) - self.spread / 2
-                self.reward = 0
-                self.profit = 0
+
+                action = self.agent.act(state) # Get action from agent
+                next_state = getState(self.data, t + 1, self.window_size + 1) # Get new state 
+
+                self.buy_price = self.data[t] - (self.spread / 2) # Update buy price with spread
+                self.sell_price = self.data[t] + (self.spread / 2) # Update sell price with spread
+
+                self.reward = 0 # Reset reward
+                self.profit = 0 # Reset current profit
 
                 if action == 1: # buy
                     g = 0
                     self.corder = "BUY"
-                    POS_SELL = self.src_sell(self.agent.inventory['POS'])
-                    self.env.POS_SELL = POS_SELL
-                    if POS_SELL == -1:
-                        buy = (pd.DataFrame([self.buy_price], columns = [self.columns[0]])).join(pd.DataFrame(["BUY"], columns = [self.columns[1]]))
-                        self.agent.inventory = self.agent.inventory.append(buy, ignore_index=True)
-                    else:
-                        self.profit = (self.agent.inventory['Price'][POS_SELL] - self.sell_price) * self.contract_price
-                        self.total_profit += self.profit
-                        self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_SELL])).reset_index(drop=True)
-                    if self.profit > 0:
-                        self.reward = self.profit
-                    else:
-                        self.reward = self.profit / self.contract_price
-                    if POS > self.max_order and POS_SELL == -1:
-                        self.reward += -(POS)
-                   # print ("Buy: " + formatPrice(self.buy_price) + "| Profit: " + formatPrice(self.profit), "| total:", formatPrice(self.total_profit)," Data :", t, "/", self.l)
+                    self.inventory_managment(self.corder)
 
                 elif action == 2: # sell
                     g = 0
                     self.corder = "SELL"
-                    POS_BUY = self.src_buy(self.agent.inventory['POS'])
-                    self.env.POS_BUY = POS_BUY
-                    if POS_BUY == -1:
-                        sell = (pd.DataFrame([self.sell_price], columns = [self.columns[0]])).join(pd.DataFrame(["SELL"], columns = [self.columns[1]]))
-                        self.agent.inventory = self.agent.inventory.append(sell, ignore_index=True)
-                    else:
-                        self.profit = (self.buy_price - self.agent.inventory['Price'][POS_BUY]) * self.contract_price
-                        self.total_profit += self.profit
-                        self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_BUY])).reset_index(drop=True)
-                    if self.profit > 0:
-                        self.reward = self.profit
-                    else:
-                        self.reward = self.profit / self.contract_price
-                    if POS > self.max_order and POS_BUY == -1:
-                        self.reward += -(POS)
-                    #print ("Sell: " + formatPrice(self.sell_price) + "| Profit: " + formatPrice(self.profit), "| total:", formatPrice(self.total_profit)," Data :", t, "/", self.l)
+                    self.inventory_managment(self.corder)
 
                 else:
                     self.reward = -(int(sqrt(g)**sqrt(POS)))
                     g += 1
 
+                self.update_env(self.env) # Updating env from agent for GUI
+                self.interface.update() # Updating GUI from env
+
                 done = True if t == self.l - 1 else False
+
                 self.agent.memory.append((state, action, self.reward, next_state, done))
                 state = next_state
+
                 if len(self.agent.memory) > self.batch_size:
                     self.agent.expReplay(self.batch_size)
-                self.update_env(self.env)
-                self.interface.update()
 
-                if t % 1000 == 0:
+                if t % 1000 == 0: # Save model all 1000 data
                     self.agent.model.save("models/model_" + str(self.stock_name) + "_ws_" + str(self.window_size))
