@@ -8,7 +8,7 @@ from environnement import *
 import pandas as pd
 
 env = environnement()
-env.stock_name = "DAX30_2011_10_10s"
+env.stock_name = "DAX30_2011_12_10s"
 
 class interface(Frame):
 

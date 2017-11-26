@@ -14,7 +14,10 @@ class train(environnement):
         self.interface = interface
         self.window_size = env.window_size
         self.stock_name = env.stock_name
-        self.agent = Agent(self.window_size, model_name= "model_" + str(self.stock_name) + "_ws_" + str(self.window_size))
+        if "eval" in env.mode:
+            self.agent = Agent(self.window_size, is_eval=True, model_name= "model_" + str(self.stock_name) + "_ws_" + str(self.window_size))
+        else:
+            self.agent = Agent(self.window_size, model_name= "model_" + str(self.stock_name) + "_ws_" + str(self.window_size))
         self.agent.mode = env.mode
         self.row = pd.DataFrame()
         self.data, self.rsi = getStockDataVec(self.stock_name)
@@ -234,7 +237,7 @@ class train(environnement):
                 self.agent.memory.append((state, action, self.reward, next_state, done))
                 state = next_state
 
-                if "train" in self.agent.mode:
+                if "train" in self.env.mode:
                     if len(self.agent.memory) > self.batch_size:
                         self.agent.expReplay(self.batch_size)
                     if t % 10000 == 0 and t > 0 : # Save model all 10000 data
