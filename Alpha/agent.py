@@ -15,7 +15,7 @@ class Agent:
         self.action_size = 3 # sit, buy, sell
         self.memory = deque(maxlen=1000)
         self.inventory = None
-        self.mode = "train"
+        self.mode = ""
         self.model_name = model_name
         self.is_eval = is_eval
 
@@ -33,7 +33,9 @@ class Agent:
 
     def _model(self):
         model = Sequential()
-        model.add(Dense(units=256, input_dim=self.state_size))
+        model.add(Dense(units=512, input_dim=self.state_size))
+        model.add(PReLU())
+        model.add(Dense(units=256))
         model.add(PReLU())
         model.add(Dense(units=128))
         model.add(PReLU())

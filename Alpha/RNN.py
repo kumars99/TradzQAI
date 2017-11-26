@@ -86,16 +86,11 @@ def get_accuracy(predict, model, X_test, y_test):
         i += 1
         acc += ret[i] - y_test[i]
         accu += ret[i] / y_test[i]
-        if lower > ret[i] - y_test[i]:
-            lower = ret[i]
-        if higher < ret[i] - y_test[i]:
-            higher = ret[i]
         predict += 1
     accu /= i
     acc /= i
     print ("Accuracy : ", accu)
     print ("Ecart pips moyen :", acc * 10000)
-    print ("Lower :",lower, "Higher :", higher)
     return ret
 
 def load_m(model_path, predict):

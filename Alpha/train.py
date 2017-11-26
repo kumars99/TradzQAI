@@ -15,6 +15,7 @@ class train(environnement):
         self.window_size = env.window_size
         self.stock_name = env.stock_name
         self.agent = Agent(self.window_size, model_name= "model_" + str(self.stock_name) + "_ws_" + str(self.window_size))
+        self.agent.mode = env.mode
         self.row = pd.DataFrame()
         self.data, self.rsi = getStockDataVec(self.stock_name)
         self.l = len(self.data) - 1

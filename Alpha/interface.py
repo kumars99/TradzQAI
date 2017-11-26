@@ -8,7 +8,7 @@ from environnement import *
 import pandas as pd
 
 env = environnement()
-env.stock_name = "DAX30_2011_12_10s"
+env.stock_name = "DAX30_2011_10_10s"
 
 class interface(Frame):
 
@@ -42,12 +42,19 @@ class interface(Frame):
                 self.ordr = self.ordr.append(tmp, ignore_index=True)
 
     def build_start_window(self):
-        self.train = Button(self, text="Train", command=self.build_train_window)
-        self.train.pack()
+        self.start = LabelFrame(self, text="Mode")
+        self.start.pack()
+
+        self.train = Button(self.start, text="Train", command=self.build_train_window)
+        self.train.pack(side=TOP)
+        self.eval = Button(self.start, text="Eval", command=self.build_eval_window)
+        self.eval.pack(side=TOP)
 
     def build_train_window(self):
-        self.train.destroy()
+        self.start.destroy()
         window.geometry("1024x720")
+
+        env.mode = "train"
 
         self.quit = Button(self, text="Quit", command=quit)
         self.quit.pack(side=RIGHT, fill=BOTH)
@@ -58,6 +65,28 @@ class interface(Frame):
         self.but = Button(self, text="Resume", command=self.m.resume)
         self.but.pack(fill=BOTH, side=LEFT)
 
+        self.dday = 1
+        self.agent_value_init()
+        self.agent_inventory_init()
+        self.agent_orders_init()
+        self.data_init()
+
+    def build_eval_window(self):
+        self.start.destroy()
+
+        window.geometry("1024x720")
+
+        env.mode = "eval"
+
+        self.quit = Button(self, text="Quit", command=quit)
+        self.quit.pack(side=RIGHT, fill=BOTH)
+        self.run_ai = Button(self, text="Run", command=self.go_run)
+        self.run_ai.pack(side=LEFT, fill=BOTH)
+        self.parsing = Button(self, text="Pause", command=self.m.pause)
+        self.parsing.pack(side=LEFT, fill=BOTH)
+        self.but = Button(self, text="Resume", command=self.m.resume)
+        self.but.pack(fill=BOTH, side=LEFT)
+        
         self.dday = 1
         self.agent_value_init()
         self.agent_inventory_init()
@@ -111,6 +140,7 @@ class interface(Frame):
 
         Label(self.l, textvariable=self.o).pack()
 
+        self.agent_env()
         self.agent_profit()
         self.agent_reward()
         self.agent_winrate()
@@ -205,6 +235,31 @@ class interface(Frame):
         Label(self.rew, textvariable=self.dr).pack(anchor='w')
         Label(self.rew, textvariable=self.tr).pack(anchor='w')
 
+    def agent_env(self):
+        self.en = LabelFrame(self.l, text="Environnement", padx=2, pady=2)
+        self.en.pack(fill=X)
+
+        self.mode = StringVar()
+        self.mode.set("Mode : " + env.mode)
+
+        self.model = StringVar()
+        self.model.set("Model : " + env.stock_name)
+
+        self.mo = StringVar()
+        self.mo.set("Max order : " + str(env.max_order))
+
+        self.cp = StringVar()
+        self.cp.set("Contract price : " + str(env.contract_price))
+
+        self.sp = StringVar()
+        self.sp.set("Spread : " + str(env.spread))
+
+        Label(self.en, textvariable=self.mode).pack(anchor='w')
+        Label(self.en, textvariable=self.model).pack(anchor='w')
+        Label(self.en, textvariable=self.mo).pack(anchor='w')
+        Label(self.en, textvariable=self.cp).pack(anchor='w')
+        Label(self.en, textvariable=self.sp).pack(anchor='w')
+
     def go_run(self):
         self.m.start()
 
@@ -254,7 +309,7 @@ class interface(Frame):
 
         self.ow.set("Win : " + str(env.win))
         self.ol.set("Loose : " + str(env.loose_r))
-        self.aod.set("Avg daily : " + str((env.loose_r + env.win) / self.dday))
+        self.aod.set("Avg daily : " + '{:.2f}'.format((env.loose_r + env.win) / self.dday))
         self.to.set("Total : " + str (env.loose_r + env.win))
         if env.loose_r == 0:
             self.winrate.set ("Winrate : " + str(env.loose_r/1))
