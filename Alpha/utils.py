@@ -114,11 +114,16 @@ def get_all_data(path, names):
 
 # Change tick to 10s
 
-def open_tick(path):
+def open_tick(path, name, date):
     names = ['Time', 'BID', 'ASK', 'Volume']
+    indics = indicators()
     print ("Opening : %s" % path)
     tick = pd.read_csv(path, names=names, header = 0, error_bad_lines=False, sep=',')
     tick.drop(tick.columns[[2, 3]], axis = 1, inplace = True)
+    tick = tick.join(indics.build_indicators(tick['BID']))
+    path = path.replace(name, date+".csv")
+    tick.to_csv(path, sep = ';', mode = 'w')
+    
     return tick
 
 def build_10s(path):

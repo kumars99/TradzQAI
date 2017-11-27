@@ -8,7 +8,7 @@ from environnement import *
 import pandas as pd
 
 env = environnement()
-env.stock_name = "DAX30_2011_12_10s"
+env.stock_name = "dax30_2017_09"
 
 class interface(Frame):
 
@@ -37,7 +37,7 @@ class interface(Frame):
                 POS = env.POS_SELL
                 c = env.buy_price
             if len(env.inventory['Price']) > 0:
-                new = [str((env.inventory['POS']).iloc[POS]) + " : " + str(env.cd) + " -> " + str(env.corder) + " : " + str(c) + " | Profit : " + str(env.profit)]
+                new = [str((env.inventory['POS']).iloc[POS]) + " : " + str(env.cd) + " -> " + str(env.corder) + " : " + str(c) + " | Profit : " + str(float(env.profit))]
                 tmp = pd.DataFrame(new, columns = ['Orders'])
                 self.ordr = self.ordr.append(tmp, ignore_index=True)
 
@@ -100,7 +100,9 @@ class interface(Frame):
         self.inv = StringVar()
         self.inv.set(str(env.inventory))
 
-        Label(self.inventory, textvariable=self.inv).pack()
+        Label(self.inventory, textvariable=self.inv).pack(anchor='n')
+
+        self.agent_winrate()
 
 
     def agent_orders_init(self):
@@ -121,7 +123,7 @@ class interface(Frame):
         self.day = StringVar()
         if env.data == None:
             env.data = 0
-        self.day.set("Day : " + str(self.dday) + " / " + '{:.1f}'.format(env.data / 4680))
+        self.day.set("Day : " + str(self.dday) + " / " + '{:.0f}'.format(env.data / 4680))
 
         self.d = StringVar()
         self.d.set("Current data : " +str(0)+ " / " +str(0))
@@ -134,21 +136,19 @@ class interface(Frame):
         self.l = LabelFrame(window, text="Agent values", padx=2, pady=2)
         self.l.pack(side=LEFT, fill=Y)
 
+        self.aa = StringVar()
+        self.aa.set("Action : " + str(env.act))
 
-        self.o = StringVar()
-        self.o.set("Order type : " + str(env.corder))
-
-        Label(self.l, textvariable=self.o).pack()
+        Label(self.l, textvariable=self.aa).pack()
 
         self.agent_env()
         self.agent_profit()
         self.agent_reward()
-        self.agent_winrate()
 
 
     def agent_winrate(self):
-        self.wr = LabelFrame(self.l , text="Orders", padx=2, pady=2)
-        self.wr.pack(fill=X)
+        self.wr = LabelFrame(self.inventory , text="Orders", padx=2, pady=2)
+        self.wr.pack(fill=X, side=BOTTOM)
 
         self.ow = StringVar()
         self.ow.set("Win : " + str(env.win))
@@ -158,6 +158,18 @@ class interface(Frame):
 
         self.aod = StringVar()
         self.aod.set("Avg daily : " + str((env.loose_r + env.win) / self.dday))
+
+        self.opm = StringVar()
+        if env.cdatai == 0:
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose_r + env.win) / (1 / 6)))
+        else:
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose_r + env.win) / (env.cdatai / ((env.data / 20)/ 9))))
+
+        self.ts = StringVar()
+        if env.data is None:
+            self.ts.set("Trade speed : " + "0" + " ms")
+        else:
+            self.ts.set("Trade speed : " + ':.2f'.format(1/((((env.loose_r + env.win) / ((env.data / 20) / 9)) /60) /100)) + " ms")
 
         self.to = StringVar()
         self.to.set("Total : " + str (env.loose_r + env.win))
@@ -170,8 +182,10 @@ class interface(Frame):
 
         Label(self.wr, textvariable=self.ow).pack(anchor='w')
         Label(self.wr, textvariable=self.ol).pack(anchor='w')
-        Label(self.wr, textvariable=self.aod).pack(anchor='w')
         Label(self.wr, textvariable=self.to).pack(anchor='w')
+        Label(self.wr, textvariable=self.aod).pack(anchor='w')
+        Label(self.wr, textvariable=self.opm).pack(anchor='w')
+        Label(self.wr, textvariable=self.ts).pack(anchor='w')
         Label(self.wr, textvariable=self.winrate).pack(anchor='w')
 
     def agent_profit(self):
@@ -275,7 +289,7 @@ class interface(Frame):
         Day mod
         '''
 
-        if int(env.cdatai / 4680) == self.dday:
+        if int(env.cdatai / (env.data / 20)) == self.dday:
             self.dday += 1
             self.dailyp = 0
             self.daily_reward = 0
@@ -287,7 +301,7 @@ class interface(Frame):
         Agent values
         '''
 
-        self.o.set("Order type : " + str(env.corder))
+        self.aa.set("Action : " + str(env.act))
 
         '''
         Inventory
@@ -307,8 +321,19 @@ class interface(Frame):
         Orders
         '''
 
+        if env.cdatai == 0:
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose_r + env.win) / (1 / 6)))
+        else:
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose_r + env.win) / (env.cdatai / ((env.data / 20)/ 9))))
         self.ow.set("Win : " + str(env.win))
         self.ol.set("Loose : " + str(env.loose_r))
+        if env.data is None:
+            self.ts.set("Trade speed : " + "0" + " ms")
+        else:
+            try:
+                self.ts.set("Trade speed : " + '{:.0f}'.format(1.0/(((((env.loose_r + env.win) / (env.cdatai / ((env.data / 20.0) / 9.0))) /60.0) /100.0))) + " ms")
+            except:
+                self.ts.set("Trade speed : " + "0" + " ms")
         self.aod.set("Avg daily : " + '{:.2f}'.format((env.loose_r + env.win) / self.dday))
         self.to.set("Total : " + str (env.loose_r + env.win))
         if env.loose_r == 0:
@@ -320,7 +345,7 @@ class interface(Frame):
         Data
         '''
 
-        self.day.set("Day : " + str(self.dday) + " / " + '{:.1f}'.format(env.data / 4680))
+        self.day.set("Day : " + str(self.dday) + " / " + '{:.0f}'.format(env.data / (env.data / 20)))
         self.d.set("Current : " +str(env.cdatai)+ " / " +str(env.data))
 
         '''

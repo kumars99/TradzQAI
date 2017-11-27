@@ -40,6 +40,7 @@ class train(environnement):
         self.t = 0
         self.win = env.win
         self.loose_r = env.loose_r
+        self.action = 0
 
     def update_env(self, env):
         env.POS_SELL = self.env.POS_SELL
@@ -58,6 +59,7 @@ class train(environnement):
         env.inventory = self.agent.inventory
         env.cdata = self.cdata
         env.cd = self.cd
+        env.def_act(self.action)
 
     def inventory_managment(self, order):
         POS = len(self.agent.inventory['POS']) # Number of contract in inventory
@@ -65,12 +67,13 @@ class train(environnement):
             POS_SELL = self.src_sell(self.agent.inventory['POS']) # Check if SELL order in inventory
             self.env.POS_SELL = POS_SELL # Put check in env
 
-            if POS_SELL == -1: # No SELL order in inventory
+            if POS_SELL == -1 and POS < self.max_order: # No SELL order in inventory
                 buy = (pd.DataFrame([self.buy_price], columns = [self.columns[0]])).join(pd.DataFrame(["BUY"], columns = [self.columns[1]]))
                 self.agent.inventory = self.agent.inventory.append(buy, ignore_index=True)
+                #self.reward += 1
                 #self.reward_managment(order, (self.row['RSI']).iloc[self.t], (self.row['Volatility']).iloc[self.t])
 
-            else:# Sell order in inventory
+            elif POS_SELL != -1:# Sell order in inventory
                 '''
                 Selling order from inventory list
                 Calc profit and total profit
@@ -82,32 +85,35 @@ class train(environnement):
                 if self.profit < 0:
                     self.loose_r += 1
                 elif self.profit > 0 :
+                    self.reward += self.profit
                     self.win += 1
                 self.cd = (self.agent.inventory['Price']).iloc[POS_SELL]
                 self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_SELL])).reset_index(drop=True)
 
             '''
-            Add reward, if profit is positiv, add it with order price 
-            else add it without to no penaliz to much
+            Add profit reward
             '''
-            self.reward += self.profit * self.contract_price
+            '''
+            self.reward += self.profit
 
             if POS > self.max_order and POS_SELL == -1:
-                '''
-                Add a negativ reward for contract overtaking
-                '''
-                self.reward += -(int(sqrt(POS**self.contract_price)))
+            '''
+            '''
+            Add a negativ reward for contract overtaking
+            '''
+            #self.reward += -(int(sqrt(POS**self.contract_price)))
 
         elif "SELL" in order:
             POS_BUY = self.src_buy(self.agent.inventory['POS']) # Check if BUY order in inventory
             self.env.POS_BUY = POS_BUY # Put check in env
 
-            if POS_BUY == -1:# No BUY order in inventory
+            if POS_BUY == -1 and POS < self.max_order:# No BUY order in inventory
                 sell = (pd.DataFrame([self.sell_price], columns = [self.columns[0]])).join(pd.DataFrame(["SELL"], columns = [self.columns[1]]))
                 #self.reward_managment(order, (self.row['RSI']).iloc[self.t], (self.row['Volatility']).iloc[self.t])
                 self.agent.inventory = self.agent.inventory.append(sell, ignore_index=True)
+                #self.reward += 1
 
-            else:# Sell order in inventory
+            elif POS_BUY != -1:# Sell order in inventory
                 '''
                 Selling order from inventory list
                 Calc profit and total profit
@@ -119,6 +125,7 @@ class train(environnement):
                 if self.profit < 0:
                     self.loose_r += 1
                 elif self.profit > 0 :
+                    self.reward += self.profit
                     self.win += 1
                 self.cd = (self.agent.inventory['Price']).iloc[POS_BUY]
                 self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_BUY])).reset_index(drop=True)
@@ -127,13 +134,13 @@ class train(environnement):
             '''
             Add profit reward
             '''
-            self.reward += self.profit * self.contract_price
+            #self.reward += self.profit
 
-            if POS > self.max_order and POS_BUY == -1:
-                '''
-                Add a negativ reward for contract overtaking
-                '''
-                self.reward += -(int(sqrt(POS**self.contract_price)))
+            #if POS > self.max_order and POS_BUY == -1:
+            '''
+            Add a negativ reward for contract overtaking
+            '''
+            #self.reward += -(int(sqrt(POS**self.contract_price)))
 
     def reward_managment(self, POS, RSI, vol):
         '''
@@ -202,7 +209,7 @@ class train(environnement):
 
                 POS = len(self.agent.inventory['POS'])
 
-                action = self.agent.act(state) # Get action from agent
+                self.action = self.agent.act(state) # Get action from agent
                 next_state = getState(self.data, t + 1, self.window_size + 1, self.rsi) # Get new state
 
                 self.buy_price = self.data[t] - (self.spread / 2) # Update buy price with spread
@@ -211,30 +218,30 @@ class train(environnement):
                 self.reward = 0 # Reset reward
                 self.profit = 0 # Reset current profit
 
-                if action == 1: # buy
+                if self.action == 1: # buy
                     g = 0
                     self.corder = "BUY"
                     self.inventory_managment(self.corder)
 
-                elif action == 2: # sell
+                elif self.action == 2: # sell
                     g = 0
                     self.corder = "SELL"
                     self.inventory_managment(self.corder)
-
+                '''
                 else:
-                    if POS == 0:
+                    if POS < self.max_order + 1:
                         self.reward = -(int(sqrt(g)))
                     else:
                         self.reward = -(int(sqrt(g)**sqrt(POS)))
 
                     g += 1
-
+                '''
                 self.update_env(self.env) # Updating env from agent for GUI
                 self.interface.update() # Updating GUI from env
 
                 done = True if t == self.l - 1 else False
 
-                self.agent.memory.append((state, action, self.reward, next_state, done))
+                self.agent.memory.append((state, self.action, self.reward, next_state, done))
                 state = next_state
 
                 if "train" in self.env.mode:

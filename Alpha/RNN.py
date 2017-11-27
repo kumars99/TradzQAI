@@ -144,8 +144,10 @@ def full_run():
             for f in files:
                 if ".csv" in f:
                     new.path = n + "/" + str(f)
-                    check_10s(new.path, f)
+                    print (new.path)
+                    open_tick(new.path, f, p)
                     '''
+                    check_10s(new.path, f)
                     X_train, y_train, X_test, y_test = new.get_data(f)
                     new.train(X_train, y_train, X_test, y_test)
                     save_m(new.model, new.model_path)
