@@ -6,9 +6,10 @@ from tkinter.filedialog import *
 from tkinter.messagebox import *
 from environnement import *
 import pandas as pd
+import numpy as np
 
 env = environnement()
-env.stock_name = "dax30_2017_09"
+env.stock_name = "dax30_2017_10"
 
 class interface(Frame):
 
@@ -37,24 +38,104 @@ class interface(Frame):
                 POS = env.POS_SELL
                 c = env.buy_price
             if len(env.inventory['Price']) > 0:
-                new = [str((env.inventory['POS']).iloc[POS]) + " : " + str(env.cd) + " -> " + str(env.corder) + " : " + str(c) + " | Profit : " + str(float(env.profit))]
+                new = [str((env.inventory['POS']).iloc[POS]) + " : " + str(env.cd) + " -> " + str(env.corder) + " : " + str(c) + " | Profit : " + '{:.2f}'.format(env.profit)]
                 tmp = pd.DataFrame(new, columns = ['Orders'])
                 self.ordr = self.ordr.append(tmp, ignore_index=True)
 
     def build_start_window(self):
-        self.start = LabelFrame(self, text="Mode")
+        self.start = Frame(self)
         self.start.pack()
 
-        self.train = Button(self.start, text="Train", command=self.build_train_window)
-        self.train.pack(side=TOP)
-        self.eval = Button(self.start, text="Eval", command=self.build_eval_window)
-        self.eval.pack(side=TOP)
+        self.smod = LabelFrame(self.start, text="Mode")
+        self.smod.pack(side=RIGHT, fill=BOTH)
+
+        self.train = Button(self.smod, text="Train", command=self.build_train_window)
+        self.train.pack(side=TOP, fill=BOTH, expand="yes")
+        self.eval = Button(self.smod, text="Eval", command=self.build_eval_window)
+        self.eval.pack(side=TOP, fill=BOTH, expand="yes")
+
+        self.es = LabelFrame(self.start, text="Environnement settings")
+
+        # Model choice
+
+        self.fesm = Frame(self.es)
+        self.esm = Label(self.fesm, text="Model : ")
+        self.mv = StringVar()
+        self.mv.set(str(env.stock_name))
+        self.eesm = Entry(self.fesm, textvariable=self.mv)
+
+        # Max order choice
+
+        self.fesmo = Frame(self.es)
+        self.esmo = Label(self.fesmo, text="Max order : ")
+
+        self.mov = StringVar()
+        self.mov.set(str(env.max_order))
+
+        self.smo = Spinbox(self.fesmo, from_=0, to=100, textvariable=self.mov)
+
+        # Contract price choice
+
+        self.fescp = Frame(self.es)
+        self.escp = Label(self.fescp, text="Contract price : ")
+
+        self.cpv = StringVar()
+        self.cpv.set(str(env.contract_price))
+
+        self.scp = Spinbox(self.fescp, from_=1, to=10000, textvariable=self.cpv)
+
+        # Spread choice
+
+        self.fesp = Frame(self.es)
+        self.esp = Label(self.fesp, text="Spread : ")
+
+        self.sv = StringVar()
+        self.sv.set(str(env.spread))
+
+        self.ss = Spinbox(self.fesp, from_=1, to=10, textvariable=self.sv)
+
+        # Packing
+
+        self.es.pack(side=LEFT)
+
+        self.fesm.pack(anchor='e')
+        self.esm.pack(side=LEFT)
+        self.eesm.pack(side=RIGHT)
+
+        self.fesmo.pack(anchor='e')
+        self.esmo.pack(side=LEFT)
+        self.smo.pack(side=RIGHT)
+
+        self.fescp.pack(anchor='e')
+        self.escp.pack(side=LEFT)
+        self.scp.pack(side=RIGHT)
+
+        self.fesp.pack(anchor='e')
+        self.esp.pack(side=LEFT)
+        self.ss.pack(side=RIGHT)
+
+        '''
+        Label(self.inventory, textvariable=self.inv).pack(anchor='n')
+        TODO : add env input
+        '''
 
     def build_train_window(self):
+
+        env.contract_price = int(self.scp.get())
+        env.stock_name = str(self.eesm.get())
+        env.spread = int(self.ss.get())
+        env.max_order = int(self.smo.get())
+
         self.start.destroy()
         window.geometry("1024x720")
 
         env.mode = "train"
+
+        self.note = ttk.Notebook(window)
+
+        self.base = Frame(self.note)
+        self.model = Frame(self.note)
+        self.historic = Frame(self.note)
 
         self.quit = Button(self, text="Quit", command=quit)
         self.quit.pack(side=RIGHT, fill=BOTH)
@@ -65,11 +146,28 @@ class interface(Frame):
         self.but = Button(self, text="Resume", command=self.m.resume)
         self.but.pack(fill=BOTH, side=LEFT)
 
+        self.note.add(self.base, text="Overview")
+        self.note.add(self.model, text="Model")
+        self.note.add(self.historic, text="Historic")
+
+        self.note.pack(fill=BOTH, expand="yes")
+
         self.dday = 1
         self.agent_value_init()
         self.agent_inventory_init()
         self.agent_orders_init()
         self.data_init()
+
+    '''
+    TODO:
+
+    def build_historic(self):
+
+    def build_model(self):
+
+    def build_overview(self):
+
+    '''
 
     def build_eval_window(self):
         self.start.destroy()
@@ -78,6 +176,11 @@ class interface(Frame):
 
         env.mode = "eval"
 
+        self.note = ttk.Notebook(window)
+
+        self.base = Frame(self.note)
+        self.graph = Frame(self.note)
+
         self.quit = Button(self, text="Quit", command=quit)
         self.quit.pack(side=RIGHT, fill=BOTH)
         self.run_ai = Button(self, text="Run", command=self.go_run)
@@ -86,7 +189,12 @@ class interface(Frame):
         self.parsing.pack(side=LEFT, fill=BOTH)
         self.but = Button(self, text="Resume", command=self.m.resume)
         self.but.pack(fill=BOTH, side=LEFT)
-        
+
+        self.note.add(self.base, text="Overview")
+        self.note.add(self.graph, text="Graph")
+
+        self.note.pack(fill=BOTH, expand="yes")
+
         self.dday = 1
         self.agent_value_init()
         self.agent_inventory_init()
@@ -94,7 +202,7 @@ class interface(Frame):
         self.data_init()
 
     def agent_inventory_init(self):
-        self.inventory = LabelFrame(window, text="Agent inventory", padx=2, pady=2)
+        self.inventory = LabelFrame(self.base, text="Agent inventory", padx=2, pady=2)
         self.inventory.pack(fill="both", expand="no", side=RIGHT)
 
         self.inv = StringVar()
@@ -106,8 +214,8 @@ class interface(Frame):
 
 
     def agent_orders_init(self):
-        self.order = LabelFrame(window, text="Agent orders", padx=3, pady=4)
-        self.order.pack(fill="both", expand="yes")
+        self.order = LabelFrame(self.base, text="Agent orders", padx=3, pady=4)
+        self.order.pack(fill=BOTH, expand="yes")
 
         self.ordr = pd.DataFrame(columns=['Orders'])
 
@@ -117,7 +225,7 @@ class interface(Frame):
         Label(self.order, textvariable=self.ord).pack()
 
     def data_init(self):
-        self.da = LabelFrame(window, text="Data", padx=2, pady=0.5)
+        self.da = LabelFrame(self.base, text="Data", padx=2, pady=0.5)
         self.da.pack(fill="both", expand="no", side=BOTTOM)
 
         self.day = StringVar()
@@ -126,14 +234,18 @@ class interface(Frame):
         self.day.set("Day : " + str(self.dday) + " / " + '{:.0f}'.format(env.data / 4680))
 
         self.d = StringVar()
-        self.d.set("Current data : " +str(0)+ " / " +str(0))
+        self.d.set("Current : " +str(0)+ " / " +str(0))
 
+        self.perc = StringVar()
+        self.perc.set('{:.2f}'.format(0) + " %")
+
+        Label(self.da, textvariable=self.perc).pack()
         Label(self.da, textvariable=self.day).pack()
         Label(self.da, textvariable=self.d).pack()
 
 
     def agent_value_init(self):
-        self.l = LabelFrame(window, text="Agent values", padx=2, pady=2)
+        self.l = LabelFrame(self.base, text="Agent values", padx=2, pady=2)
         self.l.pack(side=LEFT, fill=Y)
 
         self.aa = StringVar()
@@ -315,7 +427,7 @@ class interface(Frame):
         Orders done
         '''
 
-        self.ord.set(str(self.ordr))
+        self.ord.set(str(np.array(self.ordr)))
 
         '''
         Orders
@@ -347,6 +459,7 @@ class interface(Frame):
 
         self.day.set("Day : " + str(self.dday) + " / " + '{:.0f}'.format(env.data / (env.data / 20)))
         self.d.set("Current : " +str(env.cdatai)+ " / " +str(env.data))
+        self.perc.set('{:.2f}'.format(float((env.cdatai * 100 ) / env.data)) + " %")
 
         '''
         Profit
