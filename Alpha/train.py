@@ -80,13 +80,14 @@ class train(environnement):
                 Add last Sell order to env
                 '''
                 #self.reward_managment("SELL", (self.row['RSI']).iloc[self.t], (self.row['Volatility']).iloc[self.t])
-                self.profit = (self.agent.inventory['Price'][POS_SELL] - self.sell_price) * self.contract_price 
-                self.total_profit += self.profit
+                self.profit = self.agent.inventory['Price'][POS_SELL] - self.sell_price
                 if self.profit < 0:
                     self.loose_r += 1
                 elif self.profit > 0 :
                     self.reward += self.profit
                     self.win += 1
+                self.profit *= self.contract_price
+                self.total_profit += self.profit
                 self.cd = (self.agent.inventory['Price']).iloc[POS_SELL]
                 self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_SELL])).reset_index(drop=True)
 
@@ -120,13 +121,14 @@ class train(environnement):
                 Add last Sell order to env
                 '''
                 #self.reward_managment("BUY", (self.row['RSI']).iloc[self.t], (self.row['Volatility']).iloc[self.t])
-                self.profit = (self.buy_price - self.agent.inventory['Price'][POS_BUY]) * self.contract_price
-                self.total_profit += self.profit
+                self.profit = self.buy_price - self.agent.inventory['Price'][POS_BUY]
                 if self.profit < 0:
                     self.loose_r += 1
                 elif self.profit > 0 :
                     self.reward += self.profit
                     self.win += 1
+                self.profit *= self.contract_price
+                self.total_profit += self.profit
                 self.cd = (self.agent.inventory['Price']).iloc[POS_BUY]
                 self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_BUY])).reset_index(drop=True)
             

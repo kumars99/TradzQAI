@@ -4,7 +4,7 @@ from keras.models import load_model
 from keras.layers import Dense, PReLU, CuDNNGRU
 from keras.optimizers import Adam
 import os
-
+from environnement import *
 import numpy as np
 import random
 from collections import deque
