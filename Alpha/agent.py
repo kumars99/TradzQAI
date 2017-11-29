@@ -33,9 +33,7 @@ class Agent:
 
     def _model(self):
         model = Sequential()
-        model.add(Dense(units=512, input_dim=self.state_size))
-        model.add(PReLU())
-        model.add(Dense(units=256))
+        model.add(Dense(units=256, input_dim=self.state_size))
         model.add(PReLU())
         model.add(Dense(units=128))
         model.add(PReLU())

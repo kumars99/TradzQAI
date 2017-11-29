@@ -1,15 +1,23 @@
 from tkinter import *
 import tkinter.ttk as ttk
-import train
 from threading import Thread
 from tkinter.filedialog import *
 from tkinter.messagebox import *
-from environnement import *
+import matplotlib
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import matplotlib.animation as animation
+from matplotlib import style
 import pandas as pd
 import numpy as np
 
+import train
+from environnement import *
+
 env = environnement()
-env.stock_name = "dax30_2017_10"
+env.stock_name = "dax30_2011_01"
+
+style.use('ggplot')
 
 class interface(Frame):
 
@@ -25,11 +33,10 @@ class interface(Frame):
         self.m = train_thread()
         self.m.daemon=True
 
+
         self.build_start_window()
 
     def manage_orders(self):
-        if len(self.ordr['Orders']) > 40:
-            self.ordr = (self.ordr.drop(0)).reset_index(drop=True)
         if env.POS_BUY > -1 or env.POS_SELL > -1:
             if "SELL" in env.corder:
                 POS = env.POS_BUY
@@ -38,7 +45,9 @@ class interface(Frame):
                 POS = env.POS_SELL
                 c = env.buy_price
             if len(env.inventory['Price']) > 0:
-                new = [str((env.inventory['POS']).iloc[POS]) + " : " + str(env.cd) + " -> " + str(env.corder) + " : " + str(c) + " | Profit : " + '{:.2f}'.format(env.profit)]
+                new = [str((env.inventory['POS']).iloc[POS]) + " : " + '{:.2f}'.format(env.cd) + " -> " + str(env.corder) + " : " + '{:.2f}'.format(c) + " | Profit : " + '{:.2f}'.format(env.profit)]
+                if len(self.ordr['Orders']) > 39:
+                    self.ordr = (self.ordr.drop(0)).reset_index(drop=True)
                 tmp = pd.DataFrame(new, columns = ['Orders'])
                 self.ordr = self.ordr.append(tmp, ignore_index=True)
 
@@ -114,11 +123,6 @@ class interface(Frame):
         self.esp.pack(side=LEFT)
         self.ss.pack(side=RIGHT)
 
-        '''
-        Label(self.inventory, textvariable=self.inv).pack(anchor='n')
-        TODO : add env input
-        '''
-
     def build_train_window(self):
 
         env.contract_price = int(self.scp.get())
@@ -152,14 +156,17 @@ class interface(Frame):
 
         self.note.pack(fill=BOTH, expand="yes")
 
+        self.build_model()
+
         self.dday = 1
         self.agent_value_init()
         self.agent_inventory_init()
         self.agent_orders_init()
         self.data_init()
+        
 
     '''
-    TODO:
+    TODO: Graph build
 
     def build_historic(self):
 
@@ -168,6 +175,28 @@ class interface(Frame):
     def build_overview(self):
 
     '''
+
+    def build_model(self):
+        self.f = Figure(figsize=(20,20), dpi=200)
+        self.a = self.f.add_subplot(111)
+
+        self.canvas = FigureCanvasTkAgg(self.f, self.model)
+        self.canvas.show()
+        self.canvas.get_tk_widget().pack()
+
+
+    def update_graph(self):
+        y = []
+        i = 0
+        while i < 100:
+            y.append(i)
+            i += 1
+        self.a.clear()
+        if env.cdatai > 40:
+            self.a.plot(env.lst_state[env.cdatai-40:env.cdatai])
+        else:
+            self.a.plot(env.lst_state)
+        self.canvas.draw()
 
     def build_eval_window(self):
         self.start.destroy()
@@ -266,31 +295,31 @@ class interface(Frame):
         self.ow.set("Win : " + str(env.win))
 
         self.ol = StringVar()
-        self.ol.set("Loose : " + str(env.loose_r))
+        self.ol.set("Loose : " + str(env.loose))
 
         self.aod = StringVar()
-        self.aod.set("Avg daily : " + str((env.loose_r + env.win) / self.dday))
+        self.aod.set("Avg daily : " + str((env.loose + env.win) / self.dday))
 
         self.opm = StringVar()
         if env.cdatai == 0:
-            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose_r + env.win) / (1 / 6)))
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win) / (1 / 6)))
         else:
-            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose_r + env.win) / (env.cdatai / ((env.data / 20)/ 9))))
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win) / (env.cdatai / ((env.data / 20)/ 9))))
 
         self.ts = StringVar()
         if env.data is None:
             self.ts.set("Trade speed : " + "0" + " ms")
         else:
-            self.ts.set("Trade speed : " + ':.2f'.format(1/((((env.loose_r + env.win) / ((env.data / 20) / 9)) /60) /100)) + " ms")
+            self.ts.set("Trade speed : " + ':.2f'.format(1/((((env.loose + env.win) / ((env.data / 20) / 9)) /60) /100)) + " ms")
 
         self.to = StringVar()
-        self.to.set("Total : " + str (env.loose_r + env.win))
+        self.to.set("Total : " + str (env.loose + env.win))
 
         self.winrate = StringVar()
-        if env.loose_r== 0:
-            self.winrate.set ("Winrate : " + str(env.loose_r/1))
+        if env.loose == 0:
+            self.winrate.set ("Winrate : " + str(env.loose/1))
         else:
-            self.winrate.set("Winrate : " + '{:.3f}'.format(env.win / (env.loose_r + env.win)))
+            self.winrate.set("Winrate : " + '{:.3f}'.format(env.win / (env.loose + env.win)))
 
         Label(self.wr, textvariable=self.ow).pack(anchor='w')
         Label(self.wr, textvariable=self.ol).pack(anchor='w')
@@ -308,7 +337,7 @@ class interface(Frame):
         self.p.set("Current : " + str(env.profit))
 
         self.op = StringVar()
-        if (env.win + env.loose_r) == 0:
+        if (env.win + env.loose) == 0:
             self.op.set("Avg : " + '{:.2f}'.format(env.total_profit / 1))
         else:
             self.op.set("Avg : " + '{:.2f}'.format(env.total_profit / (env.win + env.loose_r)))
@@ -389,13 +418,10 @@ class interface(Frame):
     def go_run(self):
         self.m.start()
 
-    def text_update(self, state):
-        self.text.insert(END, "\n")
-        self.text.insert(END, state)
-        self.pack()
-
     def update(self):
         self.manage_orders()
+
+        self.update_graph()
 
         '''
         Day mod
@@ -434,24 +460,24 @@ class interface(Frame):
         '''
 
         if env.cdatai == 0:
-            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose_r + env.win) / (1 / 6)))
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win) / (1 / 6)))
         else:
-            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose_r + env.win) / (env.cdatai / ((env.data / 20)/ 9))))
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win) / (env.cdatai / ((env.data / 20)/ 9))))
         self.ow.set("Win : " + str(env.win))
-        self.ol.set("Loose : " + str(env.loose_r))
+        self.ol.set("Loose : " + str(env.loose))
         if env.data is None:
             self.ts.set("Trade speed : " + "0" + " ms")
         else:
             try:
-                self.ts.set("Trade speed : " + '{:.0f}'.format(1.0/(((((env.loose_r + env.win) / (env.cdatai / ((env.data / 20.0) / 9.0))) /60.0) /100.0))) + " ms")
+                self.ts.set("Trade speed : " + '{:.0f}'.format(1.0/(((((env.loose + env.win) / (env.cdatai / ((env.data / 20.0) / 9.0))) /60.0) /100.0))) + " ms")
             except:
                 self.ts.set("Trade speed : " + "0" + " ms")
-        self.aod.set("Avg daily : " + '{:.2f}'.format((env.loose_r + env.win) / self.dday))
-        self.to.set("Total : " + str (env.loose_r + env.win))
-        if env.loose_r == 0:
-            self.winrate.set ("Winrate : " + str(env.loose_r/1))
+        self.aod.set("Avg daily : " + '{:.2f}'.format((env.loose + env.win) / self.dday))
+        self.to.set("Total : " + str (env.loose + env.win))
+        if env.loose == 0:
+            self.winrate.set ("Winrate : " + str(env.loose/1))
         else:
-            self.winrate.set("Winrate : " + '{:.3f}'.format(env.win / (env.loose_r + env.win)))
+            self.winrate.set("Winrate : " + '{:.3f}'.format(env.win / (env.loose + env.win)))
 
         '''
         Data
@@ -466,11 +492,11 @@ class interface(Frame):
         '''
 
         self.p.set("Current : " + str(env.profit))
-        if (env.win + env.loose_r) == 0:
+        if (env.win + env.loose) == 0:
             self.op.set("Avg : " + '{:.2f}'.format(env.total_profit / 1))
             self.adp.set("Avg daily : " + '{:.2f}'.format((env.total_profit / ( 1 )) * self.dday))
         else:
-            self.op.set("Avg : " + '{:.2f}'.format(env.total_profit / (env.win + env.loose_r)))
+            self.op.set("Avg : " + '{:.2f}'.format(env.total_profit / (env.win + env.loose)))
             self.adp.set("Avg daily : " + '{:.2f}'.format((env.total_profit / self.dday)))
         self.dailyp += env.profit
         self.dp.set("Daily : " + str(self.dailyp))
@@ -505,7 +531,7 @@ class train_thread(Thread):
 
     def run(self):
         self.t = train.train(env, interfaces)
-        self.t.training()
+        self.t.training(env)
 
 
 def launch_interface():
