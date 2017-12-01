@@ -1,5 +1,8 @@
 from ttkthemes import themed_tk as tk
 import tkinter.ttk
+
+import time
+
 from environnement import *
 from GUI.interface import *
 
@@ -13,6 +16,29 @@ class overview_window():
         self.agent_orders_init()
         self.data_init(env)
 
+    def border(self, root):
+        self.bord = ttk.Label(root)
+        return self.bord
+
+    def time_init(self, env):
+        self.timel = ttk.LabelFrame(self.l, text="Time")
+        self.timel.pack(fill=X)
+
+        self.lt = 0
+
+        self.fstart_time = StringVar()
+        self.fstart_time.set("Since start : " + time.strftime("%H:%M:%S", time.gmtime(0)))
+
+        self.loop_time = StringVar()
+        self.loop_time.set("Loop : " + "0 ms")
+
+        self.ETA_time = StringVar()
+        self.ETA_time.set("ETA : " + time.strftime("%H:%M:%S", time.gmtime(0)))
+
+        ttk.Label(self.timel, textvariable=self.fstart_time).pack(anchor='w')
+        ttk.Label(self.timel, textvariable=self.loop_time).pack(anchor='w')
+        ttk.Label(self.timel, textvariable=self.ETA_time).pack(anchor='w')
+
     def agent_inventory_init(self, env):
         self.inventory = ttk.LabelFrame(self.base, text="Agent inventory")
         self.inventory.pack(fill="both", expand="no", side=RIGHT)
@@ -20,8 +46,10 @@ class overview_window():
         self.inv = StringVar()
         self.inv.set(str(env.inventory))
 
+        self.border(self.inventory).pack(fill=X, side=TOP)
         ttk.Label(self.inventory, textvariable=self.inv).pack(anchor='n')
 
+        self.border(self.inventory).pack(fill=X, side=BOTTOM)
         self.agent_winrate(env)
 
     def agent_orders_init(self):
@@ -33,6 +61,7 @@ class overview_window():
         self.ord = StringVar()
         self.ord.set("None")
 
+        self.border(self.order).pack(fill=X, side=TOP)
         ttk.Label(self.order, textvariable=self.ord).pack()
 
     def data_init(self, env):
@@ -50,6 +79,8 @@ class overview_window():
         self.perc = StringVar()
         self.perc.set('{:.2f}'.format(0) + " %")
 
+        self.border(self.da).pack(fill=X, side=BOTTOM)
+        self.border(self.da).pack(fill=X, side=TOP)
         ttk.Label(self.da, textvariable=self.perc).pack()
         ttk.Label(self.da, textvariable=self.day).pack()
         ttk.Label(self.da, textvariable=self.d).pack()
@@ -61,11 +92,17 @@ class overview_window():
         self.aa = StringVar()
         self.aa.set("Action : " + str(env.act))
 
+        self.border(self.l).pack(fill=X)
         ttk.Label(self.l, textvariable=self.aa).pack()
 
+        self.border(self.l).pack(fill=X)
         self.agent_env(env)
+        self.border(self.l).pack(fill=X)
         self.agent_profit(env)
+        self.border(self.l).pack(fill=X)
         self.agent_reward(env)
+        self.border(self.l).pack(fill=X)
+        self.time_init(env)
 
     def agent_winrate(self, env):
         self.wr = ttk.LabelFrame(self.inventory , text="Orders")
@@ -76,21 +113,24 @@ class overview_window():
 
         self.ol = StringVar()
         self.ol.set("Loose : " + str(env.loose))
+        
+        self.od = StringVar()
+        self.od.set("Draw : " + str(env.draw))
 
         self.aod = StringVar()
-        self.aod.set("Avg daily : " + str((env.loose + env.win) / self.dday))
+        self.aod.set("Avg daily : " + str((env.loose + env.win + env.draw) / self.dday))
 
         self.opm = StringVar()
         if env.cdatai == 0:
-            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win) / (1 / 6)))
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win + env.draw) / (1 / 6)))
         else:
-            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win) / (env.cdatai / ((env.data / 20)/ 9))))
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win + env.draw) / (env.cdatai / ((env.data / 20)/ 9))))
 
         self.ts = StringVar()
         if env.data is None:
             self.ts.set("Trade speed : " + "0" + " ms")
         else:
-            self.ts.set("Trade speed : " + ':.2f'.format(1/((((env.loose + env.win) / ((env.data / 20) / 9)) /60) /100)) + " ms")
+            self.ts.set("Trade speed : " + ':.2f'.format(1/((((env.loose + env.win + env.draw) / ((env.data / 20) / 9)) /60) /100)) + " ms")
 
         self.to = StringVar()
         self.to.set("Total : " + str (env.loose + env.win))
@@ -103,6 +143,7 @@ class overview_window():
 
         ttk.Label(self.wr, textvariable=self.ow).pack(anchor='w')
         ttk.Label(self.wr, textvariable=self.ol).pack(anchor='w')
+        ttk.Label(self.wr, textvariable=self.od).pack(anchor='w')
         ttk.Label(self.wr, textvariable=self.to).pack(anchor='w')
         ttk.Label(self.wr, textvariable=self.aod).pack(anchor='w')
         ttk.Label(self.wr, textvariable=self.opm).pack(anchor='w')
@@ -240,18 +281,19 @@ class overview_window():
         if env.cdatai == 0:
             self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win) / (1 / 6)))
         else:
-            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win) / (env.cdatai / ((env.data / 20)/ 9))))
+            self.opm.set("Trade per minute : " + '{:.2f}'.format((env.loose + env.win + env.draw) / (env.cdatai / ((env.data / 20)/ 9))))
         self.ow.set("Win : " + str(env.win))
         self.ol.set("Loose : " + str(env.loose))
+        self.od.set("Draw : " + str(env.draw))
         if env.data is None:
             self.ts.set("Trade speed : " + "0" + " ms")
         else:
             try:
-                self.ts.set("Trade speed : " + '{:.0f}'.format(1.0/(((((env.loose + env.win) / (env.cdatai / ((env.data / 20.0) / 9.0))) /60.0) /100.0))) + " ms")
+                self.ts.set("Trade speed : " + '{:.0f}'.format(1.0/(((((env.loose + env.win + env.draw) / (env.cdatai / ((env.data / 20.0) / 9.0))) /60.0) /100.0))) + " ms")
             except:
                 self.ts.set("Trade speed : " + "0" + " ms")
-        self.aod.set("Avg daily : " + '{:.2f}'.format((env.loose + env.win) / self.dday))
-        self.to.set("Total : " + str (env.loose + env.win))
+        self.aod.set("Avg daily : " + '{:.2f}'.format((env.loose + env.win + env.draw) / self.dday))
+        self.to.set("Total : " + str (env.loose + env.win + env.draw))
         if env.loose == 0:
             self.winrate.set ("Winrate : " + str(env.loose/1))
         else:
@@ -274,7 +316,7 @@ class overview_window():
             self.op.set("Avg : " + '{:.2f}'.format(env.total_profit / 1))
             self.adp.set("Avg daily : " + '{:.2f}'.format((env.total_profit / ( 1 )) * self.dday))
         else:
-            self.op.set("Avg : " + '{:.2f}'.format(env.total_profit / (env.win + env.loose)))
+            self.op.set("Avg : " + '{:.2f}'.format(env.total_profit / (env.win + env.loose + env.draw)))
             self.adp.set("Avg daily : " + '{:.2f}'.format((env.total_profit / self.dday)))
         self.dailyp += env.profit
         self.dp.set("Daily : " + str(self.dailyp))
@@ -285,11 +327,24 @@ class overview_window():
         '''
 
         self.r.set("Current : " + str(env.reward))
-        if env.cdatai == 0:
+        if (env.draw + env.win + env.loose) == 0:
             self.ar.set("Avg : " + '{:.2f}'.format(self.tot_reward / 1))
             self.adr.set("Avg daily : " + '{:.2f}'.format((self.tot_reward / 1 ) * self.dday))
         else:
-            self.ar.set("Avg : " + '{:.2f}'.format(self.tot_reward / env.cdatai))
+            self.ar.set("Avg : " + '{:.2f}'.format(self.tot_reward / (env.win + env.loose + env.draw)))
             self.adr.set("Avg daily : " + '{:.2f}'.format(self.tot_reward / self.dday))
         self.dr.set("Daily : " + str(self.daily_reward))
         self.tr.set("Total : " + str(self.tot_reward))
+
+        '''
+        Time
+        '''
+
+        now = time.time() - env.start_t
+        self.fstart_time.set("Since start : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime(now))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime(now)))
+        self.loop_time.set("Loop : " + str(round((env.loop_t * 100), 3)) + " ms")
+        if env.cdatai > 0 :
+            self.lt += env.loop_t
+            self.ETA_time.set("ETA : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime(((self.lt / env.cdatai ) * (env.data - env.cdatai))))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime((self.lt / env.cdatai) * (env.data - env.cdatai))))
+        else:
+            self.ETA_time.set("ETA : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime((self.lt / 1 ) * (env.data)))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime((self.lt / 1) * (env.data))))

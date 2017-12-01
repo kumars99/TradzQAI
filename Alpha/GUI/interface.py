@@ -13,9 +13,9 @@ from GUI.model_w import *
 from GUI.overview_w import *
 
 env = environnement()
-style.use('ggplot')
 
-sty = 'arc'
+style.use('ggplot')
+style = 'arc'
 
 
 class interface(ttk.Frame):
@@ -42,12 +42,11 @@ class interface(ttk.Frame):
             elif "BUY" in env.corder:
                 POS = env.POS_SELL
                 c = env.buy_price
-            if len(env.inventory['Price']) > 0:
-                new = [str((env.inventory['POS']).iloc[POS]) + " : " + '{:.2f}'.format(env.cd) + " -> " + str(env.corder) + " : " + '{:.2f}'.format(c) + " | Profit : " + '{:.2f}'.format(env.profit)]
-                if len(self.o_w.ordr['Orders']) > 39:
-                    self.o_w.ordr = (self.o_w.ordr.drop(0)).reset_index(drop=True)
-                tmp = pd.DataFrame(new, columns = ['Orders'])
-                self.o_w.ordr = self.o_w.ordr.append(tmp, ignore_index=True)
+            new = [str(env.co) + " : " + '{:.2f}'.format(env.cd) + " -> " + str(env.corder) + " : " + '{:.2f}'.format(c) + " | Profit : " + '{:.2f}'.format(env.profit)]
+            if len(self.o_w.ordr['Orders']) > 39:
+                self.o_w.ordr = (self.o_w.ordr.drop(0)).reset_index(drop=True)
+            tmp = pd.DataFrame(new, columns = ['Orders'])
+            self.o_w.ordr = self.o_w.ordr.append(tmp, ignore_index=True)
 
     def build_start_window(self):
         self.start = ttk.Frame(self)
@@ -153,7 +152,7 @@ class interface(ttk.Frame):
 
         self.note.pack(fill=BOTH, expand="yes")
 
-        self.m_w = model_window(self.model, env)
+        #self.m_w = model_window(self.model, env)
         self.o_w = overview_window(self.base, env)
 
     def build_train_window(self):
@@ -172,8 +171,8 @@ class interface(ttk.Frame):
         # Process order
         self.manage_orders()
 
-        # Update model graph
-        self.m_w.update_graph(env)
+        # Update model
+        #self.m_w.update_graph(env)
 
         # Update Overview
         self.o_w.update_overview(env)
@@ -198,5 +197,5 @@ def launch_interface():
     interfaces.mainloop()
 
 window = tk.ThemedTk()
-window.set_theme(sty)
+window.set_theme(style)
 interfaces = interface(window)
