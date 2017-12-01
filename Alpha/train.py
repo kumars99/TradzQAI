@@ -1,9 +1,11 @@
-from agent import Agent
-from functions import *
 from math import *
+
 import time
 import pandas as pd
 import sys
+
+from agent import Agent
+from functions import *
 from environnement import *
 from GUI.interface import *
 
@@ -19,7 +21,7 @@ class train(environnement):
         self.row = pd.DataFrame()
         self.data, self.rsi = getStockDataVec(env.stock_name)
         self.l = len(self.data) - 1
-        self.batch_size = 32
+        self.batch_size = 64
         self.columns = ['Price', 'POS']
         self.episode_count = env.episode_count
         self.b = 0
@@ -51,16 +53,19 @@ class train(environnement):
                 Add last Sell order to env
                 '''
                 env.profit = self.agent.inventory['Price'][POS_SELL] - env.sell_price
-                if env.profit < 0:
+                if env.profit < 0.00:
                     env.loose += 1
                     self.series = 0
-                elif env.profit > 0 :
+                elif env.profit > 0.00 :
                     env.reward += env.profit + int(sqrt(self.series))
                     env.win += 1
                     self.series += 1
+                else:
+                    env.draw += 1
                 env.profit *= env.contract_price
                 env.total_profit += env.profit
                 env.cd = (self.agent.inventory['Price']).iloc[POS_SELL]
+                env.co = (self.agent.inventory['POS']).iloc[POS_SELL]
                 self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_SELL])).reset_index(drop=True)
 
         elif "SELL" in order:
@@ -85,9 +90,12 @@ class train(environnement):
                     env.reward += env.profit + int(sqrt(self.series))
                     env.win += 1
                     self.series += 1
+                else:
+                    env.draw += 1
                 env.profit *= env.contract_price
                 env.total_profit += env.profit
                 env.cd = (self.agent.inventory['Price']).iloc[POS_BUY]
+                env.co = (self.agent.inventory['POS']).iloc[POS_BUY]
                 self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_BUY])).reset_index(drop=True)
 
     def reward_managment(self, POS, RSI, vol):
@@ -133,6 +141,9 @@ class train(environnement):
             env.total_profit = 0
             env.win = 0
             env.loose = 0
+            env.draw = 0
+
+            env.start_t = time.time()
 
             if self.b == 1:
                 while (self.b==1):
@@ -145,11 +156,15 @@ class train(environnement):
             self.agent.inventory = pd.DataFrame(columns = self.columns) # Init agent inventory
 
             for t in range(self.l):
+                tmp = time.time()
                 self.t = t
                 env.cdatai = t
                 env.cdata = self.data[t]
+                env.lst_data.append(env.cdata)
                 env.POS_SELL = -1
                 env.POS_BUY = -1
+
+                
 
                 if self.b == 1:
                     while (self.b==1):
@@ -197,7 +212,9 @@ class train(environnement):
                 if "train" in env.mode:
                     if len(self.agent.memory) > self.batch_size:
                         self.agent.expReplay(self.batch_size)
-                    if t % 10000 == 0 and t > 0 : # Save model all 10000 data
+                    if t % 1000 == 0 and t > 0 : # Save model all 10000 data
                         self.agent.model.save("models/model_" + str(env.stock_name) + "_ws_" + str(env.window_size))
                 else:
                     time.sleep(0.01)
+
+                env.loop_t = time.time() - tmp

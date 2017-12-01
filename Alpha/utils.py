@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
+
 import time
 import os
+
 from indicators.build_indicators import *
 
 # Indicators managment
@@ -70,7 +72,7 @@ def open_row(files):
     #files = "./dataset/"+"EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
     names = ['Time', 'Open', 'High', 'Low', 'Close', '']
     print ("Opening : %s" % files)
-    csv = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';')
+    csv = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';', index=False)
     csv.drop(csv.columns[[0, 5]], axis = 1, inplace = True)
     '''
     indics = check_indics(d, csv)
@@ -114,15 +116,15 @@ def get_all_data(path, names):
 
 # Change tick to 10s
 
-def open_tick(path, name, date):
+def open_tick(path):#, name, date):
     names = ['Time', 'BID', 'ASK', 'Volume']
-    indics = indicators()
+    #indics = indicators()
     print ("Opening : %s" % path)
     tick = pd.read_csv(path, names=names, header = 0, error_bad_lines=False, sep=',')
     tick.drop(tick.columns[[2, 3]], axis = 1, inplace = True)
-    tick = tick.join(indics.build_indicators(tick['BID']))
-    path = path.replace(name, date+".csv")
-    tick.to_csv(path, sep = ';', mode = 'w')
+    #tick = tick.join(indics.build_indicators(tick['BID']))
+    #path = path.replace(name, date+".csv")
+    #tick.to_csv(path, sep = ';', mode = 'w')
     
     return tick
 
