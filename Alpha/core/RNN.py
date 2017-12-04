@@ -1,12 +1,16 @@
 import numpy as mp
 import pandas as pd
+
 import matplotlib.pyplot as plt
+
 import math, time
 import os
+
 from keras.models import Sequential, load_model
 from keras.layers.core import Dense, Dropout, Activation
 from keras.layers import LSTM, CuDNNLSTM
 import keras
+
 from utils import *
 from environnement import *
 
@@ -145,9 +149,9 @@ def full_run():
                 if ".csv" in f:
                     new.path = n + "/" + str(f)
                     print (new.path)
-                    open_tick(new.path, f, p)
+                    #open_tick(new.path, f, p)
+                    check_10s(new.path, f, p)
                     '''
-                    check_10s(new.path, f)
                     X_train, y_train, X_test, y_test = new.get_data(f)
                     new.train(X_train, y_train, X_test, y_test)
                     save_m(new.model, new.model_path)

@@ -10,7 +10,7 @@ import numpy as np
 import random
 from collections import deque
 
-from environnement import *
+from core.environnement import *
 
 class Agent:
     def __init__(self, state_size, is_eval=False, model_name=""):

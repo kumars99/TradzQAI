@@ -7,8 +7,8 @@ from threading import Thread
 import pandas as pd
 import numpy as np
 
-import train
-from environnement import *
+from core.DQN import *
+from core.environnement import *
 from GUI.model_w import *
 from GUI.overview_w import *
 
@@ -29,7 +29,7 @@ class interface(ttk.Frame):
         ttk.Frame.__init__(self, window, **kwargs)
         self.pack(fill=BOTH)
 
-        self.m = train_thread()
+        self.m = DQN_thread()
         self.m.daemon=True
 
         self.build_start_window()
@@ -78,7 +78,7 @@ class interface(ttk.Frame):
         self.mov = StringVar()
         self.mov.set(str(env.max_order))
 
-        self.smo = Spinbox(self.fesmo, from_=0, to=100, textvariable=self.mov)
+        self.smo = Spinbox(self.fesmo, from_=1, to=100, textvariable=self.mov)
 
         # Contract price choice
 
@@ -89,6 +89,16 @@ class interface(ttk.Frame):
         self.cpv.set(str(env.contract_price))
 
         self.scp = Spinbox(self.fescp, from_=1, to=10000, textvariable=self.cpv)
+
+        # Pip value choice
+
+        self.fepr = ttk.Frame(self.es)
+        self.epr = ttk.Label(self.fepr, text="Pip value")
+
+        self.prv = StringVar()
+        self.prv.set(str(env.pip_value))
+
+        self.spr = Spinbox(self.fepr, from_=1, to=5000, textvariable=self.prv)
 
         # Spread choice
 
@@ -116,6 +126,10 @@ class interface(ttk.Frame):
         self.escp.pack(side=LEFT)
         self.scp.pack(side=RIGHT)
 
+        self.fepr.pack(anchor='e')
+        self.epr.pack(side=LEFT)
+        self.spr.pack(side=RIGHT)
+
         self.fesp.pack(anchor='e')
         self.esp.pack(side=LEFT)
         self.ss.pack(side=RIGHT)
@@ -141,14 +155,14 @@ class interface(ttk.Frame):
         self.quit.pack(side=RIGHT, fill=BOTH)
         self.run_ai = ttk.Button(self, text="Run", command=self.go_run)
         self.run_ai.pack(side=LEFT, fill=BOTH)
-        self.parsing = ttk.Button(self, text="Pause", command=self.m.pause)
+        self.parsing = ttk.Button(self, text="Pause", command=env._pause)
         self.parsing.pack(side=LEFT, fill=BOTH)
-        self.but = ttk.Button(self, text="Resume", command=self.m.resume)
+        self.but = ttk.Button(self, text="Resume", command=env._resume)
         self.but.pack(fill=BOTH, side=LEFT)
 
         self.note.add(self.base, text="Overview")
-        self.note.add(self.model, text="Model")
-        self.note.add(self.historic, text="Historic")
+        #self.note.add(self.model, text="Model")
+        #self.note.add(self.historic, text="Historic")
 
         self.note.pack(fill=BOTH, expand="yes")
 
@@ -177,20 +191,14 @@ class interface(ttk.Frame):
         # Update Overview
         self.o_w.update_overview(env)
 
-class train_thread(Thread):
+class DQN_thread(Thread):
 
     def __init__(self):
         Thread.__init__(self)
 
-    def pause(self):
-        self.t.b = 1
-
-    def resume(self):
-        self.t.b = 0
-
     def run(self):
-        self.t = train.train(env, interfaces)
-        self.t.training(env)
+        self.t = DQN(env, interfaces)
+        self.t._run(env)
 
 
 def launch_interface():

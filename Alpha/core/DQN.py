@@ -4,12 +4,12 @@ import time
 import pandas as pd
 import sys
 
-from agent import Agent
-from functions import *
-from environnement import *
+from core.agent import Agent
+from tools.utils import *
+from core.environnement import *
 from GUI.interface import *
 
-class train(environnement):
+class DQN(environnement):
 
     def __init__(self, env, interface):
         self.interface = interface
@@ -21,24 +21,17 @@ class train(environnement):
         self.row = pd.DataFrame()
         self.data, self.rsi = getStockDataVec(env.stock_name)
         self.l = len(self.data) - 1
-        self.batch_size = 64
         self.columns = ['Price', 'POS']
-        self.episode_count = env.episode_count
-        self.b = 0
-        self.corder = ""
-        self.t = 0
         self.action = 0
         self.series = 0
 
     def update_env(self, env):
         env.data = self.l
-        env.pause = self.b
-        env.corder = self.corder
         env.inventory = self.agent.inventory
 
-    def inventory_managment(self, order, env):
+    def inventory_managment(self, env):
         POS = len(self.agent.inventory['POS']) # Number of contract in inventory
-        if "BUY" in order:
+        if "BUY" in env.corder:
             POS_SELL = self.src_sell(self.agent.inventory['POS']) # Check if SELL order in inventory
             env.POS_SELL = POS_SELL # Put check in env
 
@@ -62,13 +55,13 @@ class train(environnement):
                     self.series += 1
                 else:
                     env.draw += 1
-                env.profit *= env.contract_price
+                env.profit *= env.pip_value
                 env.total_profit += env.profit
                 env.cd = (self.agent.inventory['Price']).iloc[POS_SELL]
                 env.co = (self.agent.inventory['POS']).iloc[POS_SELL]
                 self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_SELL])).reset_index(drop=True)
 
-        elif "SELL" in order:
+        elif "SELL" in env.corder:
             POS_BUY = self.src_buy(self.agent.inventory['POS']) # Check if BUY order in inventory
             env.POS_BUY = POS_BUY # Put check in env
 
@@ -92,19 +85,18 @@ class train(environnement):
                     self.series += 1
                 else:
                     env.draw += 1
-                env.profit *= env.contract_price
+                env.profit *= env.pip_value
                 env.total_profit += env.profit
                 env.cd = (self.agent.inventory['Price']).iloc[POS_BUY]
                 env.co = (self.agent.inventory['POS']).iloc[POS_BUY]
                 self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_BUY])).reset_index(drop=True)
 
+    '''
     def reward_managment(self, POS, RSI, vol):
-        '''
         oo = ordonner a l'origine
         cd = coefficient directeur
         f(x) = ax+b
         f(y) = sqrt(f(x)*v)
-        '''
 
         if "BUY" in POS:
             oo = 100
@@ -115,7 +107,7 @@ class train(environnement):
             cd = 1
 
         self.reward += int((cd * RSI + oo ) * vol)
-
+    '''
 
     def src_sell(self, inventory):
         '''
@@ -135,9 +127,8 @@ class train(environnement):
                 return (i)
         return (-1)
 
-    def training(self, env):
-        for e in range(self.episode_count + 1):
-            g = 0
+    def _run(self, env):
+        for e in range(env.episode_count + 1):
             env.total_profit = 0
             env.win = 0
             env.loose = 0
@@ -145,11 +136,10 @@ class train(environnement):
 
             env.start_t = time.time()
 
-            if self.b == 1:
-                while (self.b==1):
-                    time.sleep(self.b)
+            if env.pause == 1:
+                while (env.pause == 1):
+                    time.sleep(0.01)
 
-            #print ("Episode " + str(e) + "/" + str(self.episode_count))
             state = getState(self.data, 0, env.window_size + 1, self.rsi)
             for i in range(len(state[0]) - 1):
                 env.lst_state.append(state[0][i])
@@ -157,18 +147,15 @@ class train(environnement):
 
             for t in range(self.l):
                 tmp = time.time()
-                self.t = t
                 env.cdatai = t
                 env.cdata = self.data[t]
                 env.lst_data.append(env.cdata)
                 env.POS_SELL = -1
                 env.POS_BUY = -1
 
-                
-
-                if self.b == 1:
-                    while (self.b==1):
-                        time.sleep(0.1)
+                if env.pause == 1:
+                    while (env.pause == 1):
+                        time.sleep(0.01)
 
                 POS = len(self.agent.inventory['POS'])
 
@@ -184,23 +171,13 @@ class train(environnement):
                 env.profit = 0 # Reset current profit
 
                 if self.action == 1: # buy
-                    g = 0
-                    self.corder = "BUY"
-                    self.inventory_managment(self.corder, env)
+                    env.corder = "BUY"
+                    self.inventory_managment(env.corder, env)
 
                 elif self.action == 2: # sell
-                    g = 0
-                    self.corder = "SELL"
-                    self.inventory_managment(self.corder, env)
-                '''
-                else:
-                    if POS < self.max_order + 1:
-                        self.reward = -(int(sqrt(g)))
-                    else:
-                        self.reward = -(int(sqrt(g)**sqrt(POS)))
+                    env.corder = "SELL"
+                    self.inventory_managment(env.corder, env)
 
-                    g += 1
-                '''
                 self.update_env(env) # Updating env from agent for GUI
                 self.interface.update() # Updating GUI from env
 
@@ -210,8 +187,8 @@ class train(environnement):
                 state = next_state
 
                 if "train" in env.mode:
-                    if len(self.agent.memory) > self.batch_size:
-                        self.agent.expReplay(self.batch_size)
+                    if len(self.agent.memory) > env.batch_size:
+                        self.agent.expReplay(env.batch_size)
                     if t % 1000 == 0 and t > 0 : # Save model all 10000 data
                         self.agent.model.save("models/model_" + str(env.stock_name) + "_ws_" + str(env.window_size))
                 else:

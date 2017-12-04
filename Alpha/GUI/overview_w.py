@@ -3,7 +3,7 @@ import tkinter.ttk
 
 import time
 
-from environnement import *
+from core.environnement import *
 from GUI.interface import *
 
 class overview_window():
@@ -71,7 +71,7 @@ class overview_window():
         self.day = StringVar()
         if env.data == None:
             env.data = 0
-        self.day.set("Day : " + str(self.dday) + " / " + '{:.0f}'.format(env.data / 4680))
+        self.day.set("Day : " + str(0) + " / " + '{:.0f}'.format(env.data / 4680))
 
         self.d = StringVar()
         self.d.set("Current : " +str(0)+ " / " +str(0))
@@ -231,6 +231,9 @@ class overview_window():
         self.cp = StringVar()
         self.cp.set("Contract price : " + str(env.contract_price))
 
+        self.pv = StringVar()
+        self.pv.set("Pip value : " + str(env.pip_value))
+
         self.sp = StringVar()
         self.sp.set("Spread : " + str(env.spread))
 
@@ -238,6 +241,7 @@ class overview_window():
         ttk.Label(self.en, textvariable=self.model).pack(anchor='w')
         ttk.Label(self.en, textvariable=self.mo).pack(anchor='w')
         ttk.Label(self.en, textvariable=self.cp).pack(anchor='w')
+        ttk.Label(self.en, textvariable=self.pv).pack(anchor='w')
         ttk.Label(self.en, textvariable=self.sp).pack(anchor='w')
 
     def update_overview(self, env):
