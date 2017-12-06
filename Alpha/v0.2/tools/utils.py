@@ -302,15 +302,15 @@ def getStockDataVec(key):
         path = "data/" + key + ".csv"
         lines = open(path, "r").read().splitlines()
         #names = ['ID', 'Time', 'Open', 'High', 'Low', 'Close', 'RSI', 'Volatility']
-        #names = ['Time', 'Open', 'High', 'Low', 'Close', '']
-        names = ['ID', 'Time', 'BID', 'ASK', 'RSI']
+        names = ['Time', 'Open', 'High', 'Low', 'Close', '']
+        #names = ['ID', 'Time', 'BID', 'ASK', 'RSI']
         row = pd.read_csv(path, sep=';', header=0, names=names)#, names = names)
         '''
         for line in lines[1:]:
             vec.append(float(line.split(";")[4]))
         '''
-        for l in range(len(row['BID'])):
-            vec.append(row['BID'].iloc[l])
+        for l in range(len(row['Close'])):
+            vec.append(row['Close'].iloc[l])
             rsi.append(row['Time'].iloc[l])
         
         return vec, rsi

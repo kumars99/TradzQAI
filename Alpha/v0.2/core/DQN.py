@@ -9,7 +9,7 @@ from tools.utils import *
 from core.environnement import *
 from GUI.interface import *
 
-class DQN(environnement):
+class DQN():
 
     def __init__(self, env, interface):
         self.interface = interface
@@ -172,11 +172,11 @@ class DQN(environnement):
 
                 if self.action == 1: # buy
                     env.corder = "BUY"
-                    self.inventory_managment(env.corder, env)
+                    self.inventory_managment(env)
 
                 elif self.action == 2: # sell
                     env.corder = "SELL"
-                    self.inventory_managment(env.corder, env)
+                    self.inventory_managment(env)
 
                 self.update_env(env) # Updating env from agent for GUI
                 self.interface.update() # Updating GUI from env

@@ -4,12 +4,18 @@ class environnement():
 
     def __init__(self):
 
+        # Soft settings
+
+        self.name = "TradzQAI"
+        self.version = "v0.2"
+        self.v_state = "Alpha"
+
         # Environnement settings
 
         self.mode = ""
-        self.stock_name = "dax30_2017_10"
+        self.stock_name = "dax30_2017_10_1M"
         self.episode_count = 100
-        self.window_size = 50
+        self.window_size = 100
         self.batch_size = 32
 
         # Wallet settings
@@ -22,6 +28,10 @@ class environnement():
         # Wallet state
 
         self.wallet = 10000
+        self.drawdown = 0
+        self._return = 0
+        self.max_return = 0
+        self.max_drawdown = 0
 
         # Agent state
 
@@ -94,7 +104,6 @@ class environnement():
         self.h_lst_win_order = []
         self.h_lst_loose_order = []
         self.h_lst_draw_order = []
-        #self.h_lst_
 
         # Init logger
 
@@ -112,7 +121,7 @@ class environnement():
             self.lst_act.append(0)
 
     def _pause(self):
-        env.pause = 1
+        self.pause = 1
 
     def _resume(self):
-        env.pause = 0
+        self.pause = 0
