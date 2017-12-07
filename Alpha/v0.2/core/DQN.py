@@ -7,12 +7,12 @@ import sys
 from core.agent import Agent
 from tools.utils import *
 from core.environnement import *
-from GUI.interface import *
+from GUI.main_window import *
 
 class DQN():
 
-    def __init__(self, env, interface):
-        self.interface = interface
+    def __init__(self, env):
+        #self.interface = interface
         if "eval" in env.mode:
             self.agent = Agent(env.window_size, is_eval=True, model_name= "model_" + str(env.stock_name) + "_ws_" + str(env.window_size))
         else:
@@ -179,7 +179,7 @@ class DQN():
                     self.inventory_managment(env)
 
                 self.update_env(env) # Updating env from agent for GUI
-                self.interface.update() # Updating GUI from env
+                env.ui.update() # Updating GUI from env
 
                 done = True if t == self.l - 1 else False
 

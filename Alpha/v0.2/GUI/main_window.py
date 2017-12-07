@@ -1,9 +1,14 @@
 from core.environnement import *
+from core.DQN import *
 from GUI.overview_window import *
 
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QPushButton, QLineEdit, 
-    QLabel, QFrame, QSpinBox, QGridLayout, QGroupBox, QHBoxLayout, 
-    QVBoxLayout, QTabWidget, QAction)
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+
+import sys
+
+from threading import Thread
 
 env = environnement()
 
@@ -14,21 +19,24 @@ class MainWindow(QWidget):
 
     def __init__(self):
         super(MainWindow, self).__init__()
+        env.ui = self
         self.Set_UI()
-
 
     def Set_UI(self):
         self.resize(h, w)
         self.setWindowTitle(env.name)
         self.move(0, 0)
-        new = Start_Window(self)
+        self.ui = Start_Window(self)
 
+    def update(self):
+        self.ui.supdate()
 
 class Start_Window(QWidget):
 
     def __init__(self, root):
         super(QWidget, self).__init__(root)
         self.root = root
+        self.worker = DQN_thread()
         self.Build_Swindow()
 
     def Build_Swindow(self):
@@ -63,6 +71,7 @@ class Start_Window(QWidget):
         lcp = QLabel('Contract price : ')
         self.sbcp = QSpinBox()
         self.sbcp.setMaximum(1000)
+        self.sbcp.setMinimum(1)
         self.sbcp.setValue(env.contract_price)
 
         lpv = QLabel('Pip value : ')
@@ -108,8 +117,8 @@ class Start_Window(QWidget):
         #self.hide()
 
     def _resize(self):
-        self.h = 1024
-        self.w = 720
+        self.h = 1870
+        self.w = 1050
         self.root.resize(self.h, self.w)
         self.resize(self.h, self.w)
 
@@ -129,10 +138,9 @@ class Start_Window(QWidget):
         self.Build_Primary_Window()
 
     def Build_Primary_Window(self):
-        # Getting env settings
-
         self._resize()
 
+        # Getting env settings
         env.contract_price = self.sbcp.value()
         env.stock_name = self.lem.text()
         env.spread = self.sbs.value()
@@ -140,7 +148,6 @@ class Start_Window(QWidget):
         env.pip_value = self.sbpv.value()
 
         VLayout = QVBoxLayout(self)
-
         HLayout = QHBoxLayout()
         BF = QFrame()
 
@@ -148,26 +155,27 @@ class Start_Window(QWidget):
         b_pause = QPushButton('Pause')
         b_resume = QPushButton('Resume')
 
+        b_run.clicked.connect(self.worker.start)
+        b_pause.clicked.connect(env._pause)
+        b_resume.clicked.connect(env._resume)
+
         HLayout.addWidget(b_run)
         HLayout.addWidget(b_pause)
         HLayout.addWidget(b_resume)
         HLayout.addWidget(self.leave)
 
-
         self.Hide_Swindow()
-
-        self.primary_frame = QFrame(self)
 
         self.main_tab = QTabWidget()
 
-        self.overview_tab = Overview_Window(self.main_tab, env)
-        self.model_tab = QWidget()
-        self.historic_tab = QWidget()
+        self.overview = Overview_Window(self.main_tab, env)
+        self.model = QWidget()
+        self.historic = QWidget()
 
-        self.main_tab.addTab(self.overview_tab, 'OverView')
-        self.main_tab.addTab(self.model_tab, 'Model')
-        self.main_tab.addTab(self.historic_tab, 'Historic')
-        
+        self.main_tab.addTab(self.overview, 'OverView')
+        self.main_tab.addTab(self.model, 'Model')
+        self.main_tab.addTab(self.historic, 'Historic')
+
         HLayout.setSpacing(20)
 
         BF.setLayout(HLayout)
@@ -175,3 +183,17 @@ class Start_Window(QWidget):
         VLayout.addWidget(BF)
 
         self.setLayout(VLayout)
+
+    def supdate(self):
+        self.overview.ordr = env.manage_orders(self.overview.ordr)
+        self.overview.Update_Overview(env)
+
+
+class DQN_thread(Thread):
+
+    def __init__(self):
+        Thread.__init__(self)
+        self.daemon=True
+
+    def run(self):
+        DQN(env)._run(env)

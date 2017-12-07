@@ -1,5 +1,7 @@
 from tools.logger import *
 
+import pandas as pd
+
 class environnement():
 
     def __init__(self):
@@ -72,6 +74,10 @@ class environnement():
         self.start_t = 0
         self.loop_t = 0
 
+        # UI
+
+        self.ui = None
+
         # List for graph building
 
         ## Daily list
@@ -125,3 +131,18 @@ class environnement():
 
     def _resume(self):
         self.pause = 0
+
+    def manage_orders(self, ordr):
+        if self.POS_BUY > -1 or self.POS_SELL > -1:
+            if "SELL" in self.corder:
+                POS = self.POS_BUY
+                c = self.sell_price
+            elif "BUY" in self.corder:
+                POS = self.POS_SELL
+                c = self.buy_price
+            new = [str(self.co) + " : " + '{:.2f}'.format(self.cd) + " -> " + str(self.corder) + " : " + '{:.2f}'.format(c) + " | Profit : " + '{:.2f}'.format(self.profit)]
+            if len(ordr['Orders']) > 39:
+                ordr = (ordr.drop(0)).reset_index(drop=True)
+            tmp = pd.DataFrame(new, columns = ['Orders'])
+            ordr = ordr.append(tmp, ignore_index=True)
+        return ordr
