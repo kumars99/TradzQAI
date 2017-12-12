@@ -6,10 +6,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-import sys
-
-from threading import Thread
-
 env = environnement()
 
 h = 400
@@ -19,24 +15,21 @@ class MainWindow(QWidget):
 
     def __init__(self):
         super(MainWindow, self).__init__()
-        env.ui = self
         self.Set_UI()
 
     def Set_UI(self):
         self.resize(h, w)
         self.setWindowTitle(env.name)
         self.move(0, 0)
-        self.ui = Start_Window(self)
+        Start_Window(self)
 
-    def update(self):
-        self.ui.supdate()
 
 class Start_Window(QWidget):
 
     def __init__(self, root):
         super(QWidget, self).__init__(root)
+        #env.ui = self
         self.root = root
-        self.worker = DQN_thread()
         self.Build_Swindow()
 
     def Build_Swindow(self):
@@ -62,11 +55,11 @@ class Start_Window(QWidget):
         self.lem = QLineEdit()
         self.lem.setText(str(env.stock_name))
 
-        lmo = QLabel('Max order : ')
+        lmo = QLabel('Max pos : ')
         self.sbmo = QSpinBox()
         self.sbmo.setMaximum(1000)
         self.sbmo.setMinimum(1)
-        self.sbmo.setValue(env.max_order)
+        self.sbmo.setValue(env.max_pos)
 
         lcp = QLabel('Contract price : ')
         self.sbcp = QSpinBox()
@@ -117,10 +110,11 @@ class Start_Window(QWidget):
         #self.hide()
 
     def _resize(self):
-        self.h = 1870
+        self.h = 1855
         self.w = 1050
         self.root.resize(self.h, self.w)
         self.resize(self.h, self.w)
+        self.root.showMaximized()
 
     def Hide_Swindow(self):
         self.SFrame.hide()
@@ -139,12 +133,15 @@ class Start_Window(QWidget):
 
     def Build_Primary_Window(self):
         self._resize()
+        
+        self.worker = DQN(env)
+        self.worker.sig_step.connect(self.update)
 
         # Getting env settings
         env.contract_price = self.sbcp.value()
         env.stock_name = self.lem.text()
         env.spread = self.sbs.value()
-        env.max_order = self.sbmo.value()
+        env.max_pos = self.sbmo.value()
         env.pip_value = self.sbpv.value()
 
         VLayout = QVBoxLayout(self)
@@ -184,16 +181,6 @@ class Start_Window(QWidget):
 
         self.setLayout(VLayout)
 
-    def supdate(self):
+    def update(self):
         self.overview.ordr = env.manage_orders(self.overview.ordr)
         self.overview.Update_Overview(env)
-
-
-class DQN_thread(Thread):
-
-    def __init__(self):
-        Thread.__init__(self)
-        self.daemon=True
-
-    def run(self):
-        DQN(env)._run(env)

@@ -9,34 +9,62 @@ from tools.utils import *
 from core.environnement import *
 from GUI.main_window import *
 
-class DQN():
+from PyQt5.QtCore import *
+
+class DQN(QThread):
+
+    sig_step = pyqtSignal()
 
     def __init__(self, env):
+        QThread.__init__(self)
         #self.interface = interface
-        if "eval" in env.mode:
-            self.agent = Agent(env.window_size, is_eval=True, model_name= "model_" + str(env.stock_name) + "_ws_" + str(env.window_size))
-        else:
-            self.agent = Agent(env.window_size, model_name= "model_" + str(env.stock_name) + "_ws_" + str(env.window_size))
-        self.agent.mode = env.mode
+        self.env = env
         self.row = pd.DataFrame()
-        self.data, self.rsi = getStockDataVec(env.stock_name)
+        self.data, self.raw = getStockDataVec(env.stock_name)
         self.l = len(self.data) - 1
-        self.columns = ['Price', 'POS']
+        self.columns = ['Price', 'POS', 'Order']
         self.action = 0
         self.series = 0
 
-    def update_env(self, env):
-        env.data = self.l
-        env.inventory = self.agent.inventory
+    def Init_agent(self):
+        if "eval" in self.env.mode:
+            self.agent = Agent(self.env.window_size, is_eval=True, model_name= "model_" + str(self.env.stock_name) + "_ws_" + str(self.env.window_size))
+        else:
+            self.agent = Agent(self.env.window_size, model_name= "model_" + str(self.env.stock_name) + "_ws_" + str(self.env.window_size))
+        self.agent.mode = self.env.mode
 
-    def inventory_managment(self, env):
+    def update_env(self):
+        self.env.data = self.l
+        self.env.inventory = self.agent.inventory
+
+    def pip_drawdown_checking(self):
+        c = 0
+        for i in range(len(self.agent.inventory)):
+            c = self.agent.inventory['Price'][i]
+            if "SELL" in self.agent.inventory['POS'][i]:
+                self.env.corder = "BUY"
+                res = c - self.env.sell_price
+            elif "BUY" in self.agent.inventory['POS'][i]:
+                self.env.corder = "SELL"
+                res = self.env.buy_price - c
+            if abs(res) >= self.env.max_pip_drawdown and res < 0:
+                self.env.profit = res * self.agent.inventory['Order'][i] * self.env.pip_value
+                self.env.POS_SELL = i # Put check in env
+                self.env.total_profit += self.env.profit
+                self.env.reward -= 5
+                self.env.loose += 1
+                self.save_last_closing(i)
+                return 1
+        return 0
+
+    def inventory_managment(self):
         POS = len(self.agent.inventory['POS']) # Number of contract in inventory
-        if "BUY" in env.corder:
+        if "BUY" in self.env.corder:
             POS_SELL = self.src_sell(self.agent.inventory['POS']) # Check if SELL order in inventory
-            env.POS_SELL = POS_SELL # Put check in env
+            self.env.POS_SELL = POS_SELL # Put check in env
 
-            if POS_SELL == -1 and POS < env.max_order: # No SELL order in inventory
-                buy = (pd.DataFrame([env.buy_price], columns = [self.columns[0]])).join(pd.DataFrame(["BUY"], columns = [self.columns[1]]))
+            if POS_SELL == -1 and POS < self.env.cmax_pos: # No SELL order in inventory
+                buy = ((pd.DataFrame([self.env.buy_price], columns = [self.columns[0]])).join(pd.DataFrame(["BUY"], columns = [self.columns[1]]))).join(pd.DataFrame([self.env.max_order_size], columns = [self.columns[2]]))
                 self.agent.inventory = self.agent.inventory.append(buy, ignore_index=True)
 
             elif POS_SELL != -1:# Sell order in inventory
@@ -45,28 +73,29 @@ class DQN():
                 Calc profit and total profit
                 Add last Sell order to env
                 '''
-                env.profit = self.agent.inventory['Price'][POS_SELL] - env.sell_price
-                if env.profit < 0.00:
-                    env.loose += 1
-                    self.series = 0
-                elif env.profit > 0.00 :
-                    env.reward += env.profit + int(sqrt(self.series))
-                    env.win += 1
-                    self.series += 1
+                POS_SELL = self.src_best_buy(self.agent.inventory['Price'])
+                self.env.profit = (self.agent.inventory['Price'][POS_SELL] - self.env.sell_price) * self.agent.inventory['Order'][POS_SELL]
+                if self.env.profit < 0.00:
+                    self.env.loose += 1
+                    #self.series = 0
+                elif self.env.profit > 0.00 :
+                    self.env.reward += self.env.profit #+ int(sqrt(self.series))
+                    self.env.win += 1
+                    #self.series += 1
                 else:
-                    env.draw += 1
-                env.profit *= env.pip_value
-                env.total_profit += env.profit
-                env.cd = (self.agent.inventory['Price']).iloc[POS_SELL]
-                env.co = (self.agent.inventory['POS']).iloc[POS_SELL]
-                self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_SELL])).reset_index(drop=True)
+                    self.env.draw += 1
+                self.env.profit *= self.env.pip_value
+                self.env.total_profit += self.env.profit
+                self.save_last_closing(POS_SELL)
+            else:
+                self.env.reward -= 1
 
-        elif "SELL" in env.corder:
+        elif "SELL" in self.env.corder:
             POS_BUY = self.src_buy(self.agent.inventory['POS']) # Check if BUY order in inventory
-            env.POS_BUY = POS_BUY # Put check in env
+            self.env.POS_BUY = POS_BUY # Put check in env
 
-            if POS_BUY == -1 and POS < env.max_order:# No BUY order in inventory
-                sell = (pd.DataFrame([env.sell_price], columns = [self.columns[0]])).join(pd.DataFrame(["SELL"], columns = [self.columns[1]]))
+            if POS_BUY == -1 and POS < self.env.cmax_pos:# No BUY order in inventory
+                sell = ((pd.DataFrame([self.env.sell_price], columns = [self.columns[0]])).join(pd.DataFrame(["SELL"], columns = [self.columns[1]]))).join(pd.DataFrame([self.env.max_order_size], columns = [self.columns[2]]))
                 self.agent.inventory = self.agent.inventory.append(sell, ignore_index=True)
 
             elif POS_BUY != -1:# Sell order in inventory
@@ -75,28 +104,29 @@ class DQN():
                 Calc profit and total profit
                 Add last Sell order to env
                 '''
-                env.profit = env.buy_price - self.agent.inventory['Price'][POS_BUY]
-                if env.profit < 0:
-                    env.loose += 1
-                    self.series = 0
-                elif env.profit > 0 :
-                    env.reward += env.profit + int(sqrt(self.series))
-                    env.win += 1
-                    self.series += 1
+                POS_BUY = self.src_best_sell(self.agent.inventory['Price'])
+                self.env.profit = (self.env.buy_price - self.agent.inventory['Price'][POS_BUY]) * self.agent.inventory['Order'][POS_BUY]
+                if self.env.profit < 0:
+                    self.env.loose += 1
+                    #self.series = 0
+                elif self.env.profit > 0 :
+                    self.env.reward += self.env.profit #+ int(sqrt(self.series))
+                    self.env.win += 1
+                    #self.series += 1
                 else:
-                    env.draw += 1
-                env.profit *= env.pip_value
-                env.total_profit += env.profit
-                env.cd = (self.agent.inventory['Price']).iloc[POS_BUY]
-                env.co = (self.agent.inventory['POS']).iloc[POS_BUY]
-                self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS_BUY])).reset_index(drop=True)
+                    self.env.draw += 1
+                self.env.profit *= self.env.pip_value
+                self.env.total_profit += self.env.profit
+                self.save_last_closing(POS_BUY)
+            else:
+                self.env.reward -= 1
 
     '''
     def reward_managment(self, POS, RSI, vol):
         oo = ordonner a l'origine
         cd = coefficient directeur
         f(x) = ax+b
-        f(y) = sqrt(f(x)*v)
+        f(y) = f(x)*v
 
         if "BUY" in POS:
             oo = 100
@@ -108,6 +138,22 @@ class DQN():
 
         self.reward += int((cd * RSI + oo ) * vol)
     '''
+    def save_last_closing(self, POS):
+        self.env.cd = (self.agent.inventory['Price']).iloc[POS]
+        self.env.co = (self.agent.inventory['POS']).iloc[POS]
+        self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS])).reset_index(drop=True)
+
+    def src_best_sell(self, inventory):
+        csell = []
+        for i in inventory:
+            csell.append(self.env.buy_price - i)
+        return np.argmax(csell)
+
+    def src_best_buy(self, inventory):
+        cbuy = []
+        for i in inventory:
+            cbuy.append(i - self.env.buy_price)
+        return np.argmax(cbuy)
 
     def src_sell(self, inventory):
         '''
@@ -127,71 +173,84 @@ class DQN():
                 return (i)
         return (-1)
 
-    def _run(self, env):
-        for e in range(env.episode_count + 1):
-            env.total_profit = 0
-            env.win = 0
-            env.loose = 0
-            env.draw = 0
+    def run(self):
+        self.Init_agent()
+        for e in range(self.env.episode_count + 1):
+            self.env.total_profit = 0
+            self.env.win = 0
+            self.env.loose = 0
+            self.env.draw = 0
 
-            env.start_t = time.time()
+            self.env.start_t = time.time()
 
-            if env.pause == 1:
-                while (env.pause == 1):
+            if self.env.pause == 1:
+                while (self.env.pause == 1):
                     time.sleep(0.01)
 
-            state = getState(self.data, 0, env.window_size + 1, self.rsi)
+            t = self.env.window_size
+            state = getState(self.raw, t, self.env.window_size + 1)
+            '''
             for i in range(len(state[0]) - 1):
-                env.lst_state.append(state[0][i])
+                self.env.lst_state.append(state[0][i])
+            '''
             self.agent.inventory = pd.DataFrame(columns = self.columns) # Init agent inventory
 
-            for t in range(self.l):
+            while t != self.l:
                 tmp = time.time()
-                env.cdatai = t
-                env.cdata = self.data[t]
-                env.lst_data.append(env.cdata)
-                env.POS_SELL = -1
-                env.POS_BUY = -1
+                self.env.cdatai = t
+                self.env.cdata = self.data[t]
+                self.env.lst_data.append(self.env.cdata)
+                self.env.POS_SELL = -1
+                self.env.POS_BUY = -1
 
-                if env.pause == 1:
-                    while (env.pause == 1):
+                if self.env.pause == 1:
+                    while (self.env.pause == 1):
                         time.sleep(0.01)
+                
+                done = True if t == self.l - 1 else False
 
                 POS = len(self.agent.inventory['POS'])
 
                 self.action = self.agent.act(state) # Get action from agent
-                env.def_act(self.action)
-                next_state = getState(self.data, t + 1, env.window_size + 1, self.rsi) # Get new state
-                env.lst_state.append(next_state[0][len(next_state[0]) - 1])
+                self.env.def_act(self.action)
+                next_state = getState(self.raw, t + 1, self.env.window_size + 1) # Get new state
+                #self.env.lst_state.append(next_state[0][len(next_state[0]) - 1])
 
-                env.buy_price = self.data[t] - (env.spread / 2) # Update buy price with spread
-                env.sell_price = self.data[t] + (env.spread / 2) # Update sell price with spread
+                self.env.buy_price = self.data[t] - (self.env.spread / 2) # Update buy price with spread
+                self.env.sell_price = self.data[t] + (self.env.spread / 2) # Update sell price with spread
 
-                env.reward = 0 # Reset reward
-                env.profit = 0 # Reset current profit
+                self.env.reward = 0 # Reset reward
+                self.env.profit = 0 # Reset current profit
 
-                if self.action == 1: # buy
-                    env.corder = "BUY"
-                    self.inventory_managment(env)
+                self.env.manage_exposure()
 
-                elif self.action == 2: # sell
-                    env.corder = "SELL"
-                    self.inventory_managment(env)
+                if self.pip_drawdown_checking() == 0:
+                    if self.action == 1: # buy
+                        self.env.corder = "BUY"
+                        self.inventory_managment()
 
-                self.update_env(env) # Updating env from agent for GUI
-                env.ui.update() # Updating GUI from env
+                    elif self.action == 2: # sell
+                        self.env.corder = "SELL"
+                        self.inventory_managment()
 
-                done = True if t == self.l - 1 else False
+                    else:
+                        self.env.reward -= 0.5
 
-                self.agent.memory.append((state, self.action, env.reward, next_state, done))
+                self.update_env() # Updating env from agent for GUI
+                self.env.manage_wallet()
+                self.sig_step.emit() # Update GUI
+
+
+                self.agent.memory.append((state, self.action, self.env.reward, next_state, done))
                 state = next_state
 
-                if "train" in env.mode:
-                    if len(self.agent.memory) > env.batch_size:
-                        self.agent.expReplay(env.batch_size)
+                if "train" in self.env.mode:
+                    if len(self.agent.memory) > self.env.batch_size:
+                        self.agent.expReplay(self.env.batch_size)
                     if t % 1000 == 0 and t > 0 : # Save model all 10000 data
-                        self.agent.model.save("models/model_" + str(env.stock_name) + "_ws_" + str(env.window_size))
+                        self.agent.model.save("models/model_" + str(self.env.stock_name) + "_ws_" + str(self.env.window_size))
                 else:
                     time.sleep(0.01)
 
-                env.loop_t = time.time() - tmp
+                t += 1
+                self.env.loop_t = time.time() - tmp

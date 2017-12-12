@@ -22,24 +22,23 @@ class indicators():
         self.macd_short = 12
 
     def build_indicators(self, data):
-        names = ['RSI', 'MACD'] #, 'Volatility', 'Stoch_D', 'Stock_K', 'EMA20', 'EMA50','EMA100', 'BB']
+        names = ['RSI', 'MACD', 'Volatility', 'EMA20', 'EMA50','EMA100']
         indicators = pd.DataFrame(columns = names)
 
         print ("Building RSI")
         indicators['RSI'] = RSI(data, self.rsi_period)
 
-        '''
         print ("Building MACD")
         indicators['MACD'] = macd(data, self.macd_short, self.macd_long)
 
         print ("Building Volatility")
         indicators['Volatility'] = vol(data, self.volatility_period)
 
-        print ("Building Stoch_D")
-        indicators['Stoch_D'] = D(data, self.stoch_period)
+        #print ("Building Stoch_D")
+        #indicators['Stoch_D'] = D(data, self.stoch_period)
 
-        print ("Building Stoch_K")
-        indicators['Stock_K'] = K(data, self.stoch_period)
+        #print ("Building Stoch_K")
+        #indicators['Stock_K'] = K(data, self.stoch_period)
 
         print ("Building EMA20")
         indicators['EMA20'] = ema(data, 20)
@@ -50,7 +49,6 @@ class indicators():
         print ("Building EMA100")
         indicators['EMA100'] = ema(data, 100)
 
-        print ("Building bollinger band")
-        indicators['BB'] = bb(data, self.bb_period)
-        '''
+        #print ("Building bollinger band")
+        #indicators['BB'] = bb(data, self.bb_period)
         return indicators

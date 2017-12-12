@@ -1,4 +1,5 @@
 from core.environnement import *
+from tools.utils import formatPrice
 
 import time
 
@@ -35,7 +36,7 @@ class Overview_Window(QWidget):
 
         self.lmode = QLabel('Mode : ' + env.mode)
         self.lmodel = QLabel('Model : ' + env.stock_name)
-        self.lmax_order = QLabel('Max order : ' + str(env.max_order))
+        self.lmax_order = QLabel('Max pos : ' + str(env.max_pos))
         self.lcontract_price = QLabel('Contract price : ' + str(env.contract_price))
         self.lpip_value = QLabel('Pip Value : ' + str(env.pip_value))
         self.lspread = QLabel('Spread : ' + str(env.spread))
@@ -150,6 +151,7 @@ class Overview_Window(QWidget):
 
         VBox.addWidget(self.lact)
         VBox.addWidget(self.Agent_env(env))
+        VBox.addWidget(self.Agent_Wallet(env))
         VBox.addWidget(self.Agent_Profit())
         VBox.addWidget(self.Agent_Reward())
         VBox.addWidget(self.Time_Init())
@@ -158,6 +160,30 @@ class Overview_Window(QWidget):
 
         GBox.setLayout(VBox)
         GBox.setFixedSize(245,915)
+
+        return GBox
+
+    def Agent_Wallet(self, env):
+
+        GBox = QGroupBox("Wallet")
+        VBox = QVBoxLayout()
+
+        self.lcap = QLabel('Capital : ' + formatPrice(env.capital))
+        self.lcgl = QLabel('Current G/L : ' + formatPrice(env.cgl))
+        self.ldgl = QLabel('Daily G/L : ' + formatPrice(env.dgl))
+        self.lusable_margin = QLabel('Usable margin : ' + formatPrice(env.usable_margin))
+        self.lused_margin = QLabel('Used margin : ' + formatPrice(env.used_margin))
+
+        VBox.addWidget(self.lcap)
+        VBox.addWidget(self.lcgl)
+        VBox.addWidget(self.ldgl)
+        VBox.addWidget(self.lusable_margin)
+        VBox.addWidget(self.lused_margin)
+
+        VBox.addStretch()
+
+        GBox.setLayout(VBox)
+        GBox.setFixedSize(220,180)
 
         return GBox
 
@@ -225,8 +251,8 @@ class Overview_Window(QWidget):
         #Day mod
 
         # Daily reset
-        if int(env.cdatai / (env.cdata / 20)) == self.dday:
-            self.dday ++ 1
+        if int(env.cdatai / (env.data / 20)) == self.dday:
+            self.dday += 1
             self.dailyp = 0
             self.daily_reward = 0
 
@@ -249,7 +275,7 @@ class Overview_Window(QWidget):
 
         #Inventory
 
-        if len(env.inventory['Price']) < 1:
+        if not 'Empty inventory' in env.inventory and len(env.inventory['Price']) < 1:
             env.inventory = 'Empty inventory'
         self.linventory.setText(str(env.inventory))
 
@@ -275,11 +301,19 @@ class Overview_Window(QWidget):
         self.ldata.setText("Current : " +str(env.cdatai)+ " / " +str(env.data))
         self.lperc.setText('{:.2f}'.format(float((env.cdatai * 100 ) / env.data)) + " %")
 
+        #Wallet
+
+        self.lcap.setText('Capital : ' + formatPrice(env.capital))
+        self.lcgl.setText('Current G/L : ' + formatPrice(env.cgl))
+        self.ldgl.setText('Daily G/L : ' + formatPrice(env.dgl))
+        self.lusable_margin.setText('Usable margin : ' + formatPrice(env.usable_margin))
+        self.lused_margin.setText('Used margin : ' + formatPrice(env.used_margin))
+
         #Profit
 
-        self.lcurp.setText("Current : " + str(env.profit))
-        self.ldailyp.setText("Daily : " + str(self.dailyp))
-        self.ltotp.setText("Total : " + str(env.total_profit))
+        self.lcurp.setText("Current : " + formatPrice(env.profit))
+        self.ldailyp.setText("Daily : " + formatPrice(self.dailyp))
+        self.ltotp.setText("Total : " + formatPrice(env.total_profit))
 
         #Reward
 
@@ -291,10 +325,10 @@ class Overview_Window(QWidget):
 
         now = time.time() - env.start_t
         self.lstart_t.setText("Since start : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime(now))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime(now)))
+        self.lloop_t.setText("Loop : " + str(round((env.loop_t * 100), 3)) + " ms")
 
         if env.cdatai > 0 :
             self.lt += env.loop_t
             self.leta.setText("ETA : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime(((self.lt / env.cdatai ) * (env.data - env.cdatai))))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime((self.lt / env.cdatai) * (env.data - env.cdatai))))
         else:
             self.leta.setText("ETA : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime((self.lt / 1 ) * (env.data)))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime((self.lt / 1) * (env.data))))
-        self.lloop_t.setText("Loop : " + str(round((env.loop_t * 100), 3)) + " ms")

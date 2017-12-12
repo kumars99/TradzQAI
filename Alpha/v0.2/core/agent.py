@@ -36,17 +36,15 @@ class Agent:
 
     def _model(self):
         model = Sequential()
-        model.add(Dense(units=512, input_dim=self.state_size, activation='relu', kernel_initializer='RandomUniform'))
-        model.add(Dense(units=256, kernel_initializer='RandomUniform'))
+        model.add(Dense(units=256, input_shape=(self.state_size, )))
         model.add(PReLU())
-        model.add(Dense(units=128, kernel_initializer='RandomUniform'))
+        model.add(Dense(units=128))
         model.add(PReLU())
-        model.add(Dense(units=64, kernel_initializer='RandomUniform'))
+        model.add(Dense(units=64))
         model.add(PReLU())
-        model.add(Dense(units=32, kernel_initializer='RandomUniform'))
+        model.add(Dense(units=16))
         model.add(PReLU())
-        model.add(Dense(units=16, kernel_initializer='RandomUniform', activation='relu'))
-        model.add(Dense(self.action_size, kernel_initializer='RandomUniform', activation="linear"))
+        model.add(Dense(self.action_size, activation="linear"))
         model.compile(loss="mse", optimizer=Adam(lr=0.001))
 
         return model

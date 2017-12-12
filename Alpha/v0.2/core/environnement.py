@@ -2,9 +2,12 @@ from tools.logger import *
 
 import pandas as pd
 
-class environnement():
+from PyQt5.QtCore import *
+
+class environnement(QObject):
 
     def __init__(self):
+        super(QObject, self).__init__()
 
         # Soft settings
 
@@ -15,7 +18,7 @@ class environnement():
         # Environnement settings
 
         self.mode = ""
-        self.stock_name = "dax30_2017_10_1M"
+        self.stock_name = "DAX30_1M_2017_10_wi2"
         self.episode_count = 100
         self.window_size = 100
         self.batch_size = 32
@@ -23,15 +26,22 @@ class environnement():
         # Wallet settings
 
         self.spread = 1
-        self.max_order = 20
+        self.max_order_size = 1
+        self.max_pos = 10
+        self.cmax_pos = self.max_pos
         self.pip_value = 5
         self.contract_price = 125
+        self.exposure = 10 # Exposure in percent
+        self.max_pip_drawdown = 10
 
         # Wallet state
 
-        self.wallet = 10000
-        self.drawdown = 0
-        self._return = 0
+        self.capital = 100000
+        self.cgl = 0
+        self.dgl = 0
+        self.usable_margin = self.capital
+        self.used_margin = 0
+        self.pip_gl = 0
         self.max_return = 0
         self.max_drawdown = 0
 
@@ -54,7 +64,7 @@ class environnement():
 
         # Current data and order dropped from inventory
 
-        self.cd = 0 
+        self.cd = 0
         self.co = ""
 
         # Current data and order from loop
@@ -63,7 +73,7 @@ class environnement():
         self.cdata = 0
         self.cdatai = 0
 
-        # orders
+        # Orders
 
         self.win = 0
         self.loose = 0
@@ -74,10 +84,6 @@ class environnement():
         self.start_t = 0
         self.loop_t = 0
 
-        # UI
-
-        self.ui = None
-
         # List for graph building
 
         ## Daily list
@@ -87,6 +93,7 @@ class environnement():
         self.lst_data = []
         self.lst_inventory_len = []
         self.lst_profit = []
+        self.lst_drawdown = []
         self.lst_win_order = []
         self.lst_loose_order = []
         self.lst_draw_order = []
@@ -146,3 +153,33 @@ class environnement():
             tmp = pd.DataFrame(new, columns = ['Orders'])
             ordr = ordr.append(tmp, ignore_index=True)
         return ordr
+
+    def manage_wallet(self):
+        avg = 0
+        i = 0
+        while i != len(self.inventory['POS']):
+            avg += self.inventory['Price'][i]
+            i += 1
+
+        if i > 0:
+            avg /= i
+            if "SELL" in self.inventory['POS'][0]:
+                self.cgl = (avg - self.sell_price) * i * self.pip_value * self.max_order_size
+            elif "BUY" in self.inventory['POS'][0]:
+                self.cgl = (self.buy_price - avg) * i * self.pip_value * self.max_order_size
+        else:
+            self.cgl = 0
+
+        self.capital += self.profit
+        self.used_margin = (len(self.inventory['POS']) * self.contract_price * self.max_order_size) + (self.cgl * -1)
+        self.usable_margin = self.capital_exposure - self.used_margin
+
+    def manage_exposure(self):
+        self.capital_exposure = self.capital - (self.capital * (1 - (self.exposure / 100)))
+        max_order_valid = self.capital_exposure // (self.contract_price + (self.max_pip_drawdown * self.pip_value))
+        if max_order_valid <= self.max_pos:
+            self.cmax_pos = max_order_valid
+        else:
+            extra_order = max_order_valid - self.max_pos
+            if extra_order >= self.max_pos:
+                self.max_order_size = int(max_order_valid // self.max_pos)
