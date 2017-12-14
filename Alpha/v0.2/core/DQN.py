@@ -7,7 +7,6 @@ import sys
 from core.agent import Agent
 from tools.utils import *
 from core.environnement import *
-from GUI.main_window import *
 
 from PyQt5.QtCore import *
 
@@ -18,26 +17,39 @@ class DQN(QThread):
     def __init__(self, env):
         QThread.__init__(self)
         #self.interface = interface
+        self.inventory_memory = []
         self.env = env
-        self.row = pd.DataFrame()
         self.data, self.raw = getStockDataVec(env.stock_name)
-        self.l = len(self.data) - 1
         self.columns = ['Price', 'POS', 'Order']
+        self.l = len(self.data) - 1
         self.action = 0
         self.series = 0
 
-    def Init_agent(self):
+    def init_agent(self, state):
         if "eval" in self.env.mode:
-            self.agent = Agent(self.env.window_size, is_eval=True, model_name= "model_" + str(self.env.stock_name) + "_ws_" + str(self.env.window_size))
+            self.agent = Agent(state, is_eval=True, model_name= "model_" + str(self.env.stock_name) + "_ws_" + str(self.env.window_size))
         else:
-            self.agent = Agent(self.env.window_size, model_name= "model_" + str(self.env.stock_name) + "_ws_" + str(self.env.window_size))
+            self.agent = Agent(state, model_name= "model_" + str(self.env.stock_name) + "_ws_" + str(self.env.window_size))
         self.agent.mode = self.env.mode
 
     def update_env(self):
         self.env.data = self.l
         self.env.inventory = self.agent.inventory
 
+    def save_inventory(self, corder, cprice=0):
+        actions = {
+                    'BUY': 0,
+                    'SELL': 1
+        }
+        if 'HOLD' in corder:
+            self.inventory_memory.append([None, None])
+        else:
+            self.inventory_memory.append([actions[corder], cprice / 10000])
+
     def pip_drawdown_checking(self):
+        '''
+        Prevent high drawdown
+        '''
         c = 0
         for i in range(len(self.agent.inventory)):
             c = self.agent.inventory['Price'][i]
@@ -51,7 +63,7 @@ class DQN(QThread):
                 self.env.profit = res * self.agent.inventory['Order'][i] * self.env.pip_value
                 self.env.POS_SELL = i # Put check in env
                 self.env.total_profit += self.env.profit
-                self.env.reward -= 5
+                self.env.reward -= self.env.max_pip_drawdown
                 self.env.loose += 1
                 self.save_last_closing(i)
                 return 1
@@ -74,17 +86,17 @@ class DQN(QThread):
                 Add last Sell order to env
                 '''
                 POS_SELL = self.src_best_buy(self.agent.inventory['Price'])
-                self.env.profit = (self.agent.inventory['Price'][POS_SELL] - self.env.sell_price) * self.agent.inventory['Order'][POS_SELL]
+                self.env.profit = self.agent.inventory['Price'][POS_SELL] - self.env.sell_price
                 if self.env.profit < 0.00:
                     self.env.loose += 1
                     #self.series = 0
                 elif self.env.profit > 0.00 :
-                    self.env.reward += self.env.profit #+ int(sqrt(self.series))
                     self.env.win += 1
                     #self.series += 1
                 else:
                     self.env.draw += 1
-                self.env.profit *= self.env.pip_value
+                self.env.reward += self.env.profit #+ int(sqrt(self.series))
+                self.env.profit *= self.env.pip_value * self.agent.inventory['Order'][POS_SELL]
                 self.env.total_profit += self.env.profit
                 self.save_last_closing(POS_SELL)
             else:
@@ -105,17 +117,17 @@ class DQN(QThread):
                 Add last Sell order to env
                 '''
                 POS_BUY = self.src_best_sell(self.agent.inventory['Price'])
-                self.env.profit = (self.env.buy_price - self.agent.inventory['Price'][POS_BUY]) * self.agent.inventory['Order'][POS_BUY]
+                self.env.profit = self.env.buy_price - self.agent.inventory['Price'][POS_BUY]
                 if self.env.profit < 0:
                     self.env.loose += 1
                     #self.series = 0
                 elif self.env.profit > 0 :
-                    self.env.reward += self.env.profit #+ int(sqrt(self.series))
                     self.env.win += 1
                     #self.series += 1
                 else:
                     self.env.draw += 1
-                self.env.profit *= self.env.pip_value
+                self.env.reward += self.env.profit #+ int(sqrt(self.series))
+                self.env.profit *= self.env.pip_value * self.agent.inventory['Order'][POS_BUY]
                 self.env.total_profit += self.env.profit
                 self.save_last_closing(POS_BUY)
             else:
@@ -139,6 +151,9 @@ class DQN(QThread):
         self.reward += int((cd * RSI + oo ) * vol)
     '''
     def save_last_closing(self, POS):
+        '''
+        Save last trade and drop it from inventory
+        '''
         self.env.cd = (self.agent.inventory['Price']).iloc[POS]
         self.env.co = (self.agent.inventory['POS']).iloc[POS]
         self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS])).reset_index(drop=True)
@@ -174,7 +189,7 @@ class DQN(QThread):
         return (-1)
 
     def run(self):
-        self.Init_agent()
+        self.init_agent(self.env.window_size)
         for e in range(self.env.episode_count + 1):
             self.env.total_profit = 0
             self.env.win = 0
@@ -182,20 +197,19 @@ class DQN(QThread):
             self.env.draw = 0
 
             self.env.start_t = time.time()
+            self.agent.inventory = pd.DataFrame(columns = self.columns) # Init agent inventory
 
             if self.env.pause == 1:
                 while (self.env.pause == 1):
                     time.sleep(0.01)
 
-            t = self.env.window_size
-            state = getState(self.raw, t, self.env.window_size + 1)
+            state = getState(self.raw, 0, self.env.window_size + 1, self.inventory_memory)
             '''
             for i in range(len(state[0]) - 1):
                 self.env.lst_state.append(state[0][i])
             '''
-            self.agent.inventory = pd.DataFrame(columns = self.columns) # Init agent inventory
 
-            while t != self.l:
+            for t in range(self.l):
                 tmp = time.time()
                 self.env.cdatai = t
                 self.env.cdata = self.data[t]
@@ -213,7 +227,7 @@ class DQN(QThread):
 
                 self.action = self.agent.act(state) # Get action from agent
                 self.env.def_act(self.action)
-                next_state = getState(self.raw, t + 1, self.env.window_size + 1) # Get new state
+                next_state = getState(self.raw, t + 1, self.env.window_size + 1, self.inventory_memory) # Get new state
                 #self.env.lst_state.append(next_state[0][len(next_state[0]) - 1])
 
                 self.env.buy_price = self.data[t] - (self.env.spread / 2) # Update buy price with spread
@@ -223,7 +237,6 @@ class DQN(QThread):
                 self.env.profit = 0 # Reset current profit
 
                 self.env.manage_exposure()
-
                 if self.pip_drawdown_checking() == 0:
                     if self.action == 1: # buy
                         self.env.corder = "BUY"

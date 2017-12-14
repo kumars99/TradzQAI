@@ -170,20 +170,18 @@ class Overview_Window(QWidget):
 
         self.lcap = QLabel('Capital : ' + formatPrice(env.capital))
         self.lcgl = QLabel('Current G/L : ' + formatPrice(env.cgl))
-        self.ldgl = QLabel('Daily G/L : ' + formatPrice(env.dgl))
         self.lusable_margin = QLabel('Usable margin : ' + formatPrice(env.usable_margin))
         self.lused_margin = QLabel('Used margin : ' + formatPrice(env.used_margin))
 
         VBox.addWidget(self.lcap)
         VBox.addWidget(self.lcgl)
-        VBox.addWidget(self.ldgl)
         VBox.addWidget(self.lusable_margin)
         VBox.addWidget(self.lused_margin)
 
         VBox.addStretch()
 
         GBox.setLayout(VBox)
-        GBox.setFixedSize(220,180)
+        GBox.setFixedSize(220,130)
 
         return GBox
 
@@ -305,7 +303,6 @@ class Overview_Window(QWidget):
 
         self.lcap.setText('Capital : ' + formatPrice(env.capital))
         self.lcgl.setText('Current G/L : ' + formatPrice(env.cgl))
-        self.ldgl.setText('Daily G/L : ' + formatPrice(env.dgl))
         self.lusable_margin.setText('Usable margin : ' + formatPrice(env.usable_margin))
         self.lused_margin.setText('Used margin : ' + formatPrice(env.used_margin))
 

@@ -304,14 +304,16 @@ def getStockDataVec(key):
             vec.append(float(line.split(";")[4]))
         '''
 
-        row.drop(row.columns[[0, 1]], axis = 1, inplace = True)
+        row.drop(row.columns[[0, 1, 4, 5, 6, 7, 8]], axis = 1, inplace = True)
         for l in range(len(row['Close'])):
             vec.append(row['Close'].iloc[l])
-        
+        '''
         row['EMA20'] /= 10000
         row['EMA50'] /= 10000
         row['EMA100'] /= 10000
         row['Close'] /= 10000
+        '''
+        row['RSI'] /= 100
         
         return vec, row
 
@@ -320,19 +322,27 @@ def sigmoid(x):
         return 1 / (1 + math.exp(-x))
 
 # returns an an n-day state representation ending at time t
-def getState(data, t, n):
+def getState(data, t, n, inventory):
         d = t - n + 1
 
-        res = []
-        for i in data.columns:
-            res.append(data[i][d:t] if d >= 0 else -d * data[i][0] + data[i][0:t]) # pad with t0
-        '''
-        res = []
-        for i in range(n - 1):
-            res.append(block[i + 1] - block[i])
+        if d < 0:
+            block = data.iloc[0:t]
+        else:
+            block = data.iloc[d:t] # pad with t0
 
-        for i in range(len(res)):
-            res[i] /= 10000
         '''
-
+        for i in range(len(block) - 1):
+            tmp = []
+            for r in block[i]:
+                tmp.append(r)
+            for z in inv_block[i]:
+                tmp.append(z)
+            res.append(np.asarray(tmp))
+        res = np.asarray(res)
+        '''
+        block = np.array(block)
+        res = []
+        for i in range(len(block) - 1):
+            res.append([sigmoid(block[i + 1][0] - block[i][0]), block[i][1]])
+        #print (np.array(res).shape)
         return np.array(res)

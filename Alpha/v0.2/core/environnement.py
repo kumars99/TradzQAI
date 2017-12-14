@@ -26,19 +26,21 @@ class environnement(QObject):
         # Wallet settings
 
         self.spread = 1
-        self.max_order_size = 1
         self.max_pos = 10
-        self.cmax_pos = self.max_pos
         self.pip_value = 5
         self.contract_price = 125
+
+        # Risk managment
+
+        self.max_order_size = 1
+        self.cmax_pos = self.max_pos
         self.exposure = 10 # Exposure in percent
         self.max_pip_drawdown = 10
 
         # Wallet state
 
-        self.capital = 100000
+        self.capital = 20000
         self.cgl = 0
-        self.dgl = 0
         self.usable_margin = self.capital
         self.used_margin = 0
         self.pip_gl = 0
@@ -84,6 +86,17 @@ class environnement(QObject):
         self.start_t = 0
         self.loop_t = 0
 
+        # date
+
+        self.day = 1
+        self.tot_day = 1
+
+        self.month = 1
+        self.tot_month = 1
+
+        self.year = 1
+        self.tot_year = 1
+
         # List for graph building
 
         ## Daily list
@@ -97,6 +110,7 @@ class environnement(QObject):
         self.lst_win_order = []
         self.lst_loose_order = []
         self.lst_draw_order = []
+        self.lst_capital = []
 
         ### Model list
 
@@ -117,6 +131,7 @@ class environnement(QObject):
         self.h_lst_win_order = []
         self.h_lst_loose_order = []
         self.h_lst_draw_order = []
+        self.h_lst_capital = []
 
         # Init logger
 
@@ -173,13 +188,38 @@ class environnement(QObject):
         self.capital += self.profit
         self.used_margin = (len(self.inventory['POS']) * self.contract_price * self.max_order_size) + (self.cgl * -1)
         self.usable_margin = self.capital_exposure - self.used_margin
+        if self.used_margin < 0:
+            self.used_margin = 0
 
     def manage_exposure(self):
         self.capital_exposure = self.capital - (self.capital * (1 - (self.exposure / 100)))
         max_order_valid = self.capital_exposure // (self.contract_price + (self.max_pip_drawdown * self.pip_value))
         if max_order_valid <= self.max_pos:
             self.cmax_pos = max_order_valid
+            self.max_order_size = 1
         else:
             extra_order = max_order_valid - self.max_pos
             if extra_order >= self.max_pos:
                 self.max_order_size = int(max_order_valid // self.max_pos)
+            else:
+                self.max_order_size = 1
+
+    def check_dates(self):
+        for r in range(len(self.date)):
+            if r > 0 and self.date[r - 1][7] != self.date[r][7]:
+                self.tot_day += 1
+            if r > 0 and self.date[r - 1][5] != self.date[r][5]:
+                self.tot_month += 1
+            if r > 0 and self.date[r - 1][3] != self.date[r][3]:
+                self.tot_year += 1
+
+    def manage_date(self):
+        if self.cdatai > 0:
+            if self.date[self.cdatai - 1][7] != self.date[self.cdatai][7]:
+                self.day += 1
+            if self.date[self.cdatai - 1][5] != self.date[self.cdatai][5]:
+                self.month += 1
+                self.day = 1
+            if self.date[self.cdatai - 1][3] != self.date[self.cdatai][3]:
+                self.year += 1
+                self.month = 1
