@@ -5,7 +5,7 @@ import time
 import os
 import math
 
-from tools.indicators.build_indicators import *
+from tools.indicators import indicators
 
 # Indicators managment
 
@@ -325,10 +325,10 @@ def sigmoid(x):
 def getState(data, t, n, inventory):
         d = t - n + 1
 
-        if d < 0:
-            block = data.iloc[0:t]
-        else:
-            block = data.iloc[d:t] # pad with t0
+        tmp = np.asarray(data)
+
+        block = tmp[d:t + 1] if d >= 0 else np.concatenate([-d * [tmp[0]]] + [tmp[0:t + 1]])
+
 
         '''
         for i in range(len(block) - 1):
@@ -340,9 +340,7 @@ def getState(data, t, n, inventory):
             res.append(np.asarray(tmp))
         res = np.asarray(res)
         '''
-        block = np.array(block)
         res = []
-        for i in range(len(block) - 1):
-            res.append([sigmoid(block[i + 1][0] - block[i][0]), block[i][1]])
-        #print (np.array(res).shape)
+        for i in range(n - 1):
+            res.append([sigmoid(block[i + 1][0] - block[i][0]), block[i + 1][1]])
         return np.array(res)

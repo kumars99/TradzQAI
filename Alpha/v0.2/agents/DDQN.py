@@ -1,6 +1,6 @@
 import keras
+
 from keras.models import Sequential
-from keras.models import load_model
 from keras.layers import Dense, PReLU, CuDNNLSTM, Flatten, Reshape, Dropout
 from keras.optimizers import Adam
 
@@ -13,7 +13,7 @@ from collections import deque
 
 from core.environnement import *
 
-class Agent:
+class DDQN:
     def __init__(self, state_size, env=None, is_eval=False, model_name=""):
         self.state_size = state_size # normalized previous days
         self.action_size = 3 # sit, buy, sell
@@ -35,40 +35,34 @@ class Agent:
             self.model = load_model("models/" + model_name)
         else:
             self.model = self._model()
-        print (self.model.summary())
+            self.target_model = self._model()
 
     def _model(self):
         model = Sequential()
-        model.add(Dense(64, input_shape=(2, ), activation='relu'))
+        model.add(Dense(32, input_shape=self.state_size, activation='relu'))
         model.add(Dense(32, activation='relu'))
-        model.add(Dense(32, activation='relu'))
-        model.add(Reshape((1, 32)))
-        model.add(CuDNNLSTM(256))
-        model.add(Dense(self.action_size, activation="linear"))
+        model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(lr=0.001))
         return model
 
-    def act(self, state):
-        if not self.is_eval and np.random.rand() <= self.epsilon:
-            return random.randrange(self.action_size)
-
-        options = self.model.predict(state)
-        return np.argmax(options[0])
+    def update_target_model(self):
+        self.target_model.set_weights(self.model.get_weights())
 
     def expReplay(self, batch_size):
         mini_batch = []
         l = len(self.memory)
         for i in range(l - batch_size + 1, l):
             mini_batch.append(self.memory[i])
-
+        
         for state, action, reward, next_state, done in mini_batch:
-            target = reward
-            if not done:
-                target = reward + self.gamma * np.amax(self.model.predict(next_state)[0])
+            target = self.predict(state)
+            if done:
+                target[0][action] = reward
+            else:
+                a = self.model.predict(next_state)[0]
+                t = self.target_model.predict(next_state)[0]
+                target[0][action] = reward + self.gamma * t[np.argmax(a)]
 
-            target_f = self.model.predict(state)
-            target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
-
+            self.model.fit(state, target, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay 
+            self.epsilon *= epsilon_decay

@@ -1,6 +1,6 @@
 from core.environnement import *
 from core.DQN import *
-from GUI.overview_window import *
+from GUI import Overview_Window
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *

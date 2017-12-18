@@ -1,17 +1,10 @@
 import keras
-from keras.models import Sequential
-from keras.models import load_model
-from keras.layers import Dense, PReLU, CuDNNLSTM, Flatten, Reshape, Dropout
-from keras.optimizers import Adam
 
-import os
-import time
-
+import pandas as pd
 import numpy as np
 import random
-from collections import deque
 
-from core.environnement import *
+from collections import deque
 
 class Agent:
     def __init__(self, state_size, env=None, is_eval=False, model_name=""):
@@ -31,22 +24,8 @@ class Agent:
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
 
-        if os.path.exists("models/" + model_name):
-            self.model = load_model("models/" + model_name)
-        else:
-            self.model = self._model()
-        print (self.model.summary())
+        print (model_name)
 
-    def _model(self):
-        model = Sequential()
-        model.add(Dense(64, input_shape=(2, ), activation='relu'))
-        model.add(Dense(32, activation='relu'))
-        model.add(Dense(32, activation='relu'))
-        model.add(Reshape((1, 32)))
-        model.add(CuDNNLSTM(256))
-        model.add(Dense(self.action_size, activation="linear"))
-        model.compile(loss="mse", optimizer=Adam(lr=0.001))
-        return model
 
     def act(self, state):
         if not self.is_eval and np.random.rand() <= self.epsilon:
@@ -65,7 +44,6 @@ class Agent:
             target = reward
             if not done:
                 target = reward + self.gamma * np.amax(self.model.predict(next_state)[0])
-
             target_f = self.model.predict(state)
             target_f[0][action] = target
             self.model.fit(state, target_f, epochs=1, verbose=0)

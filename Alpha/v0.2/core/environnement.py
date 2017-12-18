@@ -1,6 +1,8 @@
-from tools.logger import *
+from tools.logger import logger
+from tools.saver import saver
 
 import pandas as pd
+import numpy as np
 
 from PyQt5.QtCore import *
 
@@ -15,12 +17,17 @@ class environnement(QObject):
         self.version = "v0.2"
         self.v_state = "Alpha"
 
+        # Agent settings
+
+        self.model = None
+        self.model_name = "DRRL_0"
+        self.mode = ""
+
         # Environnement settings
 
-        self.mode = ""
         self.stock_name = "DAX30_1M_2017_10_wi2"
         self.episode_count = 100
-        self.window_size = 100
+        self.window_size = 50
         self.batch_size = 32
 
         # Wallet settings
@@ -105,7 +112,9 @@ class environnement(QObject):
 
         self.lst_data = []
         self.lst_inventory_len = []
-        self.lst_profit = []
+        self.lst_return = []
+        self.lst_mean_return = []
+        self.lst_sharp_ratio = []
         self.lst_drawdown = []
         self.lst_win_order = []
         self.lst_loose_order = []
@@ -136,6 +145,29 @@ class environnement(QObject):
         # Init logger
 
         #self.logs = logger(self)
+
+        # Init saver
+
+        '''
+        self.saver = saver(self.logs)
+        self.logs.init_saver()
+        self.saver._check(self.model_name, self.logs.path)
+        self.model = self.saver._load()
+        '''
+
+    # TODO : conf file managment
+    #        logs managment
+    #        date managment
+
+    def manage_ov_lst(self):
+        self.lst_capital.append(self.capital)
+        if self.profit != 0:
+            self.lst_return.append(self.profit)
+        self.lst_win_order.append(self.win)
+        self.lst_loose_order.append(self.loose)
+        self.lst_draw_order.append(self.draw)
+        self.lst_mean_return.append(np.sum(self.lst_return) / (self.win + self.loose))
+        self.lst_sharp_ratio.append(self.lst_mean_return[len(self.lst_mean_return)] / np.std(self.lst_return, ddof=1))
 
     def def_act(self, act):
         if act == 1:
@@ -223,3 +255,15 @@ class environnement(QObject):
             if self.date[self.cdatai - 1][3] != self.date[self.cdatai][3]:
                 self.year += 1
                 self.month = 1
+
+    def update_day_lst(self):
+        pass
+
+    def update_month_lst(self):
+        pass
+
+    def update_year_lst(self):
+        pass
+
+    def update_batch_lst(self):
+        pass
