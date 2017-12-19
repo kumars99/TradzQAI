@@ -1,7 +1,7 @@
 import keras
 
 from keras.models import Sequential
-from keras.layers import Dense, PReLU, CuDNNLSTM, Flatten, Reshape, Dropout
+from keras.layers import Dense
 from keras.optimizers import Adam
 
 import os
@@ -11,42 +11,38 @@ import numpy as np
 import random
 from collections import deque
 
-from core.environnement import *
+from .agent import Agent
+from core import environnement
 
-class DDQN:
+class DDQN(Agent):
+
     def __init__(self, state_size, env=None, is_eval=False, model_name=""):
-        self.state_size = state_size # normalized previous days
-        self.action_size = 3 # sit, buy, sell
-        self.memory = deque(maxlen=1000)
-        columns = ['Price', 'POS', 'Order']
-        self.inventory = pd.DataFrame(columns=columns)
-        self.mode = ""
-        self.model_name = model_name
-        self.is_eval = is_eval
+        self.name = "DDQN"
+        Agent.__init__(self, state_size, env=env, is_eval=is_eval, model_name=model_name)
 
-        self.env = env
-
-        self.gamma = 0.95
-        self.epsilon = 1.0
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
-
-        if os.path.exists("models/" + model_name):
-            self.model = load_model("models/" + model_name)
-        else:
+    def build_model(self):
+        self._load_model()
+        if not self.model:
             self.model = self._model()
             self.target_model = self._model()
+        else:
+            self.target_model = self._model()
+            self.update_target_model()
 
     def _model(self):
         model = Sequential()
         model.add(Dense(32, input_shape=self.state_size, activation='relu'))
         model.add(Dense(32, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
-        model.compile(loss="mse", optimizer=Adam(lr=0.001))
+        model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate))
         return model
 
     def update_target_model(self):
-        self.target_model.set_weights(self.model.get_weights())
+        old = self.target_model.get_weights()
+        new = self.model.get_weights()
+
+        weights = [[self.update_rate * n + (1 - self.update_rate) * o for n, o in zip(new_w, old_w)] for new_w, old_w in zip(new, old)]
+        self.target_model.set_weights(weights)
 
     def expReplay(self, batch_size):
         mini_batch = []

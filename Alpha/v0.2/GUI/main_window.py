@@ -1,6 +1,5 @@
-from core.environnement import *
-from core.DQN import *
-from GUI import Overview_Window
+from core import Worker, environnement
+from .overview_window import Overview_Window
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -134,7 +133,7 @@ class Start_Window(QWidget):
     def Build_Primary_Window(self):
         self._resize()
         
-        self.worker = DQN(env)
+        self.worker = Worker(env)
         self.worker.sig_step.connect(self.update)
 
         # Getting env settings
