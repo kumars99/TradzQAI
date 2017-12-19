@@ -12,7 +12,6 @@ import random
 from collections import deque
 
 from .agent import Agent
-from core import environnement
 
 class DDRQN(Agent):
 
@@ -31,7 +30,7 @@ class DDRQN(Agent):
 
     def _model(self):
         model = Sequential()
-        model.add(Dense(32, input_shape=self.state_size, activation='relu'))
+        model.add(Dense(32, input_dim=self.state_size.shape[1], activation='relu'))
         model.add(Dense(32, activation='relu'))
         model.add(Reshape((1, 32)))
         model.add(CuDNNLSTM(128))
@@ -53,7 +52,7 @@ class DDRQN(Agent):
             mini_batch.append(self.memory[i])
         
         for state, action, reward, next_state, done in mini_batch:
-            target = self.predict(state)
+            target = self.model.predict(state)
             if done:
                 target[0][action] = reward
             else:
@@ -63,4 +62,4 @@ class DDRQN(Agent):
 
             self.model.fit(state, target, epochs=1, verbose=0)
         if self.epsilon > self.epsilon_min:
-            self.epsilon *= epsilon_decay
+            self.epsilon *= self.epsilon_decay

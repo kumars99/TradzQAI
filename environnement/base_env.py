@@ -18,13 +18,13 @@ class Environnement:
         # Agent settings
 
         self.model = None
-        self.model_name = "DQN"
+        self.model_name = "DDQN"
         self.mode = ""
 
         # Environnement settings
 
         self.stock_name = "DAX30_1M_2017_10_wi2"
-        self.model_name += "_" + self.stock_name.split("_")[0]
+        self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 100
         self.window_size = 50
         self.batch_size = 32

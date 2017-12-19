@@ -32,7 +32,7 @@ class Saver:
         if os.path.exists(self.path) is False:
             os.mkdir(self.path)
         else:
-            self.model_file_name = self.check_model_file()
+            self.model_file_name = self.check_model_file(model_name)
         self.model_file_path = self.path + self.model_file_name
         self.conf_file_path = self.path + self.conf_file_name
 
@@ -46,13 +46,13 @@ class Saver:
             self.log_file_name = self.check_log_file()
         self.log_file_path = self.path + "/" + self.log_file_name
 
-    def check_model_file(self):
+    def check_model_file(self, model_name):
         self._add("Checking model files")
         cdir = os.listdir(self.path)
         for d in cdir:
-            if "model_" in d:
+            if model_name in d:
                 return d
-        return ""
+        return None
 
     def check_log_file(self):
         self._add("Checking logs files")
@@ -75,7 +75,7 @@ class Saver:
             self.conf_file = open(self.conf_file_path, 'a')
         else:
             self.conf_file = open(self.conf_file_path, 'r+')
-        if not "" in self.model_file_name:
+        if self.model_file_name:
             self._add("Loading model")
             self.model_file = load_model(self.model_file_path)
         return self.model_file
