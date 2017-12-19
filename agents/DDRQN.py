@@ -1,0 +1,66 @@
+import keras
+
+from keras.models import Sequential
+from keras.layers import Dense, PReLU, CuDNNLSTM, Flatten, Reshape, Dropout
+from keras.optimizers import Adam
+
+import os
+import time
+
+import numpy as np
+import random
+from collections import deque
+
+from .agent import Agent
+from core import environnement
+
+class DDRQN(Agent):
+
+    def __init__(self, state_size, env=None, is_eval=False, model_name=""):
+        self.name = "DDRQN"
+        Agent.__init__(self, state_size, env=env, is_eval=is_eval, model_name=model_name)
+
+    def build_model(self):
+        self._load_model()
+        if not self.model:
+            self.model = self._model()
+            self.target_model = self._model()
+        else:
+            self.target_model = self._model()
+            self.update_target_model()
+
+    def _model(self):
+        model = Sequential()
+        model.add(Dense(32, input_shape=self.state_size, activation='relu'))
+        model.add(Dense(32, activation='relu'))
+        model.add(Reshape((1, 32)))
+        model.add(CuDNNLSTM(128))
+        model.add(Dense(self.action_size, activation='linear'))
+        model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate))
+        return model
+
+    def update_target_model(self):
+        old = self.target_model.get_weights()
+        new = self.model.get_weights()
+
+        weights = [[self.update_rate * n + (1 - self.update_rate) * o for n, o in zip(new_w, old_w)] for new_w, old_w in zip(new, old)]
+        self.target_model.set_weights(weights)
+
+    def expReplay(self, batch_size):
+        mini_batch = []
+        l = len(self.memory)
+        for i in range(l - batch_size + 1, l):
+            mini_batch.append(self.memory[i])
+        
+        for state, action, reward, next_state, done in mini_batch:
+            target = self.predict(state)
+            if done:
+                target[0][action] = reward
+            else:
+                a = self.model.predict(next_state)[0]
+                t = self.target_model.predict(next_state)[0]
+                target[0][action] = reward + self.gamma * t[np.argmax(a)]
+
+            self.model.fit(state, target, epochs=1, verbose=0)
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= epsilon_decay

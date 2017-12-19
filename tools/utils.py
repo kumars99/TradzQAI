@@ -5,7 +5,7 @@ import time
 import os
 import math
 
-from tools.indicators.build_indicators import *
+from tools.indicators import indicators
 
 # Indicators managment
 
@@ -73,21 +73,17 @@ def open_row(files):
     #files = "./dataset/"+"EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
     names = ['Time', 'Open', 'High', 'Low', 'Close', '']
     print ("Opening : %s" % files)
-    csv = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';', index=False)
-    csv.drop(csv.columns[[0, 5]], axis = 1, inplace = True)
-    '''
-    indics = check_indics(d, csv)
-    indics['MME20'] /= 10000
-    indics['MME50'] /= 10000
-    indics['MME100'] /= 10000
-    csv = csv.join(indics)
-    '''
+    indics = indicators()
+    csv = pd.read_csv(files, names=names, header = 0, sep=';')
+    csv.drop(csv.columns[[1, 2, 3, 5]], axis = 1, inplace = True)
+    csv = csv.join(indics.build_indicators(csv['Close']))
     return csv
 
 # Get all data
 
-def get_all_data(path, names):
+def get_all_data(path):
     # list path directoy
+    names = ['Time', 'Open', 'High', 'Low', 'Close', '']
     dirs = os.listdir(path)
     data = None
     dirs.sort()
@@ -102,16 +98,13 @@ def get_all_data(path, names):
                 print ("Opening :", n)
                 # Opening csv file
                 csv = pd.read_csv(n, names=names, header = 0, error_bad_lines=False, sep=';')
-                csv.drop(csv.columns[[0, 5]], axis = 1, inplace = True)
-                indics = check_indics(d, csv)
-                indics['MME20'] /= 10000
-                indics['MME50'] /= 10000
-                indics['MME100'] /= 10000
-                csv = csv.join(indics)
+                csv.drop(csv.columns[[1, 2, 3, 5]], axis = 1, inplace = True)
                 if data is None:
                     data = csv
                 else:
                     data = data.append(csv, ignore_index=True)
+    indics = indicators()
+    data = data.join(indics.build_indicators(data['Close']))
     print ("All files opened")
     return data
 
@@ -190,7 +183,7 @@ def load_10s(path):
     return stock
 
 def check_10s(path, f):
-    indics = indicators()
+    #indics = indicators()
     tick_path = "./dataset/DAX30/10S"
     name = (path.replace("./dataset/DAX30/Tick", "")).replace(f, "")
     print ("Cheking 10S bar")
@@ -199,7 +192,7 @@ def check_10s(path, f):
         print ("Building %s" % tick_path)
         os.makedirs(tick_path+name)
         ret = build_10s(path)
-        ret = ret.join(indics.build_indicators(ret['Close']))
+        #ret = ret.join(indics.build_indicators(ret['Close']))
         save_10s(tick_path+name+f, ret)
     else:
         if os.path.exists(tick_path + name + f) is False:
@@ -207,7 +200,7 @@ def check_10s(path, f):
             print ("Building %s" % tick_path + name)
             os.mkdir(tick_path+name)
             ret = build_10s(path)
-            ret = ret.join(indics.build_indicators(ret['Close']))
+            #ret = ret.join(indics.build_indicators(ret['Close']))
             save_10s(tick_path+name+f, ret)
         else:
             print ("%s found" % (tick_path+name))
@@ -293,40 +286,61 @@ def get_data():
 
 # prints formatted price
 def formatPrice(n):
-        return ("-$" if n < 0 else "$") + "{0:.2f}".format(abs(n))
+        return "{0:.2f}".format(n) + " €"
 
 # returns the vector containing stock data from a fixed file
 def getStockDataVec(key):
         vec = []
-        rsi = []
+        full = []
         path = "data/" + key + ".csv"
         lines = open(path, "r").read().splitlines()
         #names = ['ID', 'Time', 'Open', 'High', 'Low', 'Close', 'RSI', 'Volatility']
-        names = ['Time', 'Open', 'High', 'Low', 'Close', '']
+        #names = ['Time', 'Open', 'High', 'Low', 'Close', '']
+        #names = ['ID', 'Close', 'RSI', 'MACD', 'Volatility', 'EMA20', 'EMA50', 'EMA100']
         #names = ['ID', 'Time', 'BID', 'ASK', 'RSI']
-        row = pd.read_csv(path, sep=';', header=0, names=names)#, names = names)
+        row = pd.read_csv(path, sep=';')#, names = names)
         '''
         for line in lines[1:]:
             vec.append(float(line.split(";")[4]))
         '''
+
+        row.drop(row.columns[[0, 1, 4, 5, 6, 7, 8]], axis = 1, inplace = True)
         for l in range(len(row['Close'])):
             vec.append(row['Close'].iloc[l])
-            rsi.append(row['Time'].iloc[l])
+        '''
+        row['EMA20'] /= 10000
+        row['EMA50'] /= 10000
+        row['EMA100'] /= 10000
+        row['Close'] /= 10000
+        '''
+        row['RSI'] /= 100
         
-        return vec, rsi
+        return vec, row
 
 # returns the sigmoid
 def sigmoid(x):
         return 1 / (1 + math.exp(-x))
 
 # returns an an n-day state representation ending at time t
-def getState(data, t, n, rsi):
+def getState(data, t, n):
         d = t - n + 1
-        block = data[d:t + 1] if d >= 0 else -d * [data[0]] + data[0:t + 1] # pad with t0
-        block_r = rsi[d:t + 1] if d >= 0 else -d * [rsi[0]] + rsi[0:t + 1] # pad with t0
+
+        tmp = np.asarray(data)
+
+        block = tmp[d:t + 1] if d >= 0 else np.concatenate([-d * [tmp[0]]] + [tmp[0:t + 1]])
+
+
+        '''
+        for i in range(len(block) - 1):
+            tmp = []
+            for r in block[i]:
+                tmp.append(r)
+            for z in inv_block[i]:
+                tmp.append(z)
+            res.append(np.asarray(tmp))
+        res = np.asarray(res)
+        '''
         res = []
         for i in range(n - 1):
-            #res.append(sigmoid(block_r[i + 1] - block_r[i]))
-            res.append(sigmoid(block[i + 1] - block[i]))
-
-        return np.array([res])
+            res.append([sigmoid(block[i + 1][0] - block[i][0]), block[i + 1][1]])
+        return np.array(res)
