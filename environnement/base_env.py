@@ -5,7 +5,7 @@ import numpy as np
 
 from PyQt5.QtCore import *
 
-class environnement:
+class Environnement:
 
     def __init__(self):
 

@@ -12,7 +12,7 @@ import pandas as pd
 import random
 from collections import deque
 
-from core import environnement
+from environnement import Environnement
 
 class Agent:
     def __init__(self, state_size, env=None, is_eval=False, model_name=""):

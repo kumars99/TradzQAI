@@ -1,11 +1,12 @@
-from core import Worker, environnement
+from core import Worker
+from environnement import Environnement
 from .overview_window import Overview_Window
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-env = environnement()
+env = Environnement()
 
 h = 400
 w = 200

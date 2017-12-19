@@ -7,64 +7,6 @@ import math
 
 from tools.indicators import indicators
 
-# Indicators managment
-
-## Indicators builder
-
-def build_indics(stock, name):
-    period = [20, 50, 100]
-    indics = pd.DataFrame(columns = name)
-    for i in range (len(name)):
-        if (name[i] == 'Stoch'):
-            print ('Building %s' % (name[i]))
-            indics[name[i]] = calc_stochastique(stock)
-        elif (name[i] == 'RSI'):
-            print ('Building %s' % (name[i]))
-            indics[name[i]] = calc_rsi(stock)
-        else:
-            print ('Building %s' % (name[i]))
-            indics[name[i]] = calc_MME(stock['Open'], period[i])
-    return indics
-
-def save_indics(path, indics):
-    indics.to_csv(path, sep = ';', mode = 'w')
-    print ("Indicators saved in %s" % path)
-
-def load_indics(files):
-    names = ['ID' ,'MME20', 'MME50', 'MME100']
-    indics = pd.read_csv(files, names=names, header = 0, error_bad_lines=False, sep=';')
-    indics.drop(indics.columns[[0]], axis = 1, inplace = True)
-    print ("Indicators loaded from %s" % files)
-    return indics
-
-## Check if Indicators are already builded and build if needed
-
-def check_indics(data_name, stock):
-    path = "./indicators"
-    name = ['MME20', 'MME50', 'MME100']
-    indics_path = path + "/" + data_name
-    print ("Cheking indicators")
-    if os.path.exists(path) is False:
-        print ("%s not found" % indics_path)
-        print ("Building %s" % indics_path)
-        os.makedirs(indics_path)
-        indics = build_indics(stock, name)
-        save_indics(indics_path+"/indics", indics)
-    else:
-        if os.path.exists(indics_path + "/indics") is False:
-            print ("%s not found" % (indics_path + "/indics"))
-            if os.path.exists(indics_path) is False:
-                print ("Building %s" % indics_path)
-                os.mkdir(indics_path)
-            indics = build_indics(stock, name)
-            save_indics(indics_path+"/indics", indics)
-        else:
-            print ("%s found" % indics_path)
-            indics = load_indics(indics_path+"/indics")
-    return indics
-
-####################
-
 #### Data managment ####
 
 # Getting data
@@ -283,10 +225,12 @@ def get_data():
 
 ############################
 
-
 # prints formatted price
 def formatPrice(n):
         return "{0:.2f}".format(n) + " €"
+
+def EformatPrice(n):
+        return "{0:.2f}".format(n) + " ISK"
 
 # returns the vector containing stock data from a fixed file
 def getStockDataVec(key):

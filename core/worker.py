@@ -4,7 +4,7 @@ import time
 import pandas as pd
 import sys
 
-from core import environnement
+from environnement import Environnement
 from .agent import Agent
 from tools import *
 #from core.environnement import *
@@ -139,24 +139,6 @@ class Worker(QThread):
             else:
                 self.env.reward -= 0.5
 
-    '''
-    def reward_managment(self, POS, RSI, vol):
-        oo = ordonner a l'origine
-        cd = coefficient directeur
-        f(x) = ax+b
-        f(y) = f(x)*v
-
-        if "BUY" in POS:
-            oo = 100
-            cd = -1
-
-        elif "SELL" in POS:
-            oo = 0
-            cd = 1
-
-        self.reward += int((cd * RSI + oo ) * vol)
-    '''
-
     def save_last_closing(self, POS):
         '''
         Save last trade and drop it from inventory
@@ -213,10 +195,6 @@ class Worker(QThread):
             state = getState(self.raw,
                              0,
                              self.env.window_size + 1)
-            '''
-            for i in range(len(state[0]) - 1):
-                self.env.lst_state.append(state[0][i])
-            '''
 
             for t in range(self.l):
                 tmp = time.time()
@@ -240,7 +218,6 @@ class Worker(QThread):
                 next_state = getState(self.raw,
                                       t + 1,
                                       self.env.window_size + 1)
-                #self.env.lst_state.append(next_state[0][len(next_state[0]) - 1])
 
                 # Update buy price with spread
                 self.env.buy_price = self.data[t] - (self.env.spread / 2)
