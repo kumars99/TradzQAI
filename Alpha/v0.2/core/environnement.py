@@ -1,15 +1,13 @@
-from tools.logger import logger
-from tools.saver import saver
+from tools import Logger
 
 import pandas as pd
 import numpy as np
 
 from PyQt5.QtCore import *
 
-class environnement(QObject):
+class environnement:
 
     def __init__(self):
-        super(QObject, self).__init__()
 
         # Soft settings
 
@@ -20,12 +18,13 @@ class environnement(QObject):
         # Agent settings
 
         self.model = None
-        self.model_name = "DRRL_0"
+        self.model_name = "DQN"
         self.mode = ""
 
         # Environnement settings
 
         self.stock_name = "DAX30_1M_2017_10_wi2"
+        self.model_name += "_" + self.stock_name.split("_")[0]
         self.episode_count = 100
         self.window_size = 50
         self.batch_size = 32
@@ -47,6 +46,7 @@ class environnement(QObject):
         # Wallet state
 
         self.capital = 20000
+        self.scapital = self.capital
         self.cgl = 0
         self.usable_margin = self.capital
         self.used_margin = 0
@@ -142,22 +142,13 @@ class environnement(QObject):
         self.h_lst_draw_order = []
         self.h_lst_capital = []
 
-        # Init logger
-
-        #self.logs = logger(self)
-
-        # Init saver
-
-        '''
-        self.saver = saver(self.logs)
-        self.logs.init_saver()
-        self.saver._check(self.model_name, self.logs.path)
-        self.model = self.saver._load()
-        '''
-
     # TODO : conf file managment
     #        logs managment
     #        date managment
+
+    def init_logger(self):
+        self.logger = Logger(self)
+        self.logger.init_saver()
 
     def manage_ov_lst(self):
         self.lst_capital.append(self.capital)

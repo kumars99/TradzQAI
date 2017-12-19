@@ -8,10 +8,11 @@ import os
 import time
 
 import numpy as np
+import pandas as pd
 import random
 from collections import deque
 
-from core.environnement import *
+from core import environnement
 
 class Agent:
     def __init__(self, state_size, env=None, is_eval=False, model_name=""):
