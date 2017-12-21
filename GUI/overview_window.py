@@ -22,6 +22,8 @@ class Overview_Window(QWidget):
         self.dday = 1
         self.lt = 0
 
+        self.palette = QPalette()
+
         GB = QGridLayout(self)
 
         GB.addWidget(self.Agent_Inventory_Init(), 0, 2, 2, 1)
@@ -78,13 +80,23 @@ class Overview_Window(QWidget):
         GBox = QGroupBox("Agent orders")
         VBox = QVBoxLayout()
 
-        self.lorder = QLabel('No orders taken yet')
+        self.Llist = QListWidget()
 
-        self.lorder.setAlignment(Qt.AlignCenter)
+        self.l = []
 
-        VBox.addWidget(self.lorder)
+        for i in range(39):
+            if i < 1:
+                orderi = QLabel('No orders taken yet')
+            else:
+                orderi = QLabel()
 
-        VBox.addStretch()
+            orderi.setAlignment(Qt.AlignCenter)
+
+            VBox.addWidget(orderi)
+
+            self.l.append(orderi)
+
+        VBox.addStretch(1)
 
         GBox.setLayout(VBox)
         GBox.setFixedSize(1250,775)
@@ -99,14 +111,17 @@ class Overview_Window(QWidget):
         self.lday = QLabel('Day : 0 / 0')
         self.lperc = QLabel('0 %')
         self.ldata = QLabel('Data : 0 / 0')
+        self.lep = QLabel('Episode : 0 / 0')
 
         self.lperc.setAlignment(Qt.AlignCenter)
         self.lday.setAlignment(Qt.AlignCenter)
         self.ldata.setAlignment(Qt.AlignCenter)
+        self.lep.setAlignment(Qt.AlignCenter)
 
         VBox.addWidget(self.lperc)
         VBox.addWidget(self.lday)
         VBox.addWidget(self.ldata)
+        VBox.addWidget(self.lep)
 
         VBox.addStretch()
 
@@ -278,8 +293,14 @@ class Overview_Window(QWidget):
         self.linventory.setText(str(env.inventory))
 
         #Orders Done
-
-        self.lorder.setText(str(np.array(self.ordr)))
+        for i in range(len(np.array(self.ordr)) - 1):
+            if "Profit : -" in str(np.array(self.ordr)[i]):
+                self.l[i].setStyleSheet("QLabel {color: red}")
+            elif "Profit : 0.00" in str(np.array(self.ordr)[i]):
+                self.l[i].setStyleSheet("QLabel {color: white}")
+            else:
+                self.l[i].setStyleSheet("QLabel {color: green}")
+            self.l[i].setText(str(np.array(self.ordr)[i]))
 
         #Orders
 
@@ -294,7 +315,7 @@ class Overview_Window(QWidget):
             self.lwinrate.setText("Winrate : " + '{:.3f}'.format(env.win / (env.loose + env.win)))
 
         #Data
-
+        self.lep.setText("Episode : " + str(env.cepisode) + " / " + str(env.episode_count))
         self.lday.setText("Day : " + str(self.dday) + " / " + '{:.0f}'.format(env.data / (env.data / 20)))
         self.ldata.setText("Current : " +str(env.cdatai)+ " / " +str(env.data))
         self.lperc.setText('{:.2f}'.format(float((env.cdatai * 100 ) / env.data)) + " %")
