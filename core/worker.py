@@ -5,9 +5,7 @@ import pandas as pd
 import sys
 
 from environnement import Environnement
-from agents import DQN, DDQN, DRQN, DDRQN
 from tools import *
-#from core.environnement import *
 
 from PyQt5.QtCore import *
 
@@ -27,52 +25,34 @@ class Worker(QThread):
     def init_agent(self):
         self.data, self.raw = getStockDataVec(self.env.stock_name)
         self.l = len(self.data) - 1
+        self.env.init_logger()
         if "eval" in self.env.mode:
             is_eval = True
         else:
             is_eval = False
 
         if "DQN" == self.env.model_name:
-            self.agent = DQN(getState(self.raw,
-                                        0,
-                                        self.env.window_size + 1),
-                               env=self.env,
-                               is_eval=is_eval,
-                               model_name= "model_" + \
-                               str(self.env.stock_name) + "_ws_" + \
-                               str(self.env.window_size))
+            from agents import DQN as Agent
+
         elif "DDQN" == self.env.model_name:
-            self.agent = DDQN(getState(self.raw,
-                                        0,
-                                        self.env.window_size + 1),
-                               env=self.env,
-                               is_eval=is_eval,
-                               model_name= "model_" + \
-                               str(self.env.stock_name) + "_ws_" + \
-                               str(self.env.window_size))
+            from agents import DDQN as Agent
 
         elif "DRQN" == self.env.model_name:
-            self.agent = DRQN(getState(self.raw,
-                                        0,
-                                        self.env.window_size + 1),
-                               env=self.env,
-                               is_eval=is_eval,
-                               model_name= "model_" + \
-                               str(self.env.stock_name) + "_ws_" + \
-                               str(self.env.window_size))
+            from agents import DRQN as Agent
 
         elif "DDRQN" == self.env.model_name:
-            self.agent = DDRQN(getState(self.raw,
-                                        0,
-                                        self.env.window_size + 1),
-                               env=self.env,
-                               is_eval=is_eval,
-                               model_name= "model_" + \
-                               str(self.env.stock_name) + "_ws_" + \
-                               str(self.env.window_size))
+            from agents import DDRQN as Agent
+
+        self.agent = Agent(getState(self.raw,
+                                    0,
+                                    self.env.window_size + 1),
+                           env=self.env,
+                           is_eval=is_eval,
+                           model_name= "model_" + \
+                           str(self.env.stock_name) + "_ws_" + \
+                           str(self.env.window_size))
 
         self.agent.mode = self.env.mode
-        self.env.init_logger()
         self.agent.build_model()
 
     def update_env(self):
@@ -209,6 +189,7 @@ class Worker(QThread):
     def run(self):
         self.init_agent()
         for e in range(self.env.episode_count + 1):
+            self.env.cepisode = e + 1
             self.env.total_profit = 0
             self.env.win = 0
             self.env.loose = 0
