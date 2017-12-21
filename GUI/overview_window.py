@@ -84,7 +84,7 @@ class Overview_Window(QWidget):
 
         self.l = []
 
-        for i in range(39):
+        for i in range(38):
             if i < 1:
                 orderi = QLabel('No orders taken yet')
             else:
@@ -293,14 +293,16 @@ class Overview_Window(QWidget):
         self.linventory.setText(str(env.inventory))
 
         #Orders Done
-        for i in range(len(np.array(self.ordr)) - 1):
-            if "Profit : -" in str(np.array(self.ordr)[i]):
-                self.l[i].setStyleSheet("QLabel {color: red}")
-            elif "Profit : 0.00" in str(np.array(self.ordr)[i]):
-                self.l[i].setStyleSheet("QLabel {color: white}")
-            else:
-                self.l[i].setStyleSheet("QLabel {color: green}")
-            self.l[i].setText(str(np.array(self.ordr)[i]))
+
+        if env.mod_ordr is True:
+            for i in range(len(np.array(self.ordr))):
+                if "Profit : -" in str(np.array(self.ordr)[i]):
+                    self.l[i].setStyleSheet("QLabel {color: red}")
+                elif "Profit : 0.00" in str(np.array(self.ordr)[i]):
+                    self.l[i].setStyleSheet("QLabel {color: white}")
+                else:
+                    self.l[i].setStyleSheet("QLabel {color: green}")
+                self.l[i].setText(str(np.array(self.ordr)[i]))
 
         #Orders
 

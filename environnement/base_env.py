@@ -81,6 +81,7 @@ class Environnement:
         self.corder = ""
         self.cdata = 0
         self.cdatai = 0
+        self.cepisode = 0
 
         # Orders
 
@@ -103,6 +104,10 @@ class Environnement:
 
         self.year = 1
         self.tot_year = 1
+
+        # Other
+
+        self.mod_ordr = False
 
         # List for graph building
 
@@ -186,10 +191,13 @@ class Environnement:
                 POS = self.POS_SELL
                 c = self.buy_price
             new = [str(self.co) + " : " + '{:.2f}'.format(self.cd) + " -> " + str(self.corder) + " : " + '{:.2f}'.format(c) + " | Profit : " + '{:.2f}'.format(self.profit)]
-            if len(ordr['Orders']) > 39:
+            if len(ordr['Orders']) > 37:
                 ordr = (ordr.drop(0)).reset_index(drop=True)
             tmp = pd.DataFrame(new, columns = ['Orders'])
             ordr = ordr.append(tmp, ignore_index=True)
+            self.mod_ordr = True
+        else:
+            self.mod_ordr = False
         return ordr
 
     def manage_wallet(self):
