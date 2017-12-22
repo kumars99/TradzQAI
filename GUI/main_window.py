@@ -1,6 +1,7 @@
 from core import Worker
 from environnement import Environnement
 from .overview_window import Overview_Window
+from .model_window import Model_Window
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -166,7 +167,7 @@ class Start_Window(QWidget):
         self.main_tab = QTabWidget()
 
         self.overview = Overview_Window(self.main_tab, env)
-        self.model = QWidget()
+        self.model = Model_Window(self.main_tab, env)
         self.historic = QWidget()
 
         self.main_tab.addTab(self.overview, 'OverView')
@@ -184,3 +185,4 @@ class Start_Window(QWidget):
     def update(self):
         self.overview.ordr = env.manage_orders(self.overview.ordr)
         self.overview.Update_Overview(env)
+        self.model.Update_graph(env)

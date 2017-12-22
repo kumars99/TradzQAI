@@ -22,8 +22,6 @@ class Overview_Window(QWidget):
         self.dday = 1
         self.lt = 0
 
-        self.palette = QPalette()
-
         GB = QGridLayout(self)
 
         GB.addWidget(self.Agent_Inventory_Init(), 0, 2, 2, 1)
@@ -279,6 +277,7 @@ class Overview_Window(QWidget):
 
         self.daily_reward += env.reward
         self.tot_reward += env.reward
+        env.tot_reward = self.tot_reward
         self.dailyp += env.profit
 
 
