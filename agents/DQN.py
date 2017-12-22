@@ -30,22 +30,3 @@ class DQN(Agent):
         model.add(Dense(self.action_size, activation="linear"))
         model.compile(loss="mse", optimizer=Adam(lr=self.learning_rate))
         return model
-
-    def expReplay(self, batch_size):
-        mini_batch = []
-        l = len(self.memory)
-        for i in range(l - batch_size + 1, l):
-            mini_batch.append(self.memory[i])
-
-        for state, action, reward, next_state, done in mini_batch:
-            target = reward
-            if not done:
-                target = reward + self.gamma * np.amax(self.model.predict(next_state)[0])
-
-            target_f = self.model.predict(state)
-            target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
-
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay 
-

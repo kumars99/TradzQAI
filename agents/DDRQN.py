@@ -44,22 +44,3 @@ class DDRQN(Agent):
 
         weights = [[self.update_rate * n + (1 - self.update_rate) * o for n, o in zip(new_w, old_w)] for new_w, old_w in zip(new, old)]
         self.target_model.set_weights(weights)
-
-    def expReplay(self, batch_size):
-        mini_batch = []
-        l = len(self.memory)
-        for i in range(l - batch_size + 1, l):
-            mini_batch.append(self.memory[i])
-        
-        for state, action, reward, next_state, done in mini_batch:
-            target = self.model.predict(state)
-            if done:
-                target[0][action] = reward
-            else:
-                a = self.model.predict(next_state)[0]
-                t = self.target_model.predict(next_state)[0]
-                target[0][action] = reward + self.gamma * t[np.argmax(a)]
-
-            self.model.fit(state, target, epochs=1, verbose=0)
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
