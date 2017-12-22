@@ -4,6 +4,8 @@ import time
 import pandas as pd
 import sys
 
+from mem_top import mem_top
+
 from environnement import Environnement
 from tools import *
 
@@ -25,7 +27,6 @@ class Worker(QThread):
     def init_agent(self):
         self.data, self.raw = getStockDataVec(self.env.stock_name)
         self.l = len(self.data) - 1
-        self.env.init_logger()
         if "eval" in self.env.mode:
             is_eval = True
         else:
@@ -42,6 +43,9 @@ class Worker(QThread):
 
         elif "DDRQN" == self.env.model_name:
             from agents import DDRQN as Agent
+        
+        elif "DDPG" == self.env.model_name:
+            from agents import DDPG as Agent
 
         self.agent = Agent(getState(self.raw,
                                     0,
@@ -58,6 +62,8 @@ class Worker(QThread):
     def update_env(self):
         self.env.data = self.l
         self.env.inventory = self.agent.inventory
+        self.env.lst_reward.append(self.env.tot_reward)
+        self.env.lst_return.append(self.env.total_profit)
 
     def pip_drawdown_checking(self):
         '''
@@ -79,6 +85,10 @@ class Worker(QThread):
                 self.env.reward -= 1
                 self.env.loose += 1
                 self.save_last_closing(i)
+                if self.env.corder == "BUY":
+                    self.action = 1
+                elif self.env.corder == "SELL":
+                    self.action = 2
                 return 1
         return 0
 
@@ -207,6 +217,7 @@ class Worker(QThread):
                              self.env.window_size + 1)
 
             for t in range(self.l):
+                b = 0
                 tmp = time.time()
                 self.env.cdatai = t
                 self.env.cdata = self.data[t]
@@ -223,11 +234,11 @@ class Worker(QThread):
                 POS = len(self.agent.inventory['POS'])
 
                 self.action = self.agent.act(state) # Get action from agent
-                self.env.def_act(self.action)
                 # Get new state
                 next_state = getState(self.raw,
                                       t + 1,
                                       self.env.window_size + 1)
+                self.env.lst_state.append(self.env.cdata)
 
                 # Update buy price with spread
                 self.env.buy_price = self.data[t] - (self.env.spread / 2)
@@ -238,6 +249,7 @@ class Worker(QThread):
                 self.env.profit = 0 # Reset current profit
 
                 self.env.manage_exposure()
+
                 if self.pip_drawdown_checking() == 0:
                     if self.action == 1: # buy
                         self.env.corder = "BUY"
@@ -250,8 +262,16 @@ class Worker(QThread):
                     else:
                         self.env.reward -= 0.25
 
+                self.env.def_act(self.action)
                 self.update_env() # Updating env from agent for GUI
                 self.env.manage_wallet()
+
+                if self.env.cmax_pos < 1 or self.env.cmax_pos <= int(self.env.max_pos / 2):
+                    self.env.capital = self.env.scapital
+                    b = 1
+                    self.env.reward = -1000
+                    done = True
+
                 self.sig_step.emit() # Update GUI
 
 
@@ -264,12 +284,14 @@ class Worker(QThread):
 
                 if "train" in self.env.mode:
                     if len(self.agent.memory) > self.env.batch_size:
-                        self.agent.expReplay(self.env.batch_size)
+                        self.env.lst_loss.append(self.agent.expReplay(self.env.batch_size))
                     if t % 1000 == 0 and t > 0 : # Save model all 1000 data
                         self.agent._save_model()
-                        if "DDQN" == self.env.model_name or "DDRQN" == self.env.model_name:
+                        if "DDQN" == self.env.model_name or "DDRQN" == self.env.model_name or "DDPG" == self.env.model_name:
                             self.agent.update_target_model()
                 else:
                     time.sleep(0.01)
 
                 self.env.loop_t = time.time() - tmp
+                if b == 1:
+                    break
