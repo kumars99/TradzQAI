@@ -2,6 +2,7 @@ from tools import Logger
 
 import pandas as pd
 import numpy as np
+from collections import deque
 
 from PyQt5.QtCore import *
 
@@ -18,7 +19,7 @@ class Environnement:
         # Agent settings
 
         self.model = None
-        self.model_name = "DDQN"
+        self.model_name = "DDRQN"
         self.mode = ""
 
         # Environnement settings
@@ -26,7 +27,7 @@ class Environnement:
         self.stock_name = "DAX30_1M_2017_10_wi2"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 100
-        self.window_size = 50
+        self.window_size = 20
         self.batch_size = 32
 
         # Wallet settings
@@ -58,6 +59,7 @@ class Environnement:
 
         self.total_profit = 0
         self.reward = 0
+        self.tot_reward = 0
         self.profit = 0
         self.pause = 0
         self.inventory = None
@@ -117,7 +119,7 @@ class Environnement:
 
         self.lst_data = []
         self.lst_inventory_len = []
-        self.lst_return = []
+        self.lst_return = deque(maxlen=1000)
         self.lst_mean_return = []
         self.lst_sharp_ratio = []
         self.lst_drawdown = []
@@ -128,12 +130,13 @@ class Environnement:
 
         ### Model list
 
-        self.lst_act = []
-        self.lst_reward = []
+        self.lst_act = deque(maxlen=1000)
+        self.lst_reward = deque(maxlen=1000)
         self.lst_act_predit = []
         self.lst_traget_predict = []
         self.lst_target = []
-        self.lst_state = []
+        self.lst_loss = deque(maxlen=1000)
+        self.lst_state = deque(maxlen=1000)
         self.lst_epsilon = []
 
         ## Episode list
@@ -147,9 +150,18 @@ class Environnement:
         self.h_lst_draw_order = []
         self.h_lst_capital = []
 
+        self.init_logger()
+
     # TODO : conf file managment
     #        logs managment
     #        date managment
+
+    def reshape_state(self):
+        state1 = []
+        for i in range(len(self.lst_state)):
+            state1.append(self.lst_state[i][0])
+
+        return state1
 
     def init_logger(self):
         self.logger = Logger(self)
@@ -229,6 +241,7 @@ class Environnement:
             self.cmax_pos = max_order_valid
             self.max_order_size = 1
         else:
+            self.cmax_pos = self.max_pos
             extra_order = max_order_valid - self.max_pos
             if extra_order >= self.max_pos:
                 self.max_order_size = int(max_order_valid // self.max_pos)
