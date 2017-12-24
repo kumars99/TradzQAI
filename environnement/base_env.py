@@ -19,7 +19,7 @@ class Environnement:
         # Agent settings
 
         self.model = None
-        self.model_name = "DDRQN"
+        self.model_name = "DQN"
         self.mode = ""
 
         # Environnement settings

@@ -91,7 +91,7 @@ class Agent:
         if self.env.logger.model_file_name is None:
             self.env.logger.model_file_name = self.name + "_" + self.env.stock_name
             self.env.logger.model_file_path = self.env.logger.model_file_path +self.env.logger.model_file_name
-
+        
         self.model.save(self.env.logger.model_file_path)
 
     def _load_model(self):

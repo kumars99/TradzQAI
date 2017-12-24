@@ -82,13 +82,9 @@ class Worker(QThread):
                 self.env.profit = res * self.agent.inventory['Order'][i] * self.env.pip_value
                 self.env.POS_SELL = i # Put check in env
                 self.env.total_profit += self.env.profit
-                self.env.reward -= 1
+                self.env.reward += 0.5 * res
                 self.env.loose += 1
                 self.save_last_closing(i)
-                if self.env.corder == "BUY":
-                    self.action = 1
-                elif self.env.corder == "SELL":
-                    self.action = 2
                 return 1
         return 0
 
@@ -112,7 +108,7 @@ class Worker(QThread):
                 self.env.profit = self.agent.inventory['Price'][POS_SELL] - self.env.sell_price
                 if self.env.profit < 0.00:
                     self.env.loose += 1
-                    self.env.reward += 0.1 * self.env.profit
+                    self.env.reward += 0.5 * self.env.profit
                     #self.series = 0
                 elif self.env.profit > 0.00 :
                     self.env.win += 1
@@ -144,7 +140,7 @@ class Worker(QThread):
                 self.env.profit = self.env.buy_price - self.agent.inventory['Price'][POS_BUY]
                 if self.env.profit < 0:
                     self.env.loose += 1
-                    self.env.reward += 0.1 * self.env.profit
+                    self.env.reward += 0.5 * self.env.profit
                     #self.series = 0
                 elif self.env.profit > 0 :
                     self.env.win += 1

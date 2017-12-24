@@ -33,7 +33,10 @@ class Saver:
             os.mkdir(self.path)
         else:
             self.model_file_name = self.check_model_file(model_name)
-        self.model_file_path = self.path + self.model_file_name
+        if self.model_file_name == None:
+            self.model_file_path = self.path
+        else:
+            self.model_file_path = self.path + self.model_file_name
         self.conf_file_path = self.path + self.conf_file_name
 
     def check_log_dir(self, log_path):

@@ -15,10 +15,10 @@ def open_row(files):
     #files = "./dataset/"+"EUR_USD"+time.strftime("_%d_%m_%y")+".csv"
     names = ['Time', 'Open', 'High', 'Low', 'Close', '']
     print ("Opening : %s" % files)
-    indics = indicators()
+    #indics = indicators()
     csv = pd.read_csv(files, names=names, header = 0, sep=';')
-    csv.drop(csv.columns[[1, 2, 3, 5]], axis = 1, inplace = True)
-    csv = csv.join(indics.build_indicators(csv['Close']))
+    csv.drop(csv.columns[[5]], axis = 1, inplace = True)
+    #csv = csv.join(indics.build_indicators(csv['Close']))
     return csv
 
 # Get all data
@@ -248,7 +248,7 @@ def getStockDataVec(key):
             vec.append(float(line.split(";")[4]))
         '''
 
-        row.drop(row.columns[[0, 1, 4, 5, 6, 7, 8]], axis = 1, inplace = True)
+        row.drop(row.columns[[0, 1, 5, 6, 7, 8]], axis = 1, inplace = True)
         for l in range(len(row['Close'])):
             vec.append(row['Close'].iloc[l])
         '''
@@ -272,6 +272,7 @@ def getState(data, t, n):
         tmp = np.asarray(data)
 
         block = tmp[d:t + 1] if d >= 0 else np.concatenate([-d * [tmp[0]]] + [tmp[0:t + 1]])
+        del tmp
 
 
         '''
@@ -286,5 +287,6 @@ def getState(data, t, n):
         '''
         res = []
         for i in range(n - 1):
-            res.append([sigmoid(block[i + 1][0] - block[i][0]), block[i + 1][1]])
+            res.append([sigmoid(block[i + 1][0] - block[i][0]), block[i + 1][1], block[i + 1][2]])
+        del block
         return np.array(res)
