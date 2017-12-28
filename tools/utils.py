@@ -248,7 +248,8 @@ def getStockDataVec(key):
             vec.append(float(line.split(";")[4]))
         '''
 
-        row.drop(row.columns[[0, 1, 5, 6, 7, 8]], axis = 1, inplace = True)
+        time = row['Time'].copy(deep=True)
+        row.drop(row.columns[[0, 1, 3, 4, 5, 6, 7, 8]], axis = 1, inplace = True)
         for l in range(len(row['Close'])):
             vec.append(row['Close'].iloc[l])
         '''
@@ -256,10 +257,9 @@ def getStockDataVec(key):
         row['EMA50'] /= 10000
         row['EMA100'] /= 10000
         row['Close'] /= 10000
-        '''
         row['RSI'] /= 100
-        
-        return vec, row
+        '''
+        return vec, row, time
 
 # returns the sigmoid
 def sigmoid(x):
@@ -274,6 +274,7 @@ def getState(data, t, n):
         block = tmp[d:t + 1] if d >= 0 else np.concatenate([-d * [tmp[0]]] + [tmp[0:t + 1]])
         del tmp
 
+        rate = 100
 
         '''
         for i in range(len(block) - 1):
@@ -287,6 +288,6 @@ def getState(data, t, n):
         '''
         res = []
         for i in range(n - 1):
-            res.append([sigmoid(block[i + 1][0] - block[i][0]), block[i + 1][1], block[i + 1][2]])
+            res.append((block[i + 1][0] / block[i][0]) * rate)#), block[i + 1][1], block[i + 1][2]])
         del block
         return np.array(res)
