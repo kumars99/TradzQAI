@@ -283,7 +283,6 @@ class Overview_Window(QWidget):
 
         self.daily_reward += env.reward
         self.tot_reward += env.reward
-        env.tot_reward = self.tot_reward
         self.dailyp += env.profit
 
 

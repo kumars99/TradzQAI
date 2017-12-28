@@ -46,7 +46,7 @@ class Worker(QThread):
             from agents import DDPG as Agent
 
         elif "EIIE" == self.env.model_name:
-            pass
+            from agents import EIIE as Agent
 
         else:
             raise ValueError('could not import %s' % self.env.model_name)
@@ -70,6 +70,7 @@ class Worker(QThread):
         self.env.inventory = self.agent.inventory
         self.env.lst_reward.append(self.env.tot_reward)
         self.env.lst_return.append(self.env.total_profit)
+        self.env.tot_reward += self.env.reward
 
     def pip_drawdown_checking(self):
         '''
@@ -128,8 +129,6 @@ class Worker(QThread):
                 self.env.profit *= self.env.pip_value * self.agent.inventory['Order'][POS_SELL]
                 self.env.total_profit += self.env.profit
                 self.save_last_closing(POS_SELL)
-            else:
-                self.env.reward -= 0.5
 
         elif 2 == self.action: # Sell
             self.env.corder = "SELL"
@@ -163,10 +162,8 @@ class Worker(QThread):
                 self.env.profit *= self.env.pip_value * self.agent.inventory['Order'][POS_BUY]
                 self.env.total_profit += self.env.profit
                 self.save_last_closing(POS_BUY)
-            else:
-                self.env.reward -= 0.5
         else: # Hold
-            self.env.reward -= 0.25
+            self.env.reward = 0
 
     def save_last_closing(self, POS):
         '''

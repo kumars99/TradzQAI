@@ -175,6 +175,7 @@ class Environnement:
 
         self.lst_loss = []
         self.total_profit = 0
+        self.tot_reward = 0
         self.win = 0
         self.loose = 0
         self.draw = 0
