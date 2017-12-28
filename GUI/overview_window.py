@@ -246,7 +246,7 @@ class Overview_Window(QWidget):
         self.lstart_t = QLabel('Since start : ' + time.strftime("%H:%M:%S", time.gmtime(0)))
         self.lloop_t = QLabel('Loop : 0 ms')
         self.leta = QLabel('ETA : ' + time.strftime("%H:%M:%S", time.gmtime(0)))
-        
+
         VBox.addWidget(self.lstart_t)
         VBox.addWidget(self.lloop_t)
         VBox.addWidget(self.leta)
@@ -262,14 +262,20 @@ class Overview_Window(QWidget):
         #Day mod
 
         # Daily reset
-        if int(env.cdatai / (env.data / 20)) == self.dday:
-            self.dday += 1
+
+        if env.day_changed is True:
             self.dailyp = 0
             self.daily_reward = 0
 
+        #if int(env.cdatai / (env.data / 20)) == self.dday:
+            #self.dday += 1
+
         # Episode reset
+
         if env.cdatai == env.data - 1:
-            self.dday = 1
+            env.day = 1
+            env.month = 1
+            env.year = 1
             self.dailyp = 0
             self.daily_reward = 0
             self.tot_reward = 0
@@ -305,7 +311,6 @@ class Overview_Window(QWidget):
 
         #Orders
 
-        
         self.lwin.setText("Win : " + str(env.win))
         self.lloose.setText("Loose : " + str(env.loose))
         self.ldraw.setText("Draw : " + str(env.draw))
@@ -316,8 +321,9 @@ class Overview_Window(QWidget):
             self.lwinrate.setText("Winrate : " + '{:.3f}'.format(env.win / (env.loose + env.win)))
 
         #Data
+
         self.lep.setText("Episode : " + str(env.cepisode) + " / " + str(env.episode_count))
-        self.lday.setText("Day : " + str(self.dday) + " / " + '{:.0f}'.format(env.data / (env.data / 20)))
+        self.lday.setText("Day : " + str(env.day) + " / " + str(env.tot_day))
         self.ldata.setText("Current : " +str(env.cdatai)+ " / " +str(env.data))
         self.lperc.setText('{:.2f}'.format(float((env.cdatai * 100 ) / env.data)) + " %")
 

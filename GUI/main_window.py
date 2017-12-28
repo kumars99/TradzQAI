@@ -1,4 +1,4 @@
-from core import Worker
+from core import Local_Worker as Worker
 from environnement import Environnement
 from .overview_window import Overview_Window
 from .model_window import Model_Window
@@ -137,6 +137,8 @@ class Start_Window(QWidget):
         
         self.worker = Worker(env)
         self.worker.sig_step.connect(self.update)
+        self.worker.sig_batch.connect(self.batch_up)
+        self.worker.sig_episode.connect(self.episode_up)
 
         # Getting env settings
         env.contract_price = self.sbcp.value()
@@ -168,11 +170,15 @@ class Start_Window(QWidget):
 
         self.overview = Overview_Window(self.main_tab, env)
         self.model = Model_Window(self.main_tab, env)
-        self.historic = QWidget()
+        self.settings = QWidget()
+        self.wallet = QWidget()
+        self.logs = QWidget()
 
         self.main_tab.addTab(self.overview, 'OverView')
         self.main_tab.addTab(self.model, 'Model')
-        self.main_tab.addTab(self.historic, 'Historic')
+        self.main_tab.addTab(self.wallet, 'Wallet')
+        self.main_tab.addTab(self.logs, 'Logs')
+        self.main_tab.addTab(self.settings, 'Settings')
 
         HLayout.setSpacing(20)
 
@@ -185,4 +191,10 @@ class Start_Window(QWidget):
     def update(self):
         self.overview.ordr = env.manage_orders(self.overview.ordr)
         self.overview.Update_Overview(env)
-        self.model.Update_graph(env)
+        self.model.update_step(env)
+
+    def batch_up(self):
+        self.model.update_batch(env)
+
+    def episode_up(self):
+        self.model.update_episode(env)
