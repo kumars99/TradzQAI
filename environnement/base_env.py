@@ -91,6 +91,9 @@ class Environnement:
         self.loose = 0
         self.draw = 0
 
+        self.daily_win = 0
+        self.daily_loose = 0
+
         # Time
 
         self.start_t = 0
@@ -110,6 +113,7 @@ class Environnement:
         # Other
 
         self.mod_ordr = False
+        self.day_changed = False
 
         # List for graph building
 
@@ -135,7 +139,7 @@ class Environnement:
         self.lst_act_predit = []
         self.lst_traget_predict = []
         self.lst_target = []
-        self.lst_loss = deque(maxlen=1000)
+        self.lst_loss = []
         self.lst_state = deque(maxlen=1000)
         self.lst_epsilon = []
 
@@ -143,6 +147,7 @@ class Environnement:
 
         ### Historical list
 
+        self.h_lst_loss = []
         self.h_lst_reward = []
         self.h_lst_profit = []
         self.h_lst_win_order = []
@@ -156,16 +161,26 @@ class Environnement:
     #        logs managment
     #        date managment
 
-    def reshape_state(self):
-        state1 = []
-        for i in range(len(self.lst_state)):
-            state1.append(self.lst_state[i][0])
-
-        return state1
-
     def init_logger(self):
         self.logger = Logger(self)
         self.logger.init_saver()
+
+    def manage_h_lst(self):
+        self.h_lst_loss.append(np.average(self.lst_loss))
+        self.h_lst_reward.append(self.tot_reward)
+        self.h_lst_profit.append(self.total_profit)
+        self.h_lst_win_order.append(self.win)
+        self.h_lst_loose_order.append(self.loose)
+        self.h_lst_draw_order.append(self.draw)
+
+        self.lst_loss = []
+        self.total_profit = 0
+        self.win = 0
+        self.loose = 0
+        self.draw = 0
+        self.day = 1
+        self.month = 1
+        self.year = 1
 
     def manage_ov_lst(self):
         self.lst_capital.append(self.capital)
@@ -250,6 +265,7 @@ class Environnement:
 
     def check_dates(self):
         for r in range(len(self.date)):
+            self.date[r] = (self.date[r].replace(" ", ""))[:12]
             if r > 0 and self.date[r - 1][7] != self.date[r][7]:
                 self.tot_day += 1
             if r > 0 and self.date[r - 1][5] != self.date[r][5]:
@@ -261,21 +277,15 @@ class Environnement:
         if self.cdatai > 0:
             if self.date[self.cdatai - 1][7] != self.date[self.cdatai][7]:
                 self.day += 1
+                self.day_changed = True
+                return 1
             if self.date[self.cdatai - 1][5] != self.date[self.cdatai][5]:
                 self.month += 1
                 self.day = 1
+                return 1
             if self.date[self.cdatai - 1][3] != self.date[self.cdatai][3]:
                 self.year += 1
                 self.month = 1
-
-    def update_day_lst(self):
-        pass
-
-    def update_month_lst(self):
-        pass
-
-    def update_year_lst(self):
-        pass
-
-    def update_batch_lst(self):
-        pass
+                return 1
+            self.day_changed = False
+            return 0
