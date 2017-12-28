@@ -91,8 +91,9 @@ class Agent:
 
 
     def _save_model(self):
-        if self.env.logger.model_file_name is None:
-            self.env.logger.model_file_path = self.env.logger.model_file_path + self.name + "_" + self.env.stock_name
+        if self.env.logger.model_file_name == "":
+            self.env.logger.model_file_name = self.name + "_" + self.env.stock_name
+            self.env.logger.model_file_path += self.env.logger.model_file_name
 
         self.model.save(self.env.logger.model_file_path)
 

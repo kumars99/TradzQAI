@@ -33,7 +33,7 @@ class Saver:
             os.mkdir(self.path)
         else:
             self.model_file_name = self.check_model_file(model_name)
-        if self.model_file_name == None:
+        if self.model_file_name == "":
             self.model_file_path = self.path
         else:
             self.model_file_path = self.path + self.model_file_name
@@ -55,7 +55,7 @@ class Saver:
         for d in cdir:
             if model_name in d:
                 return d
-        return None
+        return ""
 
     def check_log_file(self):
         self._add("Checking logs files")
