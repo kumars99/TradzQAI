@@ -5,6 +5,8 @@ import numpy as np
 import random
 
 from collections import deque
+import os
+
 from environnement import Environnement
 
 class Agent:
@@ -27,6 +29,7 @@ class Agent:
         self.epsilon = 1.0
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
+        
 
     def act(self, state):
         if not self.is_eval and np.random.rand() <= self.epsilon:
@@ -82,16 +85,15 @@ class Agent:
                                            epochs=1,
                                            verbose=0)
                             .history['loss'])
-                if self.epsilon > self.epsilon_min:
-                    self.epsilon *= self.epsilon_decay
+            if self.epsilon > self.epsilon_min:
+                self.epsilon *= self.epsilon_decay
         return np.average(loss)
 
 
     def _save_model(self):
         if self.env.logger.model_file_name is None:
-            self.env.logger.model_file_name = self.name + "_" + self.env.stock_name
-            self.env.logger.model_file_path = self.env.logger.model_file_path +self.env.logger.model_file_name
-        
+            self.env.logger.model_file_path = self.env.logger.model_file_path + self.name + "_" + self.env.stock_name
+
         self.model.save(self.env.logger.model_file_path)
 
     def _load_model(self):
