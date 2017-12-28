@@ -65,14 +65,15 @@ class Local_Worker(Worker):
 
                 if self.pip_drawdown_checking() == 0:
                     self.inventory_managment()
-
-                self.update_env() # Updating env from agent for GUI
-                self.env.manage_wallet()
+                self.env.inventory = self.agent.inventory
 
                 if self.env.manage_date() == 1:
+                    print (t, self.env.date[t], self.env.daily_win - self.env.daily_loose)
                     self.env.reward += self.env.daily_win - self.env.daily_loose
                     self.env.daily_win = 0
                     self.env.daily_loose = 0
+
+                self.env.manage_wallet()
 
                 if self.env.cmax_pos < 1 or self.env.cmax_pos <= int(self.env.max_pos / 2):
                     self.env.capital = self.env.scapital
@@ -80,6 +81,7 @@ class Local_Worker(Worker):
                     self.env.reward -= 1000
                     done = True
 
+                self.update_env() # Updating env from agent for GUI
                 self.sig_step.emit() # Update GUI
                 self.agent.memory.append((state,
                                           self.action,

@@ -22,9 +22,16 @@ class Environnement:
         self.model_name = "DQN"
         self.mode = ""
 
+        self.update_rate = 1e-1
+        self.learning_rate = 1e-3
+        self.gamma = 0.95
+        self.epsilon = 1.0
+        self.epsilon_min = 1e-2
+        self.epsilon_decay = 0.995
+
         # Environnement settings
 
-        self.stock_name = "DAX30_1M_2017_10_wi2"
+        self.stock_name = "DAX30_1M_2017_11"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 100
         self.window_size = 20
@@ -42,7 +49,7 @@ class Environnement:
         self.max_order_size = 1
         self.cmax_pos = self.max_pos
         self.exposure = 10 # Exposure in percent
-        self.max_pip_drawdown = 10
+        self.max_pip_drawdown = 20
 
         # Wallet state
 
@@ -114,6 +121,7 @@ class Environnement:
 
         self.mod_ordr = False
         self.day_changed = False
+        self.new_episode = False
 
         # List for graph building
 
@@ -182,6 +190,8 @@ class Environnement:
         self.day = 1
         self.month = 1
         self.year = 1
+
+        self.new_episode = True
 
     def manage_ov_lst(self):
         self.lst_capital.append(self.capital)

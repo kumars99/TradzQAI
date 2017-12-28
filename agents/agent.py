@@ -11,25 +11,22 @@ from environnement import Environnement
 
 class Agent:
 
-    def __init__(self, state_size, env=None, is_eval=False, model_name=""):
+    def __init__(self, state_size, env=None, is_eval=False):
         self.state_size = state_size # normalized previous days
         self.action_size = 3 # sit, buy, sell
         self.memory = deque(maxlen=1000)
         columns = ['Price', 'POS', 'Order']
         self.inventory = pd.DataFrame(columns=columns)
-        self.mode = ""
-        self.model_name = model_name
         self.is_eval = is_eval
 
-        self.env = env
+        self.update_rate = env.update_rate
+        self.learning_rate = env.learning_rate
+        self.gamma = env.gamma
+        self.epsilon = env.epsilon
+        self.epsilon_min = env.epsilon_min
+        self.epsilon_decay = env.epsilon_decay
 
-        self.update_rate = 1e-1
-        self.learning_rate = 1e-3
-        self.gamma = 0.95
-        self.epsilon = 1.0
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
-        
+        self.env = env
 
     def act(self, state):
         if not self.is_eval and np.random.rand() <= self.epsilon:

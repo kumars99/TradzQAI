@@ -272,14 +272,12 @@ class Overview_Window(QWidget):
 
         # Episode reset
 
-        if env.cdatai == env.data - 1:
-            env.day = 1
-            env.month = 1
-            env.year = 1
+        if env.new_episode is True:
             self.dailyp = 0
             self.daily_reward = 0
             self.tot_reward = 0
             self.lt = 0
+            env.new_episode = False
 
         self.daily_reward += env.reward
         self.tot_reward += env.reward

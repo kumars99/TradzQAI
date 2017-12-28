@@ -12,9 +12,9 @@ import tensorflow as tf
 
 class DDPG(Agent):
 
-    def __init__(self, state_size, env=None, is_eval=False, model_name=""):
+    def __init__(self, state_size, env=None, is_eval=False):
         self.name = "DDPG"
-        Agent.__init__(self, state_size, env=None, is_eval=False, model_name="")
+        Agent.__init__(self, state_size, env=None, is_eval=False)
         self.sess = tf.Session()
 
     def build_model(self):

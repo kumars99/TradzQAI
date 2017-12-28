@@ -11,6 +11,7 @@ from PyQt5.QtCore import *
 
 class Worker(QThread):
 
+
     sig_step = pyqtSignal()
     sig_batch = pyqtSignal()
     sig_episode = pyqtSignal()
@@ -58,16 +59,12 @@ class Worker(QThread):
                                     0,
                                     self.env.window_size + 1),
                            env=self.env,
-                           is_eval=is_eval,
-                           model_name= "model_" + \
-                           str(self.env.stock_name) + "_ws_" + \
-                           str(self.env.window_size))
+                           is_eval=is_eval)
 
         self.agent.mode = self.env.mode
         self.agent.build_model()
 
     def update_env(self):
-        self.env.inventory = self.agent.inventory
         self.env.lst_reward.append(self.env.tot_reward)
         self.env.lst_return.append(self.env.total_profit)
         self.env.tot_reward += self.env.reward
@@ -89,7 +86,7 @@ class Worker(QThread):
                 self.env.profit = res * self.agent.inventory['Order'][i] * self.env.pip_value
                 self.env.POS_SELL = i # Put check in env
                 self.env.total_profit += self.env.profit
-                self.env.reward += 0.5 * res
+                #self.env.reward += 0.5 * res
                 self.env.loose += 1
                 self.save_last_closing(i)
                 return 1
@@ -117,7 +114,7 @@ class Worker(QThread):
                 if self.env.profit < 0.00:
                     self.env.loose += 1
                     self.env.daily_loose += 1
-                    self.env.reward += 0.5 * self.env.profit
+                    #self.env.reward += 0.5 * self.env.profit
                     #self.series = 0
                 elif self.env.profit > 0.00 :
                     self.env.win += 1
@@ -150,7 +147,7 @@ class Worker(QThread):
                 if self.env.profit < 0:
                     self.env.loose += 1
                     self.env.daily_loose += 1
-                    self.env.reward += 0.5 * self.env.profit
+                    #self.env.reward += 0.5 * self.env.profit
                     #self.series = 0
                 elif self.env.profit > 0 :
                     self.env.win += 1
