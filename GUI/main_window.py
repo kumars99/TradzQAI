@@ -3,6 +3,8 @@ from environnement import Environnement
 from .overview_window import Overview_Window
 from .model_window import Model_Window
 
+import os
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -73,21 +75,46 @@ class Start_Window(QWidget):
 
         self.SFrame.setLayout(VBlayout)
 
+    def check_changed_lr(self, value):
+        try:
+            ret = float(value)
+            if ret >= 1 or ret == 0:
+                self.lelr.setStyleSheet("QLineEdit {border-color : red}")
+            else:
+                # Glitched reset nvm :D
+                self.lelr.setStyleSheet("QLibeEdit {border-color : blue}")
+        except:
+            self.lelr.setStyleSheet("QLineEdit {border-color : red}")
+
+    def check_changed_an(self, name):
+        for agent in env.agents:
+            if name == agent:
+                # Glitched reset nvm :D
+                self.lemn.setStyleSheet("QLibeEdit {border-color : red}")
+                return
+        self.lemn.setStyleSheet("QLineEdit {border-color : red}")
+
+    def check_changed_dataset(self, data):
+        if os.path.exists("data/"+data+".csv") == False:
+            self.lem.setStyleSheet("QLineEdit {border-color : red}")
+        else:
+            self.lem.setStyleSheet("QLibeEdit {border-color : red}")
+
     def _build_wallet_settings(self):
         Glayout = QGridLayout()
         gbox = QGroupBox("Wallet and risk settings")
 
         lc = QLabel('Capital : ')
-        self.lec = QLineEdit()
         self.sbc = QSpinBox()
         self.sbc.setMinimum(5000)
         self.sbc.setMaximum(10000000)
         self.sbc.setValue(env.capital)
 
         lexposure = QLabel('Exposure : ')
-        self.sbexposure = QSpinBox()
-        self.sbexposure.setMinimum(0)
-        self.sbexposure.setMaximum(90)
+        self.sbexposure = QDoubleSpinBox()
+        self.sbexposure.setMinimum(1)
+        self.sbexposure.setMaximum(100)
+        self.sbexposure.setSingleStep(0.1)
         self.sbexposure.setValue(env.exposure)
 
         lmpd = QLabel('Max pip loss : ')
@@ -99,6 +126,7 @@ class Start_Window(QWidget):
         lmo = QLabel('Max pos : ')
         self.sbmo = QSpinBox()
         self.sbmo.setMinimum(1)
+        self.sbmo.setMaximum(1000)
         self.sbmo.setValue(env.max_pos)
 
         Glayout.addWidget(lc, 0, 0)
@@ -127,12 +155,18 @@ class Start_Window(QWidget):
         self.lelr.setText(str(env.learning_rate))
 
         lg = QLabel('Gamma : ')
-        self.leg = QLineEdit()
-        self.leg.setText(str(env.gamma))
+        self.leg = QDoubleSpinBox()
+        self.leg.setMinimum(0.01)
+        self.leg.setMaximum(1)
+        self.leg.setSingleStep(0.01)
+        self.leg.setValue(env.gamma)
 
         le = QLabel('Epsilon : ')
-        self.lee = QLineEdit()
-        self.lee.setText(str(env.epsilon))
+        self.lee = QDoubleSpinBox()
+        self.lee.setMinimum(0.01)
+        self.lee.setMaximum(1)
+        self.lee.setSingleStep(0.01)
+        self.lee.setValue(env.epsilon)
 
         Glayout.addWidget(lmn, 0, 0)
         Glayout.addWidget(self.lemn, 0, 1)
@@ -142,6 +176,9 @@ class Start_Window(QWidget):
         Glayout.addWidget(self.leg, 2, 1)
         Glayout.addWidget(le, 3, 0)
         Glayout.addWidget(self.lee, 3, 1)
+
+        self.lelr.textChanged.connect(self.check_changed_lr)
+        self.lemn.textChanged.connect(self.check_changed_an)
 
         gbox.setLayout(Glayout)
 
@@ -168,9 +205,10 @@ class Start_Window(QWidget):
         self.sbpv.setValue(env.pip_value)
 
         ls = QLabel('Spread : ')
-        self.sbs = QSpinBox()
+        self.sbs = QDoubleSpinBox()
         self.sbs.setMaximum(10)
-        self.sbs.setMinimum(1)
+        self.sbs.setMinimum(0.01)
+        self.sbs.setSingleStep(0.01)
         self.sbs.setValue(env.spread)
 
         lec = QLabel('Episodes : ')
@@ -206,6 +244,8 @@ class Start_Window(QWidget):
         Glayout.addWidget(lbs, 6, 0)
         Glayout.addWidget(self.sbbs, 6, 1)
 
+        self.lem.textChanged.connect(self.check_changed_dataset)
+
         gbox.setLayout(Glayout)
 
         return gbox
@@ -220,7 +260,6 @@ class Start_Window(QWidget):
     def Hide_Swindow(self):
         self.SFrame.hide()
 
-
     def Show_Swindow(self):
         self.SFrame.show()
 
@@ -233,8 +272,9 @@ class Start_Window(QWidget):
         self.Build_Primary_Window()
 
     def Build_Primary_Window(self):
+        self.Hide_Swindow()
         self._resize()
-        
+
         self.worker = Worker(env)
         self.worker.sig_step.connect(self.update)
         self.worker.sig_batch.connect(self.batch_up)
@@ -264,7 +304,6 @@ class Start_Window(QWidget):
         HLayout.addWidget(b_resume)
         HLayout.addWidget(self.leave)
 
-        self.Hide_Swindow()
 
         self.main_tab = QTabWidget()
 
