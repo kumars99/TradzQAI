@@ -68,8 +68,7 @@ class Local_Worker(Worker):
                 self.env.inventory = self.agent.inventory
 
                 if self.env.manage_date() == 1:
-                    print (t, self.env.date[t], self.env.daily_win - self.env.daily_loose)
-                    self.env.reward += self.env.daily_win - self.env.daily_loose
+                    self.env.reward += ((self.env.daily_win - self.env.daily_loose) * 10)
                     self.env.daily_win = 0
                     self.env.daily_loose = 0
 
@@ -77,9 +76,7 @@ class Local_Worker(Worker):
 
                 if self.env.cmax_pos < 1 or self.env.cmax_pos <= int(self.env.max_pos / 2):
                     self.env.capital = self.env.scapital
-                    b = 1
                     self.env.reward -= 1000
-                    done = True
 
                 self.update_env() # Updating env from agent for GUI
                 self.sig_step.emit() # Update GUI
@@ -92,8 +89,8 @@ class Local_Worker(Worker):
 
                 if "train" in self.env.mode:
                     if len(self.agent.memory) > self.env.batch_size:
-                        self.sig_batch.emit()
                         self.env.lst_loss.append(self.agent.expReplay(self.env.batch_size))
+                        self.sig_batch.emit()
                     if t % 1000 == 0 and t > 0 : # Save model all 1000 data
                         self.agent._save_model()
                         if "DDQN" == self.env.model_name or "DDRQN" == self.env.model_name or "DDPG" == self.env.model_name:
@@ -102,8 +99,6 @@ class Local_Worker(Worker):
                     time.sleep(0.01)
                 self.env.loop_t = time.time() - tmp
 
-                if b == 1:
-                    break
 
             self.env.manage_h_lst()
             self.sig_episode.emit()
