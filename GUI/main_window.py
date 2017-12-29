@@ -79,7 +79,10 @@ class Start_Window(QWidget):
 
         lc = QLabel('Capital : ')
         self.lec = QLineEdit()
-        self.lec.setText(str(env.capital))
+        self.sbc = QSpinBox()
+        self.sbc.setMinimum(5000)
+        self.sbc.setMaximum(10000000)
+        self.sbc.setValue(env.capital)
 
         lexposure = QLabel('Exposure : ')
         self.sbexposure = QSpinBox()
@@ -88,8 +91,10 @@ class Start_Window(QWidget):
         self.sbexposure.setValue(env.exposure)
 
         lmpd = QLabel('Max pip loss : ')
-        self.lempd = QLineEdit()
-        self.lempd.setText(str(env.max_pip_drawdown))
+        self.sbmpd = QSpinBox()
+        self.sbmpd.setMinimum(5)
+        self.sbmpd.setMaximum(400)
+        self.sbmpd.setValue(env.max_pip_drawdown)
 
         lmo = QLabel('Max pos : ')
         self.sbmo = QSpinBox()
@@ -97,11 +102,11 @@ class Start_Window(QWidget):
         self.sbmo.setValue(env.max_pos)
 
         Glayout.addWidget(lc, 0, 0)
-        Glayout.addWidget(self.lec, 0, 1)
+        Glayout.addWidget(self.sbc, 0, 1)
         Glayout.addWidget(lexposure, 1, 0)
         Glayout.addWidget(self.sbexposure, 1, 1)
         Glayout.addWidget(lmpd, 2, 0)
-        Glayout.addWidget(self.lempd, 2, 1)
+        Glayout.addWidget(self.sbmpd, 2, 1)
         Glayout.addWidget(lmo, 3, 0)
         Glayout.addWidget(self.sbmo, 3, 1)
 
