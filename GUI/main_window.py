@@ -9,8 +9,8 @@ from PyQt5.QtCore import *
 
 env = Environnement()
 
-h = 400
-w = 200
+h = 950
+w = 400
 
 class MainWindow(QWidget):
 
@@ -37,12 +37,12 @@ class Start_Window(QWidget):
         self.SFrame = QFrame(self)
         self.SFrame.resize(h, w)
 
-        Glayout = QGridLayout()
+        gbox = QGroupBox("Settings")
+
         HBlayout = QHBoxLayout()
+        HLayout = QHBoxLayout()
         VBlayout = QVBoxLayout()
         VBFrame = QFrame()
-
-        gbox = QGroupBox("Environnement settings")
 
         self.train = QPushButton('Train')
         self.eval = QPushButton('Eval')
@@ -52,15 +52,103 @@ class Start_Window(QWidget):
         self.eval.clicked.connect(self.Build_Eval)
         self.leave.clicked.connect(quit)
 
-        lm = QLabel('Model : ')
-        self.lem = QLineEdit()
-        self.lem.setText(str(env.stock_name))
+        HBlayout.addWidget(self.train)
+        HBlayout.addWidget(self.eval)
+        HBlayout.addWidget(self.leave)
+
+        VBFrame.setLayout(HBlayout)
+
+        gbox_es = self._build_env_settings()
+        gbox_ws = self._build_wallet_settings()
+        gbox_ms = self._build_model_settings()
+
+        HLayout.addWidget(gbox_es)
+        HLayout.addWidget(gbox_ws)
+        HLayout.addWidget(gbox_ms)
+
+        gbox.setLayout(HLayout)
+
+        VBlayout.addWidget(gbox)
+        VBlayout.addWidget(VBFrame)
+
+        self.SFrame.setLayout(VBlayout)
+
+    def _build_wallet_settings(self):
+        Glayout = QGridLayout()
+        gbox = QGroupBox("Wallet and risk settings")
+
+        lc = QLabel('Capital : ')
+        self.lec = QLineEdit()
+        self.lec.setText(str(env.capital))
+
+        lexposure = QLabel('Exposure : ')
+        self.sbexposure = QSpinBox()
+        self.sbexposure.setMinimum(0)
+        self.sbexposure.setMaximum(90)
+        self.sbexposure.setValue(env.exposure)
+
+        lmpd = QLabel('Max pip loss : ')
+        self.lempd = QLineEdit()
+        self.lempd.setText(str(env.max_pip_drawdown))
 
         lmo = QLabel('Max pos : ')
         self.sbmo = QSpinBox()
-        self.sbmo.setMaximum(1000)
         self.sbmo.setMinimum(1)
         self.sbmo.setValue(env.max_pos)
+
+        Glayout.addWidget(lc, 0, 0)
+        Glayout.addWidget(self.lec, 0, 1)
+        Glayout.addWidget(lexposure, 1, 0)
+        Glayout.addWidget(self.sbexposure, 1, 1)
+        Glayout.addWidget(lmpd, 2, 0)
+        Glayout.addWidget(self.lempd, 2, 1)
+        Glayout.addWidget(lmo, 3, 0)
+        Glayout.addWidget(self.sbmo, 3, 1)
+
+        gbox.setLayout(Glayout)
+
+        return gbox
+
+    def _build_model_settings(self):
+        Glayout = QGridLayout()
+        gbox = QGroupBox("Model settings")
+
+        lmn = QLabel('Name : ')
+        self.lemn = QLineEdit()
+        self.lemn.setText(str(env.model_name))
+
+        llr = QLabel('Learning rate : ')
+        self.lelr = QLineEdit()
+        self.lelr.setText(str(env.learning_rate))
+
+        lg = QLabel('Gamma : ')
+        self.leg = QLineEdit()
+        self.leg.setText(str(env.gamma))
+
+        le = QLabel('Epsilon : ')
+        self.lee = QLineEdit()
+        self.lee.setText(str(env.epsilon))
+
+        Glayout.addWidget(lmn, 0, 0)
+        Glayout.addWidget(self.lemn, 0, 1)
+        Glayout.addWidget(llr, 1, 0)
+        Glayout.addWidget(self.lelr, 1, 1)
+        Glayout.addWidget(lg, 2, 0)
+        Glayout.addWidget(self.leg, 2, 1)
+        Glayout.addWidget(le, 3, 0)
+        Glayout.addWidget(self.lee, 3, 1)
+
+        gbox.setLayout(Glayout)
+
+        return gbox
+
+    def _build_env_settings(self):
+        Glayout = QGridLayout()
+        gbox = QGroupBox("Environnement settings")
+
+        lm = QLabel('Data : ')
+        self.lem = QLineEdit()
+        self.lem.setText(str(env.stock_name))
 
         lcp = QLabel('Contract price : ')
         self.sbcp = QSpinBox()
@@ -80,35 +168,42 @@ class Start_Window(QWidget):
         self.sbs.setMinimum(1)
         self.sbs.setValue(env.spread)
 
+        lec = QLabel('Episodes : ')
+        self.sbec = QSpinBox()
+        self.sbec.setMinimum(1)
+        self.sbec.setMaximum(10000)
+        self.sbec.setValue(env.episode_count)
+
+        lws = QLabel('Window size : ')
+        self.sbws = QSpinBox()
+        self.sbws.setMinimum(1)
+        self.sbws.setMaximum(1000)
+        self.sbws.setValue(env.window_size)
+
+        lbs = QLabel('Batch size : ')
+        self.sbbs = QSpinBox()
+        self.sbbs.setMinimum(1)
+        self.sbbs.setMaximum(1024)
+        self.sbbs.setValue(env.batch_size)
+
         Glayout.addWidget(lm, 0, 0)
         Glayout.addWidget(self.lem, 0, 1)
-
-        Glayout.addWidget(lmo, 1, 0)
-        Glayout.addWidget(self.sbmo, 1, 1)
-
-        Glayout.addWidget(lcp, 2, 0)
-        Glayout.addWidget(self.sbcp, 2, 1)
-
-        Glayout.addWidget(lpv, 3, 0)
-        Glayout.addWidget(self.sbpv, 3, 1)
-
-        Glayout.addWidget(ls, 4, 0)
-        Glayout.addWidget(self.sbs, 4, 1)
+        Glayout.addWidget(lcp, 1, 0)
+        Glayout.addWidget(self.sbcp, 1, 1)
+        Glayout.addWidget(lpv, 2, 0)
+        Glayout.addWidget(self.sbpv, 2, 1)
+        Glayout.addWidget(ls, 3, 0)
+        Glayout.addWidget(self.sbs, 3, 1)
+        Glayout.addWidget(lec, 4, 0)
+        Glayout.addWidget(self.sbec, 4, 1)
+        Glayout.addWidget(lws, 5, 0)
+        Glayout.addWidget(self.sbws, 5, 1)
+        Glayout.addWidget(lbs, 6, 0)
+        Glayout.addWidget(self.sbbs, 6, 1)
 
         gbox.setLayout(Glayout)
 
-        VBlayout.addWidget(self.train)
-        VBlayout.addWidget(self.eval)
-        VBlayout.addWidget(self.leave)
-
-        VBFrame.setLayout(VBlayout)
-
-        HBlayout.addWidget(gbox)
-        HBlayout.addWidget(VBFrame)
-
-        self.SFrame.setLayout(HBlayout)
-
-        #self.hide()
+        return gbox
 
     def _resize(self):
         self.h = 1855

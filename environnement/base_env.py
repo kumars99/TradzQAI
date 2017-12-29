@@ -22,6 +22,8 @@ class Environnement:
         self.model_name = "DQN"
         self.mode = ""
 
+        ## Hyperparameters
+
         self.update_rate = 1e-1
         self.learning_rate = 1e-3
         self.gamma = 0.95
@@ -37,23 +39,26 @@ class Environnement:
         self.window_size = 20
         self.batch_size = 32
 
-        # Wallet settings
+        # Contract settings
 
         self.spread = 1
-        self.max_pos = 10
         self.pip_value = 5
         self.contract_price = 125
 
         # Risk managment
 
+        self.max_pos = 10
         self.max_order_size = 1
         self.cmax_pos = self.max_pos
         self.exposure = 10 # Exposure in percent
         self.max_pip_drawdown = 20
 
-        # Wallet state
+        # Wallet settings
 
         self.capital = 20000
+
+        # Wallet state
+
         self.scapital = self.capital
         self.cgl = 0
         self.usable_margin = self.capital
@@ -167,7 +172,6 @@ class Environnement:
 
     # TODO : conf file managment
     #        logs managment
-    #        date managment
 
     def init_logger(self):
         self.logger = Logger(self)
