@@ -15,6 +15,8 @@ class Environnement:
         self.name = "TradzQAI"
         self.version = "v0.2"
         self.v_state = "Alpha"
+        self.agents = ['DQN', 'DDQN', 'DRQN', 'DDRQN', 'DDPG', 'EIIE']
+
 
         # Agent settings
 
