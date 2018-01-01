@@ -7,6 +7,14 @@ import math
 
 from tools.indicators import indicators
 
+
+def is_float(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+
 #### Data managment ####
 
 # Getting data

@@ -2,6 +2,7 @@ from core import Local_Worker as Worker
 from environnement import Environnement
 from .overview_window import Overview_Window
 from .model_window import Model_Window
+from tools import *
 
 import os
 
@@ -36,6 +37,7 @@ class Start_Window(QWidget):
         self.error = False
         self.Wtrain = None
         self.Weval = None
+        self.error_lst = []
         self.Build_Swindow()
 
     def Build_Swindow(self):
@@ -72,7 +74,7 @@ class Start_Window(QWidget):
         self.next = QPushButton('Next')
         self.leave = QPushButton('Exit')
 
-        self.next.clicked.connect(self.check_error)
+        self.next.clicked.connect(self.lock_error)
         self.leave.clicked.connect(quit)
 
         HBlayout.addWidget(self.leave)
@@ -154,87 +156,132 @@ class Start_Window(QWidget):
         env.mode = "eval"
         return self._Build(env.mode)
 
-    def check_error(self):
+    def lock_error(self):
         if self.error is False:
             self.Build_Primary_Window()
+
+    def check_error(self):
+        if len(self.error_lst) > 0:
+            self.error = True
+        else:
+            self.error = False
+        self.color_error()
+
+    def del_error(self, name):
+        for idx in range(len(self.error_lst)):
+            if self.error_lst[idx] == name:
+                self.error_lst.pop(idx)
+                break
+
+    def add_error(self, name):
+        for error in self.error_lst:
+            if error == name:
+                return 1
+        return 0
 
     def color_error(self):
         if self.error is True:
             self.next.setStyleSheet("QPushButton {color: grey}")
+            self.lerror.setStyleSheet("QLabel {background-color : red}")
+            self.lerror.setText(self.error_lst[len(self.error_lst) - 1])
         else:
             self.next.setStyleSheet("QPushButton {color: }")
+            self.lerror.setStyleSheet("QLabel {background-color : }")
+            self.lerror.setText('')
 
     def check_changed_lr(self, value):
-        try:
+        lr1 = "Learning rate >= 1"
+        lr0 = "Learning rate == 0"
+        lrnf = "Learning rate is not a float"
+        if is_float(value):
             ret = float(value)
-            if ret >= 1 or ret == 0:
-                if ret >= 1:
-                    self.lerror.setText('Learning rate >= 1')
-                elif ret == 0:
-                    self.lerror.setText('Learning rate == 0')
+            if ret >= 1:
+                if self.add_error(lr1) == 0:
+                    self.error_lst.append(lr1)
+                if self.add_error(lr0) == 1:
+                    self.del_error(lr0)
+                elif self.add_error(lrnf) == 1:
+                    self.del_error(lrnf)
                 self.lelr.setStyleSheet("QLineEdit {border-color : red}")
-                self.lerror.setStyleSheet("QLabel {background-color : red}")
-                self.error = True
+            elif ret == 0:
+                if self.add_error(lr0) == 0:
+                    self.error_lst.append(lr0)
+                if self.add_error(lr1) == 1:
+                    self.del_error(lr1)
+                elif self.add_error(lrnf) == 1:
+                    self.del_error(lrnf)
+                self.lelr.setStyleSheet("QLineEdit {border-color : red}")
             else:
                 self.lelr.setStyleSheet("QLineEdit {border-color : }")
-                self.lerror.setStyleSheet("QLabel {background-color : }")
-                self.lerror.setText('')
-                self.error = False
-            self.color_error()
-        except:
+                if self.add_error(lr1) == 1:
+                    self.del_error(lr1)
+                elif self.add_error(lrnf) == 1:
+                    self.del_error(lrnf)
+                elif self.add_error(lr0) == 1:
+                    self.del_error(lr0)
+        else:
             self.lelr.setStyleSheet("QLineEdit {border-color : red}")
-            self.lerror.setStyleSheet("QLabel {background-color : red}")
-            self.lerror.setText('Learning rate is not a float')
-            self.error = True
-            self.color_error()
+            if self.add_error(lrnf) == 0:
+                self.error_lst.append(lrnf)
+            if self.add_error(lr0) == 1:
+                self.del_error(lr0)
+            elif self.add_error(lr1) == 1:
+                self.del_error(lr1)
+        self.check_error()
 
     def check_changed_an(self, name):
+        an = "Can\'t find agent"
         for agent in env.agents:
             if name == agent:
                 self.lemn.setStyleSheet("QLineEdit {border-color : }")
-                self.lerror.setStyleSheet("QLabel {background-color : }")
-                self.lerror.setText('')
-                self.error = False
-                self.color_error()
+                if self.add_error(an) == 1:
+                    self.del_error(an)
+                self.check_error()
                 return
         self.lemn.setStyleSheet("QLineEdit {border-color : red}")
-        self.lerror.setText('Can\'t find agent')
-        self.lerror.setStyleSheet("QLabel {background-color : red}")
-        self.error = True
-        self.color_error()
+        if self.add_error(an) == 0:
+            self.error_lst.append(an)
+        self.check_error()
 
     def check_changed_dataset(self, data):
+        ds = "Can\'t find dataset"
         if os.path.exists("data/"+data+".csv") == False:
             self.lem.setStyleSheet("QLineEdit {border-color : red}")
-            self.lerror.setText('Can\'t find dataset')
-            self.lerror.setStyleSheet("QLabel {background-color : red}")
-            self.error = True
+            if self.add_error(ds) == 0:
+                self.error_lst.append(ds)
         else:
             self.lem.setStyleSheet("QLineEdit {border-color : }")
-            self.lerror.setText('')
-            self.lerror.setStyleSheet("QLabel {background-color : }")
-            self.error = False
-        self.color_error()
+            if self.add_error(ds) == 1:
+                self.del_error(ds)
+        self.check_error()
 
     def check_changed_exposure(self):
+        mov = "Can\'t take orders"
+        midmov = "Can\'t take "+str(int(self.sbmo.value() // 2))+""
         cap_exposure = self.sbc.value() - (self.sbc.value() * (1 - self.sbexposure.value() / 100))
         max_order_valid = cap_exposure // (self.sbcp.value() + (self.sbmpd.value() * self.sbpv.value()))
         if max_order_valid == 0:
             self.change_exposure_varcolor('red')
+            if self.add_error(mov) == 0:
+                self.error_lst.append(mov)
+            if self.add_error(midmov) == 1:
+                self.del_error(midmov)
             self.lerror.setText('Can\'t take orders')
             self.lerror.setStyleSheet("QLabel {background-color : red}")
             self.error = True
         elif max_order_valid < self.sbmo.value() // 2:
             self.change_exposure_varcolor('red')
-            self.lerror.setText('Can\'t take '+str(int(self.sbmo.value() // 2))+' orders')
-            self.lerror.setStyleSheet("QLabel {background-color : red}")
-            self.error = True
+            if self.add_error(midmov) == 0:
+                self.error_lst.append(midmov)
+            if self.add_error(mov) == 1:
+                self.del_error(mov)
         else:
             self.change_exposure_varcolor('')
-            self.lerror.setText('')
-            self.lerror.setStyleSheet("QLabel {background-color : }")
-            self.error = False
-        self.color_error()
+            if self.add_error(mov) == 1:
+                self.del_error(mov)
+            if self.add_error(midmov) == 1:
+                self.del_error(midmov)
+        self.check_error()
 
     def change_exposure_varcolor(self, color):
         self.sbc.setStyleSheet("QSpinBox {border-color : " +color+ "}")
