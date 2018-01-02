@@ -13,7 +13,7 @@ from PyQt5.QtCore import *
 env = Environnement()
 
 h = 950
-w = 500
+w = 550
 
 class MainWindow(QWidget):
 
@@ -24,7 +24,7 @@ class MainWindow(QWidget):
     def Set_UI(self):
         self.resize(h, w)
         self.setWindowTitle(env.name)
-        self.move(0, 0)
+        self.move(520, 300)
         Start_Window(self)
 
 
@@ -34,10 +34,8 @@ class Start_Window(QWidget):
         super(QWidget, self).__init__(root)
         #env.ui = self
         self.root = root
-        self.error = False
         self.Wtrain = None
         self.Weval = None
-        self.error_lst = []
         self.Build_Swindow()
 
     def Build_Swindow(self):
@@ -73,9 +71,11 @@ class Start_Window(QWidget):
 
         self.next = QPushButton('Next')
         self.leave = QPushButton('Exit')
+        
+        self.next.setStyleSheet("QPushButton {color: grey}")
 
         self.next.clicked.connect(self.lock_error)
-        self.leave.clicked.connect(quit)
+        self.leave.clicked.connect(self._end)
 
         HBlayout.addWidget(self.leave)
         HBlayout.addWidget(self.next)
@@ -105,7 +105,6 @@ class Start_Window(QWidget):
     def _Build(self, mode):
         Frame = QFrame()
         Frame.setObjectName("Frame"+mode)
-        #Frame.hide()
 
         HLayout = QHBoxLayout()
 
@@ -129,20 +128,22 @@ class Start_Window(QWidget):
             else:
                 clearLayout(child.layout())
 
-    def Show_f(self, frame):
-        if frame == "Train":
+    def Show_f(self, mode):
+        if mode == "Train":
             self.StFrame.resize(h, w)
             self.root.resize(h, w)
             self.clearLayout(self.VFLayout)
             self.Wtrain = self.BuildTrain()
             self.VFLayout.addWidget(self.Wtrain)
-        elif frame == "Eval":
-            self.StFrame.resize(h, 425)
-            self.root.resize(h, 425)
+        elif mode == "Eval":
+            self.StFrame.resize(h, 435)
+            self.root.resize(h, 435)
             self.clearLayout(self.VFLayout)
             self.Weval = self.BuildEval()
             self.VFLayout.addWidget(self.Weval)
+
         self.SFrame.show()
+        self.error_lst = []
         self.error = False
         self.color_error()
         self.lerror.setText('')
@@ -183,7 +184,12 @@ class Start_Window(QWidget):
         if self.error is True:
             self.next.setStyleSheet("QPushButton {color: grey}")
             self.lerror.setStyleSheet("QLabel {background-color : red}")
-            self.lerror.setText(self.error_lst[len(self.error_lst) - 1])
+            txt = ""
+            for idx in range(len(self.error_lst)):
+                txt += str(self.error_lst[idx])
+                if idx + 1 < len(self.error_lst):
+                    txt += "\n"
+            self.lerror.setText(txt)
         else:
             self.next.setStyleSheet("QPushButton {color: }")
             self.lerror.setStyleSheet("QLabel {background-color : }")
@@ -256,31 +262,17 @@ class Start_Window(QWidget):
         self.check_error()
 
     def check_changed_exposure(self):
-        mov = "Can\'t take orders"
-        midmov = "Can\'t take "+str(int(self.sbmo.value() // 2))+""
+        mov = "Can\'t take order"
         cap_exposure = self.sbc.value() - (self.sbc.value() * (1 - self.sbexposure.value() / 100))
         max_order_valid = cap_exposure // (self.sbcp.value() + (self.sbmpd.value() * self.sbpv.value()))
-        if max_order_valid == 0:
+        if max_order_valid < self.sbmo.value() // 2:
             self.change_exposure_varcolor('red')
             if self.add_error(mov) == 0:
                 self.error_lst.append(mov)
-            if self.add_error(midmov) == 1:
-                self.del_error(midmov)
-            self.lerror.setText('Can\'t take orders')
-            self.lerror.setStyleSheet("QLabel {background-color : red}")
-            self.error = True
-        elif max_order_valid < self.sbmo.value() // 2:
-            self.change_exposure_varcolor('red')
-            if self.add_error(midmov) == 0:
-                self.error_lst.append(midmov)
-            if self.add_error(mov) == 1:
-                self.del_error(mov)
         else:
             self.change_exposure_varcolor('')
             if self.add_error(mov) == 1:
                 self.del_error(mov)
-            if self.add_error(midmov) == 1:
-                self.del_error(midmov)
         self.check_error()
 
     def change_exposure_varcolor(self, color):
@@ -485,7 +477,7 @@ class Start_Window(QWidget):
         self.Hide_Swindow()
         self._resize()
 
-        if env.mode == "Eval":
+        if env.mode == "eval":
             env.episode_count = 1
 
         self.worker = Worker(env)
@@ -535,6 +527,11 @@ class Start_Window(QWidget):
         VLayout.addWidget(BF)
 
         self.setLayout(VLayout)
+
+    def _end(self):
+        env._save_conf()
+        env.logger._end()
+        quit()
 
     def update(self):
         self.overview.ordr = env.manage_orders(self.overview.ordr)
