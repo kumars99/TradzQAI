@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from collections import deque
 
+import time
+
 from PyQt5.QtCore import *
 
 class Environnement:
@@ -175,9 +177,51 @@ class Environnement:
     # TODO : conf file managment
     #        logs managment
 
+    def _save_conf(self):
+        conf = self.logger.conf
+
+        conf += "#### Configuration file ####\n\n"
+        conf += "Configuration file created : "+time.strftime("%Y / %m / %d")+"\n"
+        conf += "Software name : "+str(self.name)+"\n"
+        conf += "Version : "+str(self.version)+"\n\n"
+
+        conf += "#### Model settings ####\n\n"
+        conf += "Model name : "+str(self.model_name)+"\n\n"
+
+        conf += "#### Hyperparameters ####\n\n"
+        conf += "Learning rate : " +str(self.learning_rate)+"\n"
+        if self.model_name == "DDQN" or self.model_name == "DDRQN":
+            conf += "Update rate : " +str(self.update_rate)+"\n"
+        conf += "Gamma : "+str(self.gamma)+"\n"
+        conf += "Epsilon : "+str(self.epsilon)+"\n\n"
+
+        conf += "#### Environnement settings ####\n\n"
+        conf += "Stock name : "+str(self.stock_name)+"\n"
+        conf += "Episode : " +str(self.episode_count)+"\n"
+        conf += "Window size : " +str(self.window_size)+"\n"
+        conf += "Batch size : " +str(self.batch_size)+"\n"
+        conf += "Contract price : " +str(self.contract_price)+"\n"
+        conf += "Pip value : " +str(self.pip_value)+"\n"
+        conf += "Spread : " +str(self.spread)+"\n\n"
+
+        conf += "#### Wallet and risk settings ####\n\n"
+        conf += "Capital : " +str(self.capital)+"\n"
+        conf += "Exposure : "+str(self.exposure)+"\n"
+        conf += "Max pip loss : " +str(self.max_pip_drawdown)+"\n"
+        conf += "Max pos : " +str(self.max_pos)#+"\n\n"
+
+        self.logger._save(conf=conf)
+
+    '''
+    def _load_conf(self):
+        while self.logger.conf_file.readline():
+    '''
+
+
     def init_logger(self):
-        self.logger = Logger(self)
-        self.logger.init_saver()
+        self.logger = Logger()
+        self.logger.init_saver(self)
+        self.logger._load()
 
     def manage_h_lst(self):
         self.h_lst_loss.append(np.average(self.lst_loss))
