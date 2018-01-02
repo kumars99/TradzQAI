@@ -1,8 +1,6 @@
 import os
 import time
 
-from keras.models import load_model
-
 class Saver:
 
     def __init__(self):
@@ -78,10 +76,6 @@ class Saver:
             self.conf_file = open(self.conf_file_path, 'a')
         else:
             self.conf_file = open(self.conf_file_path, 'r+')
-        if self.model_file_name:
-            self._add("Loading model")
-            self.model_file = load_model(self.model_file_path)
-        return self.model_file
 
     def save_logs(self, logs):
         self.log_file.write(logs)
