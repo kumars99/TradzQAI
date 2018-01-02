@@ -1,4 +1,4 @@
-import keras
+from keras.models import load_model
 
 import pandas as pd
 import numpy as np
@@ -95,4 +95,7 @@ class Agent:
         self.model.save(self.env.logger.model_file_path)
 
     def _load_model(self):
-        self.model = self.env.logger._load()
+        try:
+            self.model = load_model(self.env.logger.model_file_path)
+        except:
+            self.model = None
