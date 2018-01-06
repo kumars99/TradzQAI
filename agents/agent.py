@@ -89,7 +89,7 @@ class Agent:
 
     def _save_model(self):
         if self.env.logger.model_file_name == "":
-            self.env.logger.model_file_name = self.name + "_" + self.env.stock_name
+            self.env.logger.model_file_name = self.name + "_" + self.env.stock_name + ".h5"
             self.env.logger.model_file_path += self.env.logger.model_file_name
 
         self.model.save(self.env.logger.model_file_path)

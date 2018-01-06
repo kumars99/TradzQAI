@@ -176,6 +176,7 @@ class Environnement:
 
     # TODO : conf file managment
     #        logs managment
+    #        Use some dict
 
     def _save_conf(self):
         conf = self.logger.conf
@@ -205,18 +206,50 @@ class Environnement:
         conf += "Spread : " +str(self.spread)+"\n\n"
 
         conf += "#### Wallet and risk settings ####\n\n"
-        conf += "Capital : " +str(self.capital)+"\n"
+        conf += "Capital : " +str(self.scapital)+"\n"
         conf += "Exposure : "+str(self.exposure)+"\n"
         conf += "Max pip loss : " +str(self.max_pip_drawdown)+"\n"
-        conf += "Max pos : " +str(self.max_pos)#+"\n\n"
+        conf += "Max pos : " +str(self.max_pos)+"\n"
 
         self.logger._save(conf=conf)
 
-    '''
     def _load_conf(self):
-        while self.logger.conf_file.readline():
-    '''
-
+        try:
+            lines = self.logger.conf_file.read()
+            lines = lines.split("\n")
+        except:
+            lines = ""
+        for line in lines:
+            if "Model name" in line:
+                self.model_name = (line.split(":")[1]).replace(" ", "")
+            if "Learning rate" in line:
+                self.learning_rate = float((line.split(":")[1]).replace(" ", ""))
+            if "Gamma" in line:
+                self.gamma = float((line.split(":")[1]).replace(" ", ""))
+            if "Espilon" in line:
+                self.epsilon = float((line.split(":")[1]).replace(" ", ""))
+            if "Stock name" in line:
+                self.stock_name = (line.split(":")[1]).replace(" ", "")
+            if "Window size" in line:
+                self.window_size = int((line.split(":")[1]).replace(" ", ""))
+            if "Episode" in line:
+                self.episode_count = int((line.split(":")[1]).replace(" ", ""))
+            if "Batch size" in line:
+                self.batch_size = int((line.split(":")[1]).replace(" ", ""))
+            if "Contract price" in line:
+                self.contract_price = int((line.split(":")[1]).replace(" ", ""))
+            if "Pip value" in line:
+                self.pip_value = int((line.split(":")[1]).replace(" ", ""))
+            if "Spread" in line:
+                self.spread = float((line.split(":")[1]).replace(" ", ""))
+            if "Capital" in line:
+                self.capital = int((line.split(":")[1]).replace(" ", ""))
+            if "Exposure" in line:
+                self.exposure = int((line.split(":")[1]).replace(" ", ""))
+            if "Max pip loss" in line:
+                self.max_pip_drawdown = int((line.split(":")[1]).replace(" ", ""))
+            if "Max pos" in line:
+                self.max_pos = int((line.split(":")[1]).replace(" ", ""))
 
     def init_logger(self):
         self.logger = Logger()
@@ -231,6 +264,7 @@ class Environnement:
         self.h_lst_loose_order.append(self.loose)
         self.h_lst_draw_order.append(self.draw)
 
+        self.capital = self.scapital
         self.lst_loss = []
         self.total_profit = 0
         self.tot_reward = 0
@@ -278,7 +312,16 @@ class Environnement:
             elif "BUY" in self.corder:
                 POS = self.POS_SELL
                 c = self.buy_price
-            new = [str(self.co) + " : " + '{:.2f}'.format(self.cd) + " -> " + str(self.corder) + " : " + '{:.2f}'.format(c) + " | Profit : " + '{:.2f}'.format(self.profit)]
+
+            new = [str(self.co) \
+                   + " : " \
+                   + '{:.2f}'.format(self.cd) \
+                   + " -> " \
+                   + str(self.corder) \
+                   + " : " \
+                   + '{:.2f}'.format(c) \
+                   + " | Profit : " + '{:.2f}'.format(self.profit)]
+
             if len(ordr['Orders']) > 37:
                 ordr = (ordr.drop(0)).reset_index(drop=True)
             tmp = pd.DataFrame(new, columns = ['Orders'])
@@ -336,17 +379,19 @@ class Environnement:
 
     def manage_date(self):
         if self.cdatai > 0:
-            if self.date[self.cdatai - 1][7] != self.date[self.cdatai][7]:
-                self.day += 1
+            if self.date[self.cdatai - 1][3] != self.date[self.cdatai][3]:
+                self.year += 1
+                self.month = 1
                 self.day_changed = True
                 return 1
             if self.date[self.cdatai - 1][5] != self.date[self.cdatai][5]:
                 self.month += 1
                 self.day = 1
+                self.day_changed = True
                 return 1
-            if self.date[self.cdatai - 1][3] != self.date[self.cdatai][3]:
-                self.year += 1
-                self.month = 1
+            if self.date[self.cdatai - 1][7] != self.date[self.cdatai][7]:
+                self.day += 1
+                self.day_changed = True
                 return 1
             self.day_changed = False
             return 0

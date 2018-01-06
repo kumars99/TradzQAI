@@ -126,6 +126,8 @@ class Worker(QThread):
                 self.env.profit *= self.env.pip_value * self.agent.inventory['Order'][POS_SELL]
                 self.env.total_profit += self.env.profit
                 self.save_last_closing(POS_SELL)
+            else: # Negative reward if overtaking
+                self.env.reward -= 0.5
 
         elif 2 == self.action: # Sell
             self.env.corder = "SELL"
@@ -159,6 +161,8 @@ class Worker(QThread):
                 self.env.profit *= self.env.pip_value * self.agent.inventory['Order'][POS_BUY]
                 self.env.total_profit += self.env.profit
                 self.save_last_closing(POS_BUY)
+            else: # Negative reward if overtaking
+                self.env.reward -= 0.5
         else: # Hold
             self.env.reward = 0
 

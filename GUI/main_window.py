@@ -71,7 +71,7 @@ class Start_Window(QWidget):
 
         self.next = QPushButton('Next')
         self.leave = QPushButton('Exit')
-        
+
         self.next.setStyleSheet("QPushButton {color: grey}")
 
         self.next.clicked.connect(self.lock_error)
@@ -480,13 +480,17 @@ class Start_Window(QWidget):
         if env.mode == "eval":
             env.episode_count = 1
 
+        # Getting env settings
+        self._get_env_var()
+
+        # Save configuration
+        env._save_conf()
+
         self.worker = Worker(env)
         self.worker.sig_step.connect(self.update)
         self.worker.sig_batch.connect(self.batch_up)
         self.worker.sig_episode.connect(self.episode_up)
 
-        # Getting env settings
-        self._get_env_var()
 
         VLayout = QVBoxLayout(self)
         HLayout = QHBoxLayout()
@@ -529,8 +533,8 @@ class Start_Window(QWidget):
         self.setLayout(VLayout)
 
     def _end(self):
-        env._save_conf()
-        env.logger._end()
+        if env.logger:
+            env.logger._end()
         quit()
 
     def update(self):

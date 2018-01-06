@@ -65,6 +65,7 @@ class Local_Worker(Worker):
 
                 if self.pip_drawdown_checking() == 0:
                     self.inventory_managment()
+
                 self.env.inventory = self.agent.inventory
 
                 if self.env.manage_date() == 1:
@@ -74,7 +75,7 @@ class Local_Worker(Worker):
 
                 self.env.manage_wallet()
 
-                if self.env.cmax_pos < 1 or self.env.cmax_pos <= int(self.env.max_pos / 2):
+                if self.env.cmax_pos < 1 or self.env.cmax_pos <= int(self.env.max_pos // 2):
                     self.env.capital = self.env.scapital
                     self.env.reward -= 1000
 
