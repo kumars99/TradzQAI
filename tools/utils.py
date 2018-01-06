@@ -280,9 +280,6 @@ def getState(data, t, n):
         tmp = np.asarray(data)
 
         block = tmp[d:t + 1] if d >= 0 else np.concatenate([-d * [tmp[0]]] + [tmp[0:t + 1]])
-        del tmp
-
-        rate = 100
 
         '''
         for i in range(len(block) - 1):
@@ -296,6 +293,5 @@ def getState(data, t, n):
         '''
         res = []
         for i in range(n - 1):
-            res.append((block[i + 1][0] / block[i][0]) * rate)#), block[i + 1][1], block[i + 1][2]])
-        del block
+            res.append(sigmoid(block[i + 1][0] - block[i][0]))#), block[i + 1][1], block[i + 1][2]])
         return np.array(res)
