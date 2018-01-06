@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from collections import deque
 
+import os
+import sys
 import time
 
 from PyQt5.QtCore import *
@@ -17,6 +19,7 @@ class Environnement:
         self.name = "TradzQAI"
         self.version = "v0.2"
         self.v_state = "Alpha"
+        self._platform = sys.platform
         self.agents = ['DQN', 'DDQN', 'DRQN', 'DDRQN', 'DDPG', 'EIIE']
 
 

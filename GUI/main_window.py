@@ -14,6 +14,13 @@ env = Environnement()
 
 h = 950
 w = 550
+hp = 1855
+
+if env._platform == 'win32':
+    wp = 1080 - 55
+
+elif env._platform == 'Linux':
+    wp = 1080 - 30
 
 class MainWindow(QWidget):
 
@@ -443,8 +450,8 @@ class Start_Window(QWidget):
         return gbox
 
     def _resize(self):
-        self.h = 1855
-        self.w = 1050
+        self.h = hp
+        self.w = wp
         self.root.resize(self.h, self.w)
         self.resize(self.h, self.w)
         self.root.showMaximized()

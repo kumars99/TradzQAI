@@ -24,7 +24,7 @@ class Overview_Window(QWidget):
 
         GB = QGridLayout(self)
 
-        GB.addWidget(self.Agent_Inventory_Init(), 0, 2, 2, 1)
+        GB.addWidget(self.Agent_Inventory_Init(env), 0, 2, 2, 1)
         GB.addWidget(self.Agent_Orders_Init(), 0, 1)
         GB.addWidget(self.Agent_Value_Init(env), 0, 0, 2, 1)
         GB.addWidget(self.Data_Init(), 1, 1)
@@ -54,7 +54,7 @@ class Overview_Window(QWidget):
         GBox.setFixedSize(220,180)
         return GBox
 
-    def Agent_Inventory_Init(self):
+    def Agent_Inventory_Init(self, env):
 
         GBox = QGroupBox("Agent inventory")
         VBox = QVBoxLayout()
@@ -67,9 +67,13 @@ class Overview_Window(QWidget):
         VBox.addWidget(self.Agent_Winrate())
 
         #VBox.addStretch()
-
+        h = 245
+        if env._platform == 'win32':
+            w = 900
+        if env._platform == 'Linux':
+            w = 915
         GBox.setLayout(VBox)
-        GBox.setFixedSize(245,915)
+        GBox.setFixedSize(h,w)
 
         return GBox
 
@@ -172,7 +176,12 @@ class Overview_Window(QWidget):
         VBox.addStretch()
 
         GBox.setLayout(VBox)
-        GBox.setFixedSize(245,915)
+        h = 245
+        if env._platform == 'win32':
+            w = 900
+        if env._platform == 'Linux':
+            w = 915
+        GBox.setFixedSize(h,w)
 
         return GBox
 
