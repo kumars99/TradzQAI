@@ -10,7 +10,7 @@ from PyQt5.QtCore import *
 import pandas as pd
 import numpy as np
 
-class Overview_Window(QWidget):
+class OverviewWindow(QWidget):
 
     def __init__(self, root, env):
         super(QWidget, self).__init__(root)
@@ -176,11 +176,13 @@ class Overview_Window(QWidget):
         VBox.addStretch()
 
         GBox.setLayout(VBox)
+
         h = 245
         if env._platform == 'win32':
             w = 900
         if env._platform == 'Linux':
             w = 915
+
         GBox.setFixedSize(h,w)
 
         return GBox

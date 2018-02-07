@@ -7,10 +7,10 @@ from PyQt5.QtCore import *
 
 import pyqtgraph as pg
 
-class Model_Window(QWidget):
+class ModelWindow(QWidget):
 
     def __init__(self, root, env):
-        super(QWidget, self).__init__()
+        super(QWidget, self).__init__(root)
         GL = QGridLayout(self)
         tab = QTabWidget()
 
@@ -106,6 +106,3 @@ class Model_Window(QWidget):
         self.g_profit.plot(env.lst_return)
         self.g_act.plot(env.lst_act)
         self.g_state.plot(env.lst_state)
-
-
-

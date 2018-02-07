@@ -3,6 +3,7 @@ from math import *
 import time
 import pandas as pd
 import sys
+import os
 
 from environnement import Environnement
 from tools import *
@@ -31,24 +32,8 @@ class Worker(QThread):
         else:
             is_eval = False
 
-        if "DQN" == self.env.model_name:
-            from agents import DQN as Agent
-
-        elif "DDQN" == self.env.model_name:
-            from agents import DDQN as Agent
-
-        elif "DRQN" == self.env.model_name:
-            from agents import DRQN as Agent
-
-        elif "DDRQN" == self.env.model_name:
-            from agents import DDRQN as Agent
-
-        elif "DDPG" == self.env.model_name:
-            from agents import DDPG as Agent
-
-        elif "EIIE" == self.env.model_name:
-            from agents import EIIE as Agent
-
+        if self.env.model_name in self.env.agents:
+            Agent = getattr(__import__("agents", fromlist=[self.env.model_name]), self.env.model_name)
         else:
             raise ValueError('could not import %s' % self.env.model_name)
 
@@ -70,9 +55,7 @@ class Worker(QThread):
         self.env.tot_reward += self.env.reward
 
     def pip_drawdown_checking(self):
-        '''
-        Prevent high drawdown
-        '''
+        '''Prevent high drawdown'''
         c = 0
         for i in range(len(self.agent.inventory)):
             c = self.agent.inventory['Price'][i]
@@ -104,11 +87,9 @@ class Worker(QThread):
                 self.agent.inventory = self.agent.inventory.append(buy, ignore_index=True)
 
             elif POS_SELL != -1:# Sell order in inventory
-                '''
-                Selling order from inventory list
+                '''Selling order from inventory list
                 Calc profit and total profit
-                Add last Sell order to env
-                '''
+                Add last Sell order to env'''
                 #POS_SELL = self.src_best_buy(self.agent.inventory['Price'])
                 self.env.profit = self.agent.inventory['Price'][POS_SELL] - self.env.sell_price
                 if self.env.profit < 0.00:
@@ -139,11 +120,9 @@ class Worker(QThread):
                 self.agent.inventory = self.agent.inventory.append(sell, ignore_index=True)
 
             elif POS_BUY != -1:# Sell order in inventory
-                '''
-                Selling order from inventory list
+                '''Selling order from inventory list
                 Calc profit and total profit
-                Add last Sell order to env
-                '''
+                Add last Sell order to env'''
                 #POS_BUY = self.src_best_sell(self.agent.inventory['Price'])
                 self.env.profit = self.env.buy_price - self.agent.inventory['Price'][POS_BUY]
                 if self.env.profit < 0:
@@ -167,9 +146,7 @@ class Worker(QThread):
             self.env.reward = 0
 
     def save_last_closing(self, POS):
-        '''
-        Save last trade and drop it from inventory
-        '''
+        '''Save last trade and drop it from inventory'''
         self.env.cd = (self.agent.inventory['Price']).iloc[POS]
         self.env.co = (self.agent.inventory['POS']).iloc[POS]
         self.agent.inventory = (self.agent.inventory.drop(self.agent.inventory.index[POS])).reset_index(drop=True)
@@ -187,18 +164,14 @@ class Worker(QThread):
         return np.argmax(cbuy)
 
     def src_sell(self, inventory):
-        '''
-        Search for first sell order
-        '''
+        '''Search for first sell order'''
         for i  in range(len(inventory)):
             if "SELL" in inventory.loc[i]:
                 return (i)
         return (-1)
 
     def src_buy(self, inventory):
-        '''
-        Search for first buy order
-        '''
+        '''Search for first buy order'''
         for i  in range(len(inventory)):
             if "BUY" in inventory.loc[i]:
                 return (i)

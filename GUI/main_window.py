@@ -1,7 +1,7 @@
 from core import Local_Worker as Worker
 from environnement import Environnement
-from .overview_window import Overview_Window
-from .model_window import Model_Window
+from .overview_window import OverviewWindow
+from .model_window import ModelWindow
 from tools import *
 
 import os
@@ -18,7 +18,6 @@ hp = 1855
 
 if env._platform == 'win32':
     wp = 1080 - 55
-
 elif env._platform == 'Linux':
     wp = 1080 - 30
 
@@ -33,7 +32,6 @@ class MainWindow(QWidget):
         self.setWindowTitle(env.name)
         self.move(520, 300)
         Start_Window(self)
-
 
 class Start_Window(QWidget):
 
@@ -114,14 +112,14 @@ class Start_Window(QWidget):
         Frame.setObjectName("Frame"+mode)
 
         HLayout = QHBoxLayout()
-
+        self.gbox_ms = QGroupBox("Model settings")
         gbox_es = self._build_env_settings(mode)
         gbox_ws = self._build_wallet_settings(mode)
-        gbox_ms = self._build_model_settings(mode)
+        self.gbox_ms.setLayout(self._build_model_settings(mode))
 
         HLayout.addWidget(gbox_es)
         HLayout.addWidget(gbox_ws)
-        HLayout.addWidget(gbox_ms)
+        HLayout.addWidget(self.gbox_ms)
 
         Frame.setLayout(HLayout)
 
@@ -202,6 +200,46 @@ class Start_Window(QWidget):
             self.lerror.setStyleSheet("QLabel {background-color : }")
             self.lerror.setText('')
 
+    def check_changed_ur(self, value):
+        ur1 = "Update rate >= 1"
+        ur0 = "Update rate == 0"
+        urnf = "Update rate is not a float"
+        if is_float(value):
+            ret = float(value)
+            if ret >= 1:
+                if self.add_error(ur1) == 0:
+                    self.error_lst.append(ur1)
+                if self.add_error(ur0) == 1:
+                    self.del_error(ur0)
+                elif self.add_error(urnf) == 1:
+                    self.del_error(urnf)
+                self.leur.setStyleSheet("QLineEdit {border-color : red}")
+            elif ret == 0:
+                if self.add_error(ur0) == 0:
+                    self.error_lst.append(ur0)
+                if self.add_error(ur1) == 1:
+                    self.del_error(ur1)
+                elif self.add_error(urnf) == 1:
+                    self.del_error(urnf)
+                self.leur.setStyleSheet("QLineEdit {border-color : red}")
+            else:
+                self.leur.setStyleSheet("QLineEdit {border-color : }")
+                if self.add_error(ur1) == 1:
+                    self.del_error(ur1)
+                elif self.add_error(urnf) == 1:
+                    self.del_error(urnf)
+                elif self.add_error(ur0) == 1:
+                    self.del_error(ur0)
+        else:
+            self.leur.setStyleSheet("QLineEdit {border-color : red}")
+            if self.add_error(urnf) == 0:
+                self.error_lst.append(urnf)
+            if self.add_error(ur0) == 1:
+                self.del_error(ur0)
+            elif self.add_error(ur1) == 1:
+                self.del_error(ur1)
+        self.check_error()
+
     def check_changed_lr(self, value):
         lr1 = "Learning rate >= 1"
         lr0 = "Learning rate == 0"
@@ -244,12 +282,24 @@ class Start_Window(QWidget):
 
     def check_changed_an(self, name):
         an = "Can\'t find agent"
+        Dname = ['DRQN', 'DDRQN']
+        names = ['DQN', 'DDQN', 'DDPG', 'EIIE']
         for agent in env.agents:
             if name == agent:
                 self.lemn.setStyleSheet("QLineEdit {border-color : }")
                 if self.add_error(an) == 1:
                     self.del_error(an)
                 self.check_error()
+                if env.mode == "train":
+                    if (name in Dname and env.model_name not in names) or (name in names and env.model_name not in Dname):
+                        env.model_name = name
+                        self.check_changed_ur(env.update_rate)
+                        self.check_changed_lr(env.learning_rate)
+                        self.clearLayout(self.msGlayout)
+                        self.gbox_ms.layout().removeItem(self.msGlayout)
+                        self.gbox_ms.setLayout(self._build_model_settings(env.mode))
+                    else:
+                        env.model_name = name
                 return
         self.lemn.setStyleSheet("QLineEdit {border-color : red}")
         if self.add_error(an) == 0:
@@ -338,8 +388,8 @@ class Start_Window(QWidget):
         return gbox
 
     def _build_model_settings(self, mode):
-        Glayout = QGridLayout()
-        gbox = QGroupBox("Model settings")
+        self.msGlayout = QGridLayout()
+        #gbox = QGroupBox("Model settings")
 
         lmn = QLabel('Agent : ')
         self.lemn = QLineEdit()
@@ -348,6 +398,10 @@ class Start_Window(QWidget):
         llr = QLabel('Learning rate : ')
         self.lelr = QLineEdit()
         self.lelr.setText(str(env.learning_rate))
+
+        lur = QLabel('Update rate : ')
+        self.leur = QLineEdit()
+        self.leur.setText(str(env.update_rate))
 
         lg = QLabel('Gamma : ')
         self.leg = QDoubleSpinBox()
@@ -363,22 +417,26 @@ class Start_Window(QWidget):
         self.lee.setSingleStep(0.01)
         self.lee.setValue(env.epsilon)
 
-        Glayout.addWidget(lmn, 0, 0)
-        Glayout.addWidget(self.lemn, 0, 1)
+        self.msGlayout.addWidget(lmn, 0, 0)
+        self.msGlayout.addWidget(self.lemn, 0, 1)
         if mode == "train":
-            Glayout.addWidget(llr, 1, 0)
-            Glayout.addWidget(self.lelr, 1, 1)
-            Glayout.addWidget(lg, 2, 0)
-            Glayout.addWidget(self.leg, 2, 1)
-            Glayout.addWidget(le, 3, 0)
-            Glayout.addWidget(self.lee, 3, 1)
+            self.msGlayout.addWidget(llr, 1, 0)
+            self.msGlayout.addWidget(self.lelr, 1, 1)
+            if "DDRQN" == env.model_name or "DDQN" == env.model_name:
+                self.msGlayout.addWidget(lur, 2, 0)
+                self.msGlayout.addWidget(self.leur, 2, 1)
+            self.msGlayout.addWidget(lg, 3, 0)
+            self.msGlayout.addWidget(self.leg, 3, 1)
+            self.msGlayout.addWidget(le, 4, 0)
+            self.msGlayout.addWidget(self.lee, 4, 1)
 
         self.lelr.textChanged.connect(self.check_changed_lr)
+        self.leur.textChanged.connect(self.check_changed_ur)
         self.lemn.textChanged.connect(self.check_changed_an)
 
-        gbox.setLayout(Glayout)
+        #gbox.setLayout(Glayout)
 
-        return gbox
+        return self.msGlayout
 
     def _build_env_settings(self, mode):
         Glayout = QGridLayout()
@@ -490,8 +548,9 @@ class Start_Window(QWidget):
         # Getting env settings
         self._get_env_var()
 
+        env.init_logger()
         # Save configuration
-        env._save_conf()
+        env.logger._save_conf(env)
 
         self.worker = Worker(env)
         self.worker.sig_step.connect(self.update)
@@ -519,8 +578,8 @@ class Start_Window(QWidget):
 
         self.main_tab = QTabWidget()
 
-        self.overview = Overview_Window(self.main_tab, env)
-        self.model = Model_Window(self.main_tab, env)
+        self.overview = OverviewWindow(self.main_tab, env)
+        self.model = ModelWindow(self.main_tab, env)
         self.settings = QWidget()
         self.wallet = QWidget()
         self.logs = QWidget()
@@ -540,7 +599,7 @@ class Start_Window(QWidget):
         self.setLayout(VLayout)
 
     def _end(self):
-        if env.logger:
+        if env.logger.model_conf_file:
             env.logger._end()
         quit()
 

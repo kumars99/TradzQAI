@@ -14,14 +14,13 @@ class Environnement:
 
     def __init__(self):
 
-        # Soft settings
+        # Software settings
 
         self.name = "TradzQAI"
         self.version = "v0.2"
         self.v_state = "Alpha"
         self._platform = sys.platform
         self.agents = ['DQN', 'DDQN', 'DRQN', 'DDRQN', 'DDPG', 'EIIE']
-
 
         # Agent settings
 
@@ -175,53 +174,23 @@ class Environnement:
         self.h_lst_draw_order = []
         self.h_lst_capital = []
 
-        self.init_logger()
+        self.logger = None
+        self.readed = None
+
+        self._load_conf()
 
     # TODO : conf file managment
     #        logs managment
-    #        Use some dict
-
-    def _save_conf(self):
-        conf = self.logger.conf
-
-        conf += "#### Configuration file ####\n\n"
-        conf += "Configuration file created : "+time.strftime("%Y / %m / %d")+"\n"
-        conf += "Software name : "+str(self.name)+"\n"
-        conf += "Version : "+str(self.version)+"\n\n"
-
-        conf += "#### Model settings ####\n\n"
-        conf += "Model name : "+str(self.model_name)+"\n\n"
-
-        conf += "#### Hyperparameters ####\n\n"
-        conf += "Learning rate : " +str(self.learning_rate)+"\n"
-        if self.model_name == "DDQN" or self.model_name == "DDRQN":
-            conf += "Update rate : " +str(self.update_rate)+"\n"
-        conf += "Gamma : "+str(self.gamma)+"\n"
-        conf += "Epsilon : "+str(self.epsilon)+"\n\n"
-
-        conf += "#### Environnement settings ####\n\n"
-        conf += "Stock name : "+str(self.stock_name)+"\n"
-        conf += "Episode : " +str(self.episode_count)+"\n"
-        conf += "Window size : " +str(self.window_size)+"\n"
-        conf += "Batch size : " +str(self.batch_size)+"\n"
-        conf += "Contract price : " +str(self.contract_price)+"\n"
-        conf += "Pip value : " +str(self.pip_value)+"\n"
-        conf += "Spread : " +str(self.spread)+"\n\n"
-
-        conf += "#### Wallet and risk settings ####\n\n"
-        conf += "Capital : " +str(self.scapital)+"\n"
-        conf += "Exposure : "+str(self.exposure)+"\n"
-        conf += "Max pip loss : " +str(self.max_pip_drawdown)+"\n"
-        conf += "Max pos : " +str(self.max_pos)+"\n"
-
-        self.logger._save(conf=conf)
 
     def _load_conf(self):
+        self.logger = Logger()
+        self.logger.load_conf()
         try:
             lines = self.logger.conf_file.read()
             lines = lines.split("\n")
         except:
             lines = ""
+        self.readed = lines
         for line in lines:
             if "Model name" in line:
                 self.model_name = (line.split(":")[1]).replace(" ", "")
@@ -248,14 +217,13 @@ class Environnement:
             if "Capital" in line:
                 self.capital = int((line.split(":")[1]).replace(" ", ""))
             if "Exposure" in line:
-                self.exposure = int((line.split(":")[1]).replace(" ", ""))
+                self.exposure = float((line.split(":")[1]).replace(" ", ""))
             if "Max pip loss" in line:
                 self.max_pip_drawdown = int((line.split(":")[1]).replace(" ", ""))
             if "Max pos" in line:
                 self.max_pos = int((line.split(":")[1]).replace(" ", ""))
 
     def init_logger(self):
-        self.logger = Logger()
         self.logger.init_saver(self)
         self.logger._load()
 
@@ -323,7 +291,8 @@ class Environnement:
                    + str(self.corder) \
                    + " : " \
                    + '{:.2f}'.format(c) \
-                   + " | Profit : " + '{:.2f}'.format(self.profit)]
+                   + " | Profit : " \
+                   + '{:.2f}'.format(self.profit)]
 
             if len(ordr['Orders']) > 37:
                 ordr = (ordr.drop(0)).reset_index(drop=True)
@@ -381,20 +350,21 @@ class Environnement:
                 self.tot_year += 1
 
     def manage_date(self):
+        self.day_changed = False
         if self.cdatai > 0:
             if self.date[self.cdatai - 1][3] != self.date[self.cdatai][3]:
                 self.year += 1
                 self.month = 1
+                self.day = 1
                 self.day_changed = True
-                return 1
-            if self.date[self.cdatai - 1][5] != self.date[self.cdatai][5]:
+            elif self.date[self.cdatai - 1][5] != self.date[self.cdatai][5]:
                 self.month += 1
                 self.day = 1
                 self.day_changed = True
-                return 1
-            if self.date[self.cdatai - 1][7] != self.date[self.cdatai][7]:
+            elif self.date[self.cdatai - 1][7] != self.date[self.cdatai][7]:
                 self.day += 1
                 self.day_changed = True
-                return 1
-            self.day_changed = False
+        if self.day_changed is True:
+            return 1
+        else:
             return 0

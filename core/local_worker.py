@@ -20,7 +20,9 @@ class Local_Worker(Worker):
         for e in range(self.env.episode_count + 1):
             self.env.cepisode = e + 1
             self.env.start_t = time.time()
-            self.agent.inventory = pd.DataFrame(columns = self.columns) # Init agent inventory
+
+            # Init agent inventory
+            self.agent.inventory = pd.DataFrame(columns = self.columns)
 
             if self.env.pause == 1:
                 while (self.env.pause == 1):
@@ -44,7 +46,8 @@ class Local_Worker(Worker):
 
                 done = True if t == self.env.data - 1 else False
 
-                self.action = self.agent.act(state) # Get action from agent
+                # Get action from agent
+                self.action = self.agent.act(state)
                 self.env.def_act(self.action)
 
                 # Get new state
@@ -69,7 +72,7 @@ class Local_Worker(Worker):
                 self.env.inventory = self.agent.inventory
 
                 if self.env.manage_date() == 1:
-                    self.env.reward += ((self.env.daily_win - self.env.daily_loose) * 10)
+                    #self.env.reward += ((self.env.daily_win - self.env.daily_loose) * 10)
                     self.env.daily_win = 0
                     self.env.daily_loose = 0
 
@@ -77,7 +80,7 @@ class Local_Worker(Worker):
 
                 if self.env.cmax_pos < 1 or self.env.cmax_pos <= int(self.env.max_pos // 2):
                     self.env.capital = self.env.scapital
-                    self.env.reward -= 1000
+                    #self.env.reward -= 1000
 
                 self.update_env() # Updating env from agent for GUI
                 self.sig_step.emit() # Update GUI
@@ -92,7 +95,7 @@ class Local_Worker(Worker):
                     if len(self.agent.memory) > self.env.batch_size:
                         self.env.lst_loss.append(self.agent.expReplay(self.env.batch_size))
                         self.sig_batch.emit()
-                    if t % 1000 == 0 and t > 0 : # Save model all 1000 data
+                    if t % 1000 == 0 and t > 0 : # Save model all 1000 step
                         self.agent._save_model()
                         if "DDQN" == self.env.model_name or "DDRQN" == self.env.model_name or "DDPG" == self.env.model_name:
                             self.agent.update_target_model()
