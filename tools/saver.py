@@ -72,23 +72,19 @@ class Saver:
         self.check_log_dir(log_path)
 
     def load_conf(self):
-        if os.path.exists(self.conf_file_path) is False:
+        if not os.path.exists(self.conf_file_path):
             #self._add("Creating configuration file")
-            self.conf_file = open(self.conf_file_path, 'a')
-        else:
-            #self._add("Loading configuration file")
-            self.conf_file = open(self.conf_file_path, 'r+')
+            open(self.conf_file_path, 'a').close()
+        #self._add("Loading configuration file")
+        self.conf_file = open(self.conf_file_path, 'r')
 
     def _load(self):
         self._add("Loading logs file")
         self.log_file = open(self.log_file_path, 'a')
 
-        if os.path.exists(self.model_conf_file_path) is False:
-            self._add("Creating model configuration file")
-            self.model_conf_file = open(self.model_conf_file_path, 'a')
-        else:
-            self._add("Loading model configuration file")
-            self.model_conf_file = open(self.model_conf_file_path, 'r+')
+        self._add("Creating model configuration file")
+        print (self.model_conf_file_path)
+        open(self.model_conf_file_path, 'a').close()
 
     def save_logs(self, logs):
         self.log_file.write(logs)
@@ -96,13 +92,14 @@ class Saver:
         self.log_file = open(self.log_file_path, 'a')
 
     def save_conf(self, conf):
+        self.conf_file = open(self.conf_file_path, 'w')
         self.conf_file.write(conf)
         self.conf_file.close()
 
     def save_model_conf(self, conf):
+        self.model_conf_file = open(self.model_conf_file_path, 'w')
         self.model_conf_file.write(conf)
         self.model_conf_file.close()
-        self.model_conf_file = open(self.model_conf_file_path, 'r+')
 
     def _save(self, conf=None, logs=None, model_conf=None):
         if conf:
