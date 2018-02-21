@@ -83,7 +83,6 @@ class Saver:
         self.log_file = open(self.log_file_path, 'a')
 
         self._add("Creating model configuration file")
-        print (self.model_conf_file_path)
         open(self.model_conf_file_path, 'a').close()
 
     def save_logs(self, logs):
