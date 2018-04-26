@@ -83,6 +83,7 @@ class Local_Worker(Worker):
                     #self.env.reward -= 1000
 
                 self.update_env() # Updating env from agent for GUI
+                self.env.chart_preprocessing(self.data[t])
                 self.sig_step.emit() # Update GUI
                 self.agent.memory.append((state,
                                           self.action,

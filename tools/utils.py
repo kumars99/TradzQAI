@@ -69,7 +69,7 @@ def open_tick(path):#, name, date):
     #tick = tick.join(indics.build_indicators(tick['BID']))
     #path = path.replace(name, date+".csv")
     #tick.to_csv(path, sep = ';', mode = 'w')
-    
+
     return tick
 
 def build_10s(path):
@@ -245,11 +245,11 @@ def getStockDataVec(key):
         vec = []
         full = []
         path = "data/" + key + ".csv"
-        lines = open(path, "r").read().splitlines()
+        #lines = open(path, "r").read().splitlines()
         #names = ['ID', 'Time', 'Open', 'High', 'Low', 'Close', 'RSI', 'Volatility']
         names = ['Time', 'Open', 'High', 'Low', 'Close', '']
         #names = ['ID', 'Close', 'RSI', 'MACD', 'Volatility', 'EMA20', 'EMA50', 'EMA100']
-        #names = ['ID', 'Time', 'BID', 'ASK', 'RSI']
+        #names = ['Time', 'BID', 'ASK', 'VOL']
         row = pd.read_csv(path, names=names, header=0, sep=';')#, names = names)
         '''
         for line in lines[1:]:
@@ -257,10 +257,12 @@ def getStockDataVec(key):
         '''
 
         time = row['Time'].copy(deep=True)
+        vec = row['Close'].copy(deep=True)
         row.drop(row.columns[[0, 1, 2, 3, 5]], axis = 1, inplace = True)
-        for l in range(len(row['Close'])):
-            vec.append(row['Close'].iloc[l])
         '''
+        for l in range(len(row['ASK'])):
+            vec.append(row['ASK'].iloc[l])
+
         row['EMA20'] /= 10000
         row['EMA50'] /= 10000
         row['EMA100'] /= 10000

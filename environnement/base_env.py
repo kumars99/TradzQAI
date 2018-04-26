@@ -20,7 +20,7 @@ class Environnement:
         self.version = "v0.2"
         self.v_state = "Alpha"
         self._platform = sys.platform
-        self.agents = ['DQN', 'DDQN', 'DRQN', 'DDRQN', 'DDPG', 'EIIE']
+        self.agents = self.src_agents()
 
         # Agent settings
 
@@ -83,7 +83,7 @@ class Environnement:
         self.inventory = None
         self.act = ""
 
-        # DQN env helper
+        # Worker env helper
 
         self.data = None
         self.buy_price = 0
@@ -103,21 +103,16 @@ class Environnement:
         self.cdatai = 0
         self.cepisode = 0
 
-        # Orders
-
-        self.win = 0
-        self.loose = 0
-        self.draw = 0
-
-        self.daily_win = 0
-        self.daily_loose = 0
-
         # Time
 
         self.start_t = 0
         self.loop_t = 0
 
         # date
+
+        self.date = None
+
+        self.tot_minute = 1
 
         self.day = 1
         self.tot_day = 1
@@ -133,6 +128,13 @@ class Environnement:
         self.mod_ordr = False
         self.day_changed = False
         self.new_episode = False
+
+        self.win = 0
+        self.loose = 0
+        self.draw = 0
+
+        self.daily_win = 0
+        self.daily_loose = 0
 
         # List for graph building
 
@@ -173,6 +175,15 @@ class Environnement:
         self.h_lst_loose_order = []
         self.h_lst_draw_order = []
         self.h_lst_capital = []
+
+        # Gui helper
+
+        self.time = None
+        self.lst_data_full = deque(maxlen=200)
+        self.lst_data_preprocessed = []
+        self.offset = 0
+
+        # Managment
 
         self.logger = None
         self.readed = None
@@ -216,6 +227,7 @@ class Environnement:
                 self.spread = float((line.split(":")[1]).replace(" ", ""))
             if "Capital" in line:
                 self.capital = int((line.split(":")[1]).replace(" ", ""))
+                self.scapital = self.capital
             if "Exposure" in line:
                 self.exposure = float((line.split(":")[1]).replace(" ", ""))
             if "Max pip loss" in line:
@@ -227,6 +239,14 @@ class Environnement:
     def init_logger(self):
         self.logger.init_saver(self)
         self.logger._load()
+
+    def src_agents(self):
+        ignore = ['agent.py', '__init__.py', '__pycache__']
+        valid = []
+        for f in os.listdir("agents"):
+            if f not in ignore:
+                valid.append(f.replace(".py", ""))
+        return valid
 
     def manage_h_lst(self):
         self.h_lst_loss.append(np.average(self.lst_loss))
@@ -343,12 +363,18 @@ class Environnement:
     def check_dates(self):
         for r in range(len(self.date)):
             self.date[r] = (self.date[r].replace(" ", ""))[:12]
+            if r > 0 and self.date[r - 1][11] != self.date[r][11]:
+                self.tot_minute += 1
             if r > 0 and self.date[r - 1][7] != self.date[r][7]:
                 self.tot_day += 1
             if r > 0 and self.date[r - 1][5] != self.date[r][5]:
                 self.tot_month += 1
             if r > 0 and self.date[r - 1][3] != self.date[r][3]:
                 self.tot_year += 1
+        if self.tot_minute != len(self.date):
+            self.time = "Tick"
+        else:
+            self.time = "1M"
 
     def manage_date(self):
         self.day_changed = False
@@ -369,3 +395,65 @@ class Environnement:
             return 1
         else:
             return 0
+
+    def chart_preprocessing(self, data):
+
+        if self.cdatai == 0:
+            self.lst_data_preprocessed = [data, data, data, data]
+            self.lst_data_full.append((0,
+                                       self.lst_data_preprocessed[0], #open
+                                       self.lst_data_preprocessed[1], #close
+                                       self.lst_data_preprocessed[2], #min
+                                       self.lst_data_preprocessed[3], #high
+                                       self.lst_act[len(self.lst_act) - 1]))
+
+        #toutes les 5 ou 1 M ajouter nouvelle entrer dans la liste
+        #modifier la liste dans cet interval
+        if self.time == "Tick":
+            #Passage en 1M
+            if self.cdatai > 0 and self.date[self.cdatai - 1][11] != self.date[self.cdatai][11]:
+                self.lst_data_preprocessed = [data, data, data, data]
+                self.lst_data_full.append((int(self.cdatai - self.offset),
+                                           self.lst_data_preprocessed[0], #open
+                                           self.lst_data_preprocessed[1], #close
+                                           self.lst_data_preprocessed[2], #min
+                                           self.lst_data_preprocessed[3], #high
+                                           self.lst_act[len(self.lst_act) - 1]))
+            else:
+                if self.cdatai > 0:
+                    self.offset += 1
+                if self.lst_data_preprocessed[2] > data:
+                    self.lst_data_preprocessed[2] = data
+                if self.lst_data_preprocessed[3] < data:
+                    self.lst_data_preprocessed[3] = data
+                self.lst_data_preprocessed[1] = data
+                self.lst_data_full[len(self.lst_data_full) - 1] = (int(self.cdatai - self.offset),
+                                           self.lst_data_preprocessed[0], #open
+                                           self.lst_data_preprocessed[1], #close
+                                           self.lst_data_preprocessed[2], #min
+                                           self.lst_data_preprocessed[3], #high
+                                           self.lst_act[len(self.lst_act) - 1])
+        elif self.time == "1M":
+            #Passage en 5M
+            if self.cdatai > 0 and self.date[self.cdatai][9] != self.date[self.cdatai - 1][9]:#"0": #or self.date[self.cdatai][11] == "5":
+                self.lst_data_preprocessed = [data, data, data, data]
+                self.lst_data_full.append((int(self.cdatai - self.offset),
+                                           self.lst_data_preprocessed[0], #open
+                                           self.lst_data_preprocessed[1], #close
+                                           self.lst_data_preprocessed[2], #min
+                                           self.lst_data_preprocessed[3], #high
+                                           self.lst_act[len(self.lst_act) - 1]))
+            else:
+                if self.cdatai > 0:
+                    self.offset += 1
+                if self.lst_data_preprocessed[2] > data:
+                    self.lst_data_preprocessed[2] = data
+                if self.lst_data_preprocessed[3] < data:
+                    self.lst_data_preprocessed[3] = data
+                self.lst_data_preprocessed[1] = data
+                self.lst_data_full[len(self.lst_data_full) - 1] = (int(self.cdatai - self.offset),
+                                           self.lst_data_preprocessed[0], #open
+                                           self.lst_data_preprocessed[1], #close
+                                           self.lst_data_preprocessed[2], #min
+                                           self.lst_data_preprocessed[3], #high
+                                           self.lst_act[len(self.lst_act) - 1])

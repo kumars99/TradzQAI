@@ -2,6 +2,7 @@ from core import Local_Worker as Worker
 from environnement import Environnement
 from .overview_window import OverviewWindow
 from .model_window import ModelWindow
+from .wallet_window import WalletWindow
 from tools import *
 
 import os
@@ -577,11 +578,10 @@ class Start_Window(QWidget):
 
 
         self.main_tab = QTabWidget()
-
         self.overview = OverviewWindow(self.main_tab, env)
         self.model = ModelWindow(self.main_tab, env)
         self.settings = QWidget()
-        self.wallet = QWidget()
+        self.wallet = WalletWindow(self.main_tab, env)
         self.logs = QWidget()
 
         self.main_tab.addTab(self.overview, 'OverView')
@@ -607,6 +607,7 @@ class Start_Window(QWidget):
         self.overview.ordr = env.manage_orders(self.overview.ordr)
         self.overview.Update_Overview(env)
         self.model.update_step(env)
+        self.wallet.Update_chart(env)
 
     def batch_up(self):
         self.model.update_batch(env)
