@@ -240,6 +240,7 @@ class Environnement:
                 self.max_pip_drawdown = int((line.split(":")[1]).replace(" ", ""))
             if "Max pos" in line:
                 self.max_pos = int((line.split(":")[1]).replace(" ", ""))
+        self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.logger.conf_file.close()
 
     def init_logger(self):

@@ -111,8 +111,10 @@ class Saver:
             self.model_summary_file = open(self.model_summary_file_path, 'w')
 
     def save_training_data(self, _in, out):
-        self.training_in_data_file.write(str(_in))
-        self.training_out_data_file.write(str(out))
+        for v in _in:
+            self.training_in_data_file.write(str(v) + "\n")
+        for i in out:
+            self.training_out_data_file.write(str(i) + "\n")
         self.training_in_data_file.close()
         self.training_out_data_file.close()
         self.training_in_data_file = open(self.training_data_path + "/" + self.training_in_data_file_name, 'a')
