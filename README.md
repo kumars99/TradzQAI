@@ -24,9 +24,9 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
   - PyQt5
   - [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph)
   ```
-  pip install -r requierements.txt
+  pip install -r requirements.txt
   or
-  pip install --upgrade -r requierements.txt
+  pip install --upgrade -r requirements.txt
   ```
 
 - Running the project
