@@ -23,29 +23,32 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
   - Numpy
   - PyQt5
   - [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph)
-  
+
 - Running the project
   ```
-  py run.py
+  Usage:
+    python run.py -h (Show usage)
+    python run.py -g=1 (Display interface)
+    python run.py (Run without interface)
   ```
-  
+
 - Building indicators
-    
+
     It build : RSI, MACD, VOLATILITY, EMA20, EMA50, EMA100
 
   - In [build.py](https://github.com/kkuette/TradzQAI/blob/master/build.py)
-  
+
     change :   ```row_path = "../dataset/DAX30/1M", new_path = "./data/DAX30_full_wi.csv```
-             
+
     To :     ```row_path = "your_dataset_directory_path", new_path = "your_file_path.csv" ```
-           
+
     and run : ```py build.py```
- 
+
 ## Relevant project
   - [TradingBrain](https://github.com/Prediction-Machines/Trading-Brain)
   - [Keras-rl](https://github.com/matthiasplappert/keras-rl)
   - [q-trader](https://github.com/edwardhdlu/q-trader)
- 
+
 ## References
   - [DQN](https://arxiv.org/abs/1312.5602)
   - [DRQN](https://arxiv.org/abs/1507.06527)

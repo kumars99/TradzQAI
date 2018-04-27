@@ -26,7 +26,7 @@ class Environnement:
         # Agent settings
 
         self.model = None
-        self.model_name = "DQN"
+        self.model_name = "DRQN"
         self.mode = ""
 
         ## Hyperparameters

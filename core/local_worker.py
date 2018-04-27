@@ -21,7 +21,12 @@ class Local_Worker(Worker):
     def run(self):
         self.init_agent()
 
-        for e in tqdm(range(self.env.episode_count + 1)):
+        if self.env.gui == 0:
+            ep = tqdm(range(self.env.episode_count + 1))
+        else:
+            ep = range(self.env.episode_count + 1)
+
+        for e in ep:
             self.env.cepisode = e + 1
             self.env.start_t = time.time()
 
@@ -35,8 +40,12 @@ class Local_Worker(Worker):
             state = getState(self.raw,
                              0,
                              self.env.window_size + 1)
+            if self.env.gui == 0:
+                dat = tqdm(range(self.env.data))
+            else:
+                dat = range(self.env.data)
 
-            for t in tqdm(range(self.env.data)):
+            for t in dat:
                 if self.env.pause == 1:
                     while (self.env.pause == 1):
                         time.sleep(0.01)
