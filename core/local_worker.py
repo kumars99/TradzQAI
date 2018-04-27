@@ -8,16 +8,20 @@ import time
 
 import pandas as pd
 
+from tqdm import tqdm
+
 class Local_Worker(Worker):
 
     def __init__(self, env):
         self.env = env
+        if self.env.gui == 0:
+            self.env.init_logger()
         Worker.__init__(self, env)
 
     def run(self):
         self.init_agent()
 
-        for e in range(self.env.episode_count + 1):
+        for e in tqdm(range(self.env.episode_count + 1)):
             self.env.cepisode = e + 1
             self.env.start_t = time.time()
 
@@ -32,7 +36,7 @@ class Local_Worker(Worker):
                              0,
                              self.env.window_size + 1)
 
-            for t in range(self.env.data):
+            for t in tqdm(range(self.env.data)):
                 if self.env.pause == 1:
                     while (self.env.pause == 1):
                         time.sleep(0.01)
@@ -70,9 +74,18 @@ class Local_Worker(Worker):
                     self.inventory_managment()
 
                 self.env.inventory = self.agent.inventory
+                self.env.daily_profit += self.env.profit
+                self.env.train_in.append(state)
+                self.env.train_out.append(act_processing(self.env.lst_act[len(self.env.lst_act) - 1]))
 
                 if self.env.manage_date() == 1:
                     #self.env.reward += ((self.env.daily_win - self.env.daily_loose) * 10)
+                    if self.env.daily_profit > 0:
+                        self.env.logger.save_training_data(self.env.train_in,
+                                                           self.env.train_out)
+                    self.daily_profit = 0
+                    self.env.train_in = []
+                    self.env.train_out = []
                     self.env.daily_win = 0
                     self.env.daily_loose = 0
 

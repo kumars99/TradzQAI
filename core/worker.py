@@ -48,6 +48,8 @@ class Worker(QThread):
 
         self.agent.mode = self.env.mode
         self.agent.build_model()
+        if self.env.logger.model_summary_file:
+            self.env.logger.save_model_summary(self.agent.model)
 
     def update_env(self):
         self.env.lst_reward.append(self.env.tot_reward)

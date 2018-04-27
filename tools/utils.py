@@ -250,14 +250,16 @@ def getStockDataVec(key):
         names = ['Time', 'Open', 'High', 'Low', 'Close', '']
         #names = ['ID', 'Close', 'RSI', 'MACD', 'Volatility', 'EMA20', 'EMA50', 'EMA100']
         #names = ['Time', 'BID', 'ASK', 'VOL']
+        #names = ['Time', 'Price', 'Volume']
         row = pd.read_csv(path, names=names, header=0, sep=';')#, names = names)
         '''
         for line in lines[1:]:
             vec.append(float(line.split(";")[4]))
-        '''
 
+        '''
         time = row['Time'].copy(deep=True)
         vec = row['Close'].copy(deep=True)
+
         row.drop(row.columns[[0, 1, 2, 3, 5]], axis = 1, inplace = True)
         '''
         for l in range(len(row['ASK'])):
@@ -297,3 +299,11 @@ def getState(data, t, n):
         for i in range(n - 1):
             res.append(sigmoid(block[i + 1][0] - block[i][0]))#), block[i + 1][1], block[i + 1][2]])
         return np.array(res)
+
+def act_processing(act):
+    if act > 0:
+        return ([1, 0, 0])
+    elif act < 0:
+        return ([0, 1, 0])
+    else:
+        return ([0, 0, 1])

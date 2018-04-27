@@ -86,7 +86,6 @@ class Agent:
                 self.epsilon *= self.epsilon_decay
         return np.average(loss)
 
-
     def _save_model(self):
         if self.env.logger.model_file_name == "":
             self.env.logger.model_file_name = self.name + "_" + self.env.stock_name + ".h5"

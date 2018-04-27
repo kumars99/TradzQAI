@@ -21,6 +21,7 @@ class Environnement:
         self.v_state = "Alpha"
         self._platform = sys.platform
         self.agents = self.src_agents()
+        self.gui = 1
 
         # Agent settings
 
@@ -75,10 +76,13 @@ class Environnement:
 
         # Agent state
 
+        self.profit = 0
+        self.daily_profit = 0
         self.total_profit = 0
+
         self.reward = 0
         self.tot_reward = 0
-        self.profit = 0
+
         self.pause = 0
         self.inventory = None
         self.act = ""
@@ -176,10 +180,15 @@ class Environnement:
         self.h_lst_draw_order = []
         self.h_lst_capital = []
 
+        # Training datasets
+
+        self.train_in = []
+        self.train_out = []
+
         # Gui helper
 
         self.time = None
-        self.lst_data_full = deque(maxlen=200)
+        self.lst_data_full = deque(maxlen=100)
         self.lst_data_preprocessed = []
         self.offset = 0
 
@@ -189,9 +198,6 @@ class Environnement:
         self.readed = None
 
         self._load_conf()
-
-    # TODO : conf file managment
-    #        logs managment
 
     def _load_conf(self):
         self.logger = Logger()
@@ -266,6 +272,7 @@ class Environnement:
         self.day = 1
         self.month = 1
         self.year = 1
+        self.lst_data_full = deque(maxlen=100)
 
         self.new_episode = True
 
@@ -362,7 +369,8 @@ class Environnement:
 
     def check_dates(self):
         for r in range(len(self.date)):
-            self.date[r] = (self.date[r].replace(" ", ""))[:12]
+            if " " in self.date[r]:
+                self.date[r] = (self.date[r].replace(" ", ""))[:12]
             if r > 0 and self.date[r - 1][11] != self.date[r][11]:
                 self.tot_minute += 1
             if r > 0 and self.date[r - 1][7] != self.date[r][7]:
@@ -397,7 +405,6 @@ class Environnement:
             return 0
 
     def chart_preprocessing(self, data):
-
         if self.cdatai == 0:
             self.lst_data_preprocessed = [data, data, data, data]
             self.lst_data_full.append((0,
@@ -435,7 +442,7 @@ class Environnement:
                                            self.lst_act[len(self.lst_act) - 1])
         elif self.time == "1M":
             #Passage en 5M
-            if self.cdatai > 0 and self.date[self.cdatai][9] != self.date[self.cdatai - 1][9]:#"0": #or self.date[self.cdatai][11] == "5":
+            if self.date[self.cdatai][9] == "0" or self.date[self.cdatai][11] == "5":
                 self.lst_data_preprocessed = [data, data, data, data]
                 self.lst_data_full.append((int(self.cdatai - self.offset),
                                            self.lst_data_preprocessed[0], #open

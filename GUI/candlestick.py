@@ -22,10 +22,10 @@ class CandlestickItem(pg.GraphicsObject):
             p.drawLine(QtCore.QPointF(t, min), QtCore.QPointF(t, max))
             if action > 0:
                 p.setBrush(pg.mkBrush('g'))
-                p.drawPolygon(self.createPoly(3, 0.4, 90, t, min - 15, action))
+                p.drawPolygon(self.createPoly(3, 0.4, 90, t, min - 10, action))
             elif action < 0:
                 p.setBrush(pg.mkBrush('r'))
-                p.drawPolygon(self.createPoly(3, 0.4, -90, t, max + 15, action))
+                p.drawPolygon(self.createPoly(3, 0.4, -90, t, max + 10, action))
             if open > close:
                 p.setBrush(pg.mkBrush('r'))
             else:
@@ -51,9 +51,9 @@ class CandlestickItem(pg.GraphicsObject):
             x = r*math.cos(math.radians(t))
             if i == 0:
                 if act > 0:
-                    polygon.append(QtCore.QPointF(xx +x, 10 + (yy + y)))
+                    polygon.append(QtCore.QPointF(xx +x, 2 + (yy + y)))
                 elif act < 0:
-                    polygon.append(QtCore.QPointF(xx +x, (yy + y) - 10))
+                    polygon.append(QtCore.QPointF(xx +x, (yy + y) - 2))
             else:
                 polygon.append(QtCore.QPointF(xx +x, yy + y))
 
