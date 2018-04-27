@@ -23,6 +23,11 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
   - Numpy
   - PyQt5
   - [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph)
+  ```
+  pip install -r requierements.txt
+  or
+  pip install --upgrade -r requierements.txt
+  ```
 
 - Running the project
   ```
