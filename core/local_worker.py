@@ -107,7 +107,7 @@ class Local_Worker(Worker):
                 self.update_env() # Updating env from agent for GUI
                 self.env.chart_preprocessing(self.data[t])
                 self.sig_step.emit() # Update GUI
-                self.agent.memory.append((state,
+                self.agent._memory.append((state,
                                           self.action,
                                           self.env.reward,
                                           next_state,
@@ -115,16 +115,21 @@ class Local_Worker(Worker):
                 state = next_state
 
                 if "train" in self.env.mode:
-                    if len(self.agent.memory) > self.env.batch_size:
-                        self.env.lst_loss.append(self.agent.expReplay(self.env.batch_size))
+                    self.agent.expReplay(self.env.reward, done)
+                    if len(self.agent._memory) > self.env.batch_size:
+                        #self.agent.expReplay(self.env.reward, done)
+                        #self.env.lst_loss.append(self.agent.expReplay(self.env.batch_size))
                         self.sig_batch.emit()
-                    if t % 1000 == 0 and t > 0 : # Save model all 1000 step
+                    if t % (self.env.data / 10) == 0 and t > 0 : # Save model all 1000 step
                         self.agent._save_model()
                         if "DDQN" == self.env.model_name or "DDRQN" == self.env.model_name or "DDPG" == self.env.model_name:
                             self.agent.update_target_model()
                 else:
-                    time.sleep(0.01)
+                    if self.env.gui == 1:
+                        time.sleep(0.05)
                 self.env.loop_t = time.time() - tmp
+                if self.env.gui == 1:
+                    time.sleep(0.05)
 
 
             self.env.manage_h_lst()

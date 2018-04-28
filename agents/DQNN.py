@@ -1,9 +1,9 @@
-from tensorforce.agents import DDPGAgent
+from tensorforce.agents import DQNNstepAgent
 
 from collections import deque
 import pandas as pd
 
-class DDPG(DDPGAgent):
+class DQNN(DQNNstepAgent):
 
     def __init__(self, state_size, env=None, is_eval=False):
         self.state_size = state_size
@@ -19,11 +19,10 @@ class DDPG(DDPGAgent):
         self.up = dict(batch_size = self.env.batch_size,
                        frequency = self.env.batch_size)
 
-        DDPGAgent.__init__(self,
+        DQNNstepAgent.__init__(self,
                            states=dict(type='float', shape=self.state_size.shape),
                            actions=dict(type='int', num_actions=self.action_size),
                            network=self.get_network(),
-                           critic_network=self.get_network(),
                            update_mode=self.up,
                            batching_capacity=self.memory_size,
                            learning_rate=self.learning_rate,

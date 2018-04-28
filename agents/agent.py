@@ -28,7 +28,7 @@ class Agent:
 
         self.env = env
 
-    def act(self, state):
+    def _act(self, state):
         if not self.is_eval and np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
 

@@ -252,6 +252,7 @@ def getStockDataVec(key):
         #names = ['Time', 'BID', 'ASK', 'VOL']
         #names = ['Time', 'Price', 'Volume']
         row = pd.read_csv(path, names=names, header=0, sep=';')#, names = names)
+
         '''
         for line in lines[1:]:
             vec.append(float(line.split(";")[4]))
@@ -260,7 +261,9 @@ def getStockDataVec(key):
         time = row['Time'].copy(deep=True)
         vec = row['Close'].copy(deep=True)
 
+        #row.drop(row.columns[[0, 1, 3]], axis = 1, inplace = True)
         row.drop(row.columns[[0, 1, 2, 3, 5]], axis = 1, inplace = True)
+
         '''
         for l in range(len(row['ASK'])):
             vec.append(row['ASK'].iloc[l])

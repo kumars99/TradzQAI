@@ -32,6 +32,8 @@ class Saver:
         self.model_summary_file_path = ""
         self.training_data_path = "training_data/"
 
+        self.model_direct = ""
+
     def check_save_dir(self):
         self._add("Checking save directory")
         if os.path.exists(self.root_path) is False:
@@ -40,6 +42,7 @@ class Saver:
     def check_model_dir(self, model_name):
         self._add("Checking model directory")
         self.path = self.root_path + model_name + "/"
+        self.model_direct = self.root_path + model_name
         if os.path.exists(self.path) is False:
             os.mkdir(self.path)
         else:
@@ -71,7 +74,7 @@ class Saver:
         self._add("Checking model files")
         cdir = os.listdir(self.path)
         for d in cdir:
-            if model_name in d:
+            if model_name in d and "_summary" not in d:
                 return d
         return ""
 

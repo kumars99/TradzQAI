@@ -48,8 +48,10 @@ class Worker(QThread):
 
         self.agent.mode = self.env.mode
         self.agent.build_model()
+        '''
         if self.env.logger.model_summary_file:
             self.env.logger.save_model_summary(self.agent.model)
+        '''
 
     def update_env(self):
         self.env.lst_reward.append(self.env.tot_reward)
@@ -117,7 +119,7 @@ class Worker(QThread):
             POS_BUY = self.src_buy(self.agent.inventory['POS']) # Check if BUY order in inventory
             self.env.POS_BUY = POS_BUY # Put check in env
 
-            if POS_BUY == -1 and POS < self.env.cmax_pos:# No BUY order in inventory
+            if POS_BUY == -1 and POS < self.env.cmax_pos and self.env.allow_short is True:# No BUY order in inventory
                 sell = ((pd.DataFrame([self.env.sell_price], columns = [self.columns[0]])).join(pd.DataFrame(["SELL"], columns = [self.columns[1]]))).join(pd.DataFrame([self.env.max_order_size], columns = [self.columns[2]]))
                 self.agent.inventory = self.agent.inventory.append(sell, ignore_index=True)
 

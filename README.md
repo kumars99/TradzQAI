@@ -19,9 +19,12 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
 
 - Dependencies :
   - [Keras](https://github.com/keras-team/keras) (with [Tensorflow](https://github.com/tensorflow/tensorflow) backend)
+  - [Tensorforce](https://github.com/reinforceio/tensorforce)
   - Pandas
   - Numpy
   - PyQt5
+  - tqdm
+  - h5py
   - [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph)
   ```
   pip install -r requirements.txt
@@ -60,4 +63,4 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
   - [DDQN](https://arxiv.org/abs/1509.06461)
   - [DDPG](https://arxiv.org/abs/1509.02971)
   - [EIIE](https://arxiv.org/abs/1706.10059) [Official code for paper](https://github.com/ZhengyaoJiang/PGPortfolio)
-  - https://keon.io/deep-q-learning/
+  - [Keon](https://keon.io/deep-q-learning/)

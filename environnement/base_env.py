@@ -26,7 +26,7 @@ class Environnement:
         # Agent settings
 
         self.model = None
-        self.model_name = "DRQN"
+        self.model_name = "TRPO"
         self.mode = ""
 
         ## Hyperparameters
@@ -43,11 +43,12 @@ class Environnement:
         self.stock_name = "DAX30_1M_2017_11"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 100
-        self.window_size = 20
-        self.batch_size = 32
+        self.window_size = 50
+        self.batch_size = 64
 
         # Contract settings
 
+        self.allow_short = True
         self.spread = 1
         self.pip_value = 5
         self.contract_price = 125
@@ -443,7 +444,7 @@ class Environnement:
                                            self.lst_act[len(self.lst_act) - 1])
         elif self.time == "1M":
             #Passage en 5M
-            if self.date[self.cdatai][9] == "0" or self.date[self.cdatai][11] == "5":
+            if self.date[self.cdatai][11] == "0" or self.date[self.cdatai][11] == "5":
                 self.lst_data_preprocessed = [data, data, data, data]
                 self.lst_data_full.append((int(self.cdatai - self.offset),
                                            self.lst_data_preprocessed[0], #open

@@ -1,9 +1,9 @@
-from tensorforce.agents import DDPGAgent
+from tensorforce.agents import TRPOAgent
 
 from collections import deque
 import pandas as pd
 
-class DDPG(DDPGAgent):
+class TRPO(TRPOAgent):
 
     def __init__(self, state_size, env=None, is_eval=False):
         self.state_size = state_size
@@ -16,15 +16,14 @@ class DDPG(DDPGAgent):
         self.gamma = env.gamma
         self.env = env
 
-        self.up = dict(batch_size = self.env.batch_size,
+        self._update_mode = dict(batch_size = self.env.batch_size,
                        frequency = self.env.batch_size)
 
-        DDPGAgent.__init__(self,
+        TRPOAgent.__init__(self,
                            states=dict(type='float', shape=self.state_size.shape),
                            actions=dict(type='int', num_actions=self.action_size),
                            network=self.get_network(),
-                           critic_network=self.get_network(),
-                           update_mode=self.up,
+                           update_mode=self._update_mode,
                            batching_capacity=self.memory_size,
                            learning_rate=self.learning_rate,
                            discount=self.gamma)
@@ -38,8 +37,10 @@ class DDPG(DDPGAgent):
         self.observe(reward=reward, terminal=terminal)
 
     def get_network(self):
-        network = [dict(type='dense', size=64),
-                   dict(type='dense', size=64)]
+        network = [dict(type='dense', size=256, activation='relu'),
+                   dict(type='dense', size=128, activation='relu'),
+                   dict(type='dense', size=32, activation='relu'),
+                   dict(type='dense', size=8, activation='relu')]
         return network
 
     def get_optimizer(self):
@@ -50,6 +51,8 @@ class DDPG(DDPGAgent):
         if self.env.logger.model_file_name == "":
             self.env.logger.model_file_name = self.env.model_name + "_" + self.env.stock_name
             self.env.logger.model_file_path += self.env.logger.model_file_name
+        else:
+            self.env.logger.model_file_path = self.env.logger.model_file_path[:24]
         self.save_model(directory=self.env.logger.model_file_path, append_timestep=True)
 
     def _load_model(self):
