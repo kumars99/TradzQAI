@@ -10,8 +10,6 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
 ## Status
 
     Alpha in development
-        Working agent : DQN, DDQN, DRQN, DDRQN
-        Not working agent : EIIE, DDPG
 
 ## Getting Started
 
