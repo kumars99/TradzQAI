@@ -33,8 +33,13 @@ class DQNN(DQNNstepAgent):
     def build_model(self):
         pass
 
-    def expReplay(self, reward, terminal):
-        self.observe(reward=reward, terminal=terminal)
+    def expReplay(self):
+        mini_batch = []
+        l = len(self._memory)
+        for i in range(l - self.env.batch_size + 1, l):
+            mini_batch.append(self._memory[i])
+        for state, action, reward, next_state, done in mini_batch:
+            self.atomic_observe(state, action, next_state, reward, done)
 
     def get_network(self):
         network = [dict(type='dense', size=64),

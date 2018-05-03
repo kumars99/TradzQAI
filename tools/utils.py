@@ -4,6 +4,9 @@ import pandas as pd
 import time
 import os
 import math
+from tqdm import tqdm
+import subprocess
+
 
 from tools.indicators import indicators
 
@@ -237,32 +240,38 @@ def get_data():
 def formatPrice(n):
         return "{0:.2f}".format(n) + " €"
 
-def EformatPrice(n):
-        return "{0:.2f}".format(n) + " ISK"
-
 # returns the vector containing stock data from a fixed file
 def getStockDataVec(key):
         vec = []
         full = []
         path = "data/" + key + ".csv"
+        row = None
+        chunksize = 10000
+        nlines = subprocess.check_output('wc -l %s' % path, shell=True)
+        nlines = int(nlines.split()[0])
+        chunksize = nlines // 10
         #lines = open(path, "r").read().splitlines()
         #names = ['ID', 'Time', 'Open', 'High', 'Low', 'Close', 'RSI', 'Volatility']
-        names = ['Time', 'Open', 'High', 'Low', 'Close', '']
+        #names = ['Time', 'Open', 'High', 'Low', 'Close', '']
         #names = ['ID', 'Close', 'RSI', 'MACD', 'Volatility', 'EMA20', 'EMA50', 'EMA100']
         #names = ['Time', 'BID', 'ASK', 'VOL']
-        #names = ['Time', 'Price', 'Volume']
-        row = pd.read_csv(path, names=names, header=0, sep=';')#, names = names)
-
+        names = ['Time', 'Price', 'Volume']
+        for i in tqdm(range(0, nlines, chunksize), desc="Loading data "):
+            df = pd.read_csv(path, header=None, sep=',', nrows=chunksize, skiprows=i)#, names = names)
+            df.columns = names
+            if row is not None:
+                row = row.append(df, ignore_index = True)
+            else:
+                row = df.copy(deep=True)
         '''
         for line in lines[1:]:
             vec.append(float(line.split(";")[4]))
-
         '''
         time = row['Time'].copy(deep=True)
-        vec = row['Close'].copy(deep=True)
+        vec = row['Price'].copy(deep=True)
 
         #row.drop(row.columns[[0, 1, 3]], axis = 1, inplace = True)
-        row.drop(row.columns[[0, 1, 2, 3, 5]], axis = 1, inplace = True)
+        #row.drop(row.columns[[0, 1, 2, 3, 5]], axis = 1, inplace = True)
 
         '''
         for l in range(len(row['ASK'])):
@@ -304,9 +313,9 @@ def getState(data, t, n):
         return np.array(res)
 
 def act_processing(act):
-    if act > 0:
+    if act == 1:
         return ([1, 0, 0])
-    elif act < 0:
+    elif act == 2:
         return ([0, 1, 0])
     else:
         return ([0, 0, 1])

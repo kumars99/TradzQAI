@@ -12,16 +12,33 @@ class Logger(Saver):
 
         self.log_path = "logs/"
 
-        self.logs = deque(maxlen=5000)
-        self.id = 0
-        self.current_index = 0
+
+        self.logs = {}
+        self.id = {}
+        self.current_index = {}
 
         self.conf = ""
-
-        self.logs.append(time.strftime("%Y:%m:%d %H:%M:%S") + \
-                        " " + '{:010d}'.format(self.id) + " " \
+        self.new_logs(self.name)
+        self.logs[self.name].append(time.strftime("%Y:%m:%d %H:%M:%S") + \
+                        " " + '{:010d}'.format(self.id[self.name]) + " " \
                         + str("Starting logs") + "\n")
-        self.id += 1
+        self.id[self.name] += 1
+
+
+
+    def new_logs(self, name):
+        '''
+        name : name as string
+        '''
+        if type(name) is str:
+            self.logs[name] = []
+            self.id[name] = 0
+            self.current_index[name] = 0
+            self.log_file[name] = None
+            if self.files_checked is True:
+                self.load_log(name)
+        else:
+            raise ValueError("name should be a string")
 
     def _save_conf(self, env):
         conf = self.conf
@@ -35,45 +52,46 @@ class Logger(Saver):
         conf += "Model name : "+str(env.model_name) +"\n\n"
 
         conf += "#### Hyperparameters ####" +"\n\n"
-        conf += "Learning rate : " +str(env.learning_rate) +"\n"
+        conf += "Learning rate : " +str(env.hyperparameters['learning_rate']) +"\n"
 
         if env.model_name == "DDQN" or env.model_name == "DDRQN":
-            conf += "Update rate : " +str(env.update_rate) +"\n"
+            conf += "Update rate : " +str(env.hyperparameters['update_rate']) +"\n"
 
-        conf += "Gamma : "+str(env.gamma) +"\n"
-        conf += "Epsilon : "+str(env.epsilon) +"\n\n"
+        conf += "Gamma : "+str(env.hyperparameters['gamma']) +"\n"
+        conf += "Epsilon : "+str(env.hyperparameters['epsilon']) +"\n\n"
 
         conf += "#### Environnement settings ####" +"\n\n"
         conf += "Stock name : "+str(env.stock_name) +"\n"
         conf += "Episode : " +str(env.episode_count) +"\n"
         conf += "Window size : " +str(env.window_size) +"\n"
         conf += "Batch size : " +str(env.batch_size) +"\n"
-        conf += "Contract price : " +str(env.contract_price) +"\n"
-        conf += "Pip value : " +str(env.pip_value) +"\n"
-        conf += "Spread : " +str(env.spread) +"\n\n"
+        conf += "Contract price : " +str(env.contract_settings['contract_price']) +"\n"
+        conf += "Pip value : " +str(env.contract_settings['pip_value']) +"\n"
+        conf += "Spread : " +str(env.contract_settings['spread']) +"\n\n"
 
         conf += "#### Wallet and risk settings ####" +"\n\n"
-        conf += "Capital : " +str(env.capital) +"\n"
-        conf += "Exposure : "+str(env.exposure) +"\n"
-        conf += "Max pip loss : " +str(env.max_pip_drawdown) +"\n"
-        conf += "Max pos : " +str(env.max_pos) +"\n"
+        conf += "Capital : " +str(env.wallet.settings['capital']) +"\n"
+        conf += "Exposure : "+str(env.wallet.risk_managment['exposure']) +"\n"
+        conf += "Max pip loss : " +str(env.wallet.risk_managment['stop_loss']) +"\n"
+        conf += "Max pos : " +str(env.wallet.risk_managment['max_pos']) +"\n"
 
         self._save(conf=conf)
         self._save(model_conf=conf)
 
     def init_saver(self, env):
         self._check(env.model_dir, self.log_path)
-        self._add("Saver initialized")
+        self.load_log(self.name)
+        self._add("Saver initialized", self.name)
 
-    def _add(self, log):
-        self.logs.append(time.strftime("%Y:%m:%d %H:%M:%S") + \
-            " " + '{:010d}'.format(self.id) + " " + str(log) + "\n")
-        if self.log_file != None:
-            if self.current_index < self.id:
-                while self.current_index <= self.id:
-                    self._save(logs=self.logs[self.current_index])
-                    self.current_index += 1
+    def _add(self, log, name):
+        self.logs[name].append(time.strftime("%Y:%m:%d %H:%M:%S") + \
+            " " + '{:010d}'.format(self.id[name]) + " " + str(log) + "\n")
+        if self.log_file[name] != None:
+            if self.current_index[name] < self.id[name]:
+                while self.current_index[name] <= self.id[name]:
+                    self._save(logs=self.logs[name][self.current_index[name]], logs_name=name)
+                    self.current_index[name] += 1
             else:
-                self._save(logs=self.logs[self.id])
-                self.current_index += 1
-        self.id += 1
+                self._save(logs=self.logs[name][self.id[name]], logs_name=name)
+                self.current_index[name] += 1
+        self.id[name] += 1

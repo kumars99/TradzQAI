@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-env = Environnement()
+env = Environnement(1)
 
 h = 950
 w = 550
@@ -294,8 +294,8 @@ class Start_Window(QWidget):
                 if env.mode == "train":
                     if (name in Dname and env.model_name not in names) or (name in names and env.model_name not in Dname):
                         env.model_name = name
-                        self.check_changed_ur(env.update_rate)
-                        self.check_changed_lr(env.learning_rate)
+                        self.check_changed_ur(env.hyperparameters['update_rate'])
+                        self.check_changed_lr(env.hyperparameters['learning_rate'])
                         self.clearLayout(self.msGlayout)
                         self.gbox_ms.layout().removeItem(self.msGlayout)
                         self.gbox_ms.setLayout(self._build_model_settings(env.mode))
@@ -349,26 +349,26 @@ class Start_Window(QWidget):
         self.sbc = QSpinBox()
         self.sbc.setMinimum(5000)
         self.sbc.setMaximum(10000000)
-        self.sbc.setValue(env.capital)
+        self.sbc.setValue(env.wallet.settings['capital'])
 
         lexposure = QLabel('Exposure : ')
         self.sbexposure = QDoubleSpinBox()
         self.sbexposure.setMinimum(1)
         self.sbexposure.setMaximum(100)
         self.sbexposure.setSingleStep(0.1)
-        self.sbexposure.setValue(env.exposure)
+        self.sbexposure.setValue(env.wallet.risk_managment['exposure'])
 
-        lmpd = QLabel('Max pip loss : ')
+        lmpd = QLabel('Stop loss : ')
         self.sbmpd = QSpinBox()
         self.sbmpd.setMinimum(5)
         self.sbmpd.setMaximum(400)
-        self.sbmpd.setValue(env.max_pip_drawdown)
+        self.sbmpd.setValue(env.wallet.risk_managment['stop_loss'])
 
         lmo = QLabel('Max pos : ')
         self.sbmo = QSpinBox()
         self.sbmo.setMinimum(1)
         self.sbmo.setMaximum(1000)
-        self.sbmo.setValue(env.max_pos)
+        self.sbmo.setValue(env.wallet.risk_managment['max_pos'])
 
         Glayout.addWidget(lc, 0, 0)
         Glayout.addWidget(self.sbc, 0, 1)
@@ -398,25 +398,25 @@ class Start_Window(QWidget):
 
         llr = QLabel('Learning rate : ')
         self.lelr = QLineEdit()
-        self.lelr.setText(str(env.learning_rate))
+        self.lelr.setText(str(env.hyperparameters['learning_rate']))
 
         lur = QLabel('Update rate : ')
         self.leur = QLineEdit()
-        self.leur.setText(str(env.update_rate))
+        self.leur.setText(str(env.hyperparameters['update_rate']))
 
         lg = QLabel('Gamma : ')
         self.leg = QDoubleSpinBox()
         self.leg.setMinimum(0.01)
         self.leg.setMaximum(1)
         self.leg.setSingleStep(0.01)
-        self.leg.setValue(env.gamma)
+        self.leg.setValue(env.hyperparameters['gamma'])
 
         le = QLabel('Epsilon : ')
         self.lee = QDoubleSpinBox()
         self.lee.setMinimum(0.01)
         self.lee.setMaximum(1)
         self.lee.setSingleStep(0.01)
-        self.lee.setValue(env.epsilon)
+        self.lee.setValue(env.hyperparameters['epsilon'])
 
         self.msGlayout.addWidget(lmn, 0, 0)
         self.msGlayout.addWidget(self.lemn, 0, 1)
@@ -451,20 +451,20 @@ class Start_Window(QWidget):
         self.sbcp = QSpinBox()
         self.sbcp.setMaximum(1000)
         self.sbcp.setMinimum(1)
-        self.sbcp.setValue(env.contract_price)
+        self.sbcp.setValue(env.contract_settings['contract_price'])
 
         lpv = QLabel('Pip value : ')
         self.sbpv = QSpinBox()
         self.sbpv.setMaximum(1000)
         self.sbpv.setMinimum(1)
-        self.sbpv.setValue(env.pip_value)
+        self.sbpv.setValue(env.contract_settings['pip_value'])
 
         ls = QLabel('Spread : ')
         self.sbs = QDoubleSpinBox()
         self.sbs.setMaximum(10)
         self.sbs.setMinimum(0.01)
         self.sbs.setSingleStep(0.01)
-        self.sbs.setValue(env.spread)
+        self.sbs.setValue(env.contract_settings['spread'])
 
         lec = QLabel('Episodes : ')
         self.sbec = QSpinBox()
@@ -524,20 +524,20 @@ class Start_Window(QWidget):
     def _get_env_var(self):
         env.stock_name = self.lem.text()
         env.model_name = self.lemn.text()
-        env.learning_rate = float(self.lelr.text())
+        env.hyperparameters['learning_rate'] = float(self.lelr.text())
 
-        env.gamma = self.leg.value()
-        env.epsilon = self.lee.value()
+        env.hyperparameters['gamma'] = self.leg.value()
+        env.hyperparameters['epsilon'] = self.lee.value()
         env.episode_count = self.sbec.value()
         env.window_size = self.sbws.value()
-        env.sbbs = self.sbbs.value()
-        env.capital = self.sbc.value()
-        env.exposure = self.sbexposure.value()
-        env.max_pip_drawdown = self.sbmpd.value()
-        env.max_pos = self.sbmo.value()
-        env.pip_value = self.sbpv.value()
-        env.spread = self.sbs.value()
-        env.contract_price = self.sbcp.value()
+        env.batch_size = self.sbbs.value()
+        env.wallet.settings['capital'] = self.sbc.value()
+        env.wallet.risk_managment['exposure'] = self.sbexposure.value()
+        env.wallet.risk_managment['stop_loss'] = self.sbmpd.value()
+        env.wallet.risk_managment['max_pos'] = self.sbmo.value()
+        env.contract_settings['pip_value'] = self.sbpv.value()
+        env.contract_settings['spread'] = self.sbs.value()
+        env.contract_settings['contract_price'] = self.sbcp.value()
 
     def Build_Primary_Window(self):
         self.Hide_Swindow()
@@ -599,8 +599,8 @@ class Start_Window(QWidget):
         self.setLayout(VLayout)
 
     def _end(self):
-        if env.logger.model_conf_file:
-            env.logger._end()
+        #if env.logger.model_conf_file:
+            #env.logger._end()
         quit()
 
     def update(self):
@@ -610,7 +610,8 @@ class Start_Window(QWidget):
         self.wallet.Update_chart(env)
 
     def batch_up(self):
-        self.model.update_batch(env)
+        #self.model.update_batch(env)
+        pass
 
     def episode_up(self):
         self.model.update_episode(env)

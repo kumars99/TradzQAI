@@ -80,11 +80,11 @@ class ModelWindow(QWidget):
         return QW
 
     def update_episode(self, env):
-        self.g_eloss.clear()
+        #self.g_eloss.clear()
         self.g_ereward.clear()
         self.g_eprofit.clear()
 
-        self.g_eloss.plot(env.h_lst_loss)
+        #self.g_eloss.plot(env.h_lst_loss)
         self.g_eprofit.plot(env.h_lst_profit)
         self.g_ereward.plot(env.h_lst_reward)
 

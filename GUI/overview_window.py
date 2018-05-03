@@ -36,10 +36,10 @@ class OverviewWindow(QWidget):
 
         self.lmode = QLabel('Mode : ' + env.mode)
         self.lmodel = QLabel('Model : ' + env.stock_name)
-        self.lmax_order = QLabel('Max pos : ' + str(env.max_pos))
-        self.lcontract_price = QLabel('Contract price : ' + str(env.contract_price))
-        self.lpip_value = QLabel('Pip Value : ' + str(env.pip_value))
-        self.lspread = QLabel('Spread : ' + str(env.spread))
+        self.lmax_order = QLabel('Max pos : ' + str(env.wallet.risk_managment['max_pos']))
+        self.lcontract_price = QLabel('Contract price : ' + str(env.contract_settings['contract_price']))
+        self.lpip_value = QLabel('Pip Value : ' + str(env.contract_settings['pip_value']))
+        self.lspread = QLabel('Spread : ' + str(env.contract_settings['spread']))
 
         VBox.addWidget(self.lmode)
         VBox.addWidget(self.lmodel)
@@ -192,10 +192,10 @@ class OverviewWindow(QWidget):
         GBox = QGroupBox("Wallet")
         VBox = QVBoxLayout()
 
-        self.lcap = QLabel('Capital : ' + formatPrice(env.capital))
-        self.lcgl = QLabel('Current G/L : ' + formatPrice(env.cgl))
-        self.lusable_margin = QLabel('Usable margin : ' + formatPrice(env.usable_margin))
-        self.lused_margin = QLabel('Used margin : ' + formatPrice(env.used_margin))
+        self.lcap = QLabel('Capital : ' + formatPrice(env.wallet.settings['capital']))
+        self.lcgl = QLabel('Current G/L : ' + formatPrice(env.wallet.settings['GL_profit']))
+        self.lusable_margin = QLabel('Usable margin : ' + formatPrice(env.wallet.settings['usable_margin']))
+        self.lused_margin = QLabel('Used margin : ' + formatPrice(env.wallet.settings['used_margin']))
 
         VBox.addWidget(self.lcap)
         VBox.addWidget(self.lcgl)
@@ -270,30 +270,12 @@ class OverviewWindow(QWidget):
         return GBox
 
     def Update_Overview(self, env):
-        #Day mod
-
-        # Daily reset
-
-        if env.day_changed is True:
-            self.dailyp = 0
-            self.daily_reward = 0
-
-        #if int(env.cdatai / (env.data / 20)) == self.dday:
-            #self.dday += 1
 
         # Episode reset
 
         if env.new_episode is True:
-            self.dailyp = 0
-            self.daily_reward = 0
-            self.tot_reward = 0
             self.lt = 0
             env.new_episode = False
-
-        self.daily_reward += env.reward
-        self.tot_reward += env.reward
-        self.dailyp += env.profit
-
 
         #Agent Values
 
@@ -301,9 +283,10 @@ class OverviewWindow(QWidget):
 
         #Inventory
 
-        if not 'Empty inventory' in env.inventory and len(env.inventory['Price']) < 1:
-            env.inventory = 'Empty inventory'
-        self.linventory.setText(str(env.inventory))
+        if len(env.inventory.get_inventory()['Price']) < 1:
+            self.linventory.setText('Empty inventory')
+        else:
+            self.linventory.setText(str(env.inventory.get_inventory()))
 
         #Orders Done
 
@@ -319,40 +302,40 @@ class OverviewWindow(QWidget):
 
         #Orders
 
-        self.lwin.setText("Win : " + str(env.win))
-        self.lloose.setText("Loose : " + str(env.loose))
-        self.ldraw.setText("Draw : " + str(env.draw))
-        self.ltoto.setText("Total : " + str (env.loose + env.win + env.draw))
-        if env.loose == 0:
+        self.lwin.setText("Win : " + str(env.trade['win']))
+        self.lloose.setText("Loose : " + str(env.trade['loss']))
+        self.ldraw.setText("Draw : " + str(env.trade['draw']))
+        self.ltoto.setText("Total : " + str (env.trade['loss'] + env.trade['win'] + env.trade['draw']))
+        if env.trade['loss'] == 0:
             self.lwinrate.setText("Winrate : " + str(1))
         else:
-            self.lwinrate.setText("Winrate : " + '{:.3f}'.format(env.win / (env.loose + env.win)))
+            self.lwinrate.setText("Winrate : " + '{:.3f}'.format(env.trade['win'] / (env.trade['loss'] + env.trade['win'])))
 
         #Data
 
-        self.lep.setText("Episode : " + str(env.cepisode) + " / " + str(env.episode_count))
-        self.lday.setText("Day : " + str(env.day) + " / " + str(env.tot_day))
-        self.ldata.setText("Current : " +str(env.cdatai)+ " / " +str(env.data))
-        self.lperc.setText('{:.2f}'.format(float((env.cdatai * 100 ) / env.data)) + " %")
+        self.lep.setText("Episode : " + str(env.current_step['episode']) + " / " + str(env.episode_count))
+        self.lday.setText("Day : " + str(env.date['day']) + " / " + str(env.date['total_day']))
+        self.ldata.setText("Current : " +str(env.current_step['step'])+ " / " +str(len(env.data) - 1))
+        self.lperc.setText('{:.2f}'.format(float((env.current_step['step'] * 100 ) / len(env.data - 1))) + " %")
 
         #Wallet
 
-        self.lcap.setText('Capital : ' + formatPrice(env.capital))
-        self.lcgl.setText('Current G/L : ' + formatPrice(env.cgl))
-        self.lusable_margin.setText('Usable margin : ' + formatPrice(env.usable_margin))
-        self.lused_margin.setText('Used margin : ' + formatPrice(env.used_margin))
+        self.lcap.setText('Capital : ' + formatPrice(env.wallet.settings['capital']))
+        self.lcgl.setText('Current G/L : ' + formatPrice(env.wallet.settings['GL_profit']))
+        self.lusable_margin.setText('Usable margin : ' + formatPrice(env.wallet.settings['usable_margin']))
+        self.lused_margin.setText('Used margin : ' + formatPrice(env.wallet.settings['used_margin']))
 
         #Profit
 
-        self.lcurp.setText("Current : " + formatPrice(env.profit))
-        self.ldailyp.setText("Daily : " + formatPrice(self.dailyp))
-        self.ltotp.setText("Total : " + formatPrice(env.total_profit))
+        self.lcurp.setText("Current : " + formatPrice(env.wallet.profit['current']))
+        self.ldailyp.setText("Daily : " + formatPrice(env.wallet.profit['daily']))
+        self.ltotp.setText("Total : " + formatPrice(env.wallet.profit['total']))
 
         #Reward
 
-        self.lcurr.setText("Current : " + str(env.reward))
-        self.ldailyr.setText("Daily : " + str(self.daily_reward))
-        self.ltotr.setText("Total : " + str(self.tot_reward))
+        self.lcurr.setText("Current : " + str(env.reward['current']))
+        self.ldailyr.setText("Daily : " + str(env.reward['daily']))
+        self.ltotr.setText("Total : " + str(env.reward['total']))
 
         #Time
 
@@ -360,8 +343,8 @@ class OverviewWindow(QWidget):
         self.lstart_t.setText("Since start : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime(now))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime(now)))
         self.lloop_t.setText("Loop : " + str(round((env.loop_t * 100), 3)) + " ms")
 
-        if env.cdatai > 0 :
+        if env.current_step['step'] > 0 :
             self.lt += env.loop_t
-            self.leta.setText("ETA : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime(((self.lt / env.cdatai ) * (env.data - env.cdatai))))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime((self.lt / env.cdatai) * (env.data - env.cdatai))))
+            self.leta.setText("ETA : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime(((self.lt / env.current_step['step'] ) * ((len(env.data) - 1) - env.current_step['step']))))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime((self.lt / env.current_step['step']) * ((len(env.data) - 1) - env.current_step['step']))))
         else:
-            self.leta.setText("ETA : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime((self.lt / 1 ) * (env.data)))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime((self.lt / 1) * (env.data))))
+            self.leta.setText("ETA : " + '{:3d}'.format(int(time.strftime("%d", time.gmtime((self.lt / 1 ) * (len(env.data) - 1)))) - 1) + ":" + time.strftime("%H:%M:%S", time.gmtime((self.lt / 1) * (len(env.data) - 1))))
