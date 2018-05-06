@@ -1,5 +1,11 @@
+from __future__ import print_function
+
 import os
 import time
+import json
+from deepdiff import DeepDiff
+from pprint import pprint
+
 
 class Saver:
 
@@ -10,30 +16,37 @@ class Saver:
         self.name = os.path.basename(__file__).replace(".py", "")
 
         self.log_file_name = {}
-        self.model_file_name = ""
-        self.conf_file_name = "conf.cfg"
-        self.model_conf_file_name = "model_conf.cfg"
-        self.model_summary_file_name = ""
-        self.training_in_data_file_name = "train_in.txt"
-        self.training_out_data_file_name = "train_out.txt"
-
         self.log_file = {}
-        self.conf_file = None
-        self.model_conf_file = None
-        self.model_file = None
-        self.model_summary_file = None
-        self.training_in_data_file = None
-        self.training_out_data_file = None
-
         self.log_path = ""
         self.log_file_path = {}
-        self.conf_file_path = "" + self.conf_file_name
-        self.model_conf_file_path = ""
+
+        self.model_file_name = ""
         self.model_file_path = ""
-        self.model_summary_file_path = ""
+        self.conf_file_name = "conf.cfg"
+        self.conf_file = None
+        self.conf_file_path = "" + self.conf_file_name
+
+        self.network_file_name = "network.json"
+        self.network_file = None
+        self.network_file_path = ""
+
+        self.agent_file_name = "agent.json"
+        self.agent_file = None
+        self.agent_file_path = ""
+
+        self.env_file_name = "environnement.json"
+        self.env_file = None
+        self.env_file_path = ""
+
+        self.training_in_data_file_name = "train_in.txt"
+        self.training_out_data_file_name = "train_out.txt"
+        self.training_in_data_file = None
+        self.training_out_data_file = None
         self.training_data_path = "training_data/"
 
-        self.model_direct = ""
+        self.dir_id = 0
+
+        self.model_directory = ""
 
         self.files_checked = False
 
@@ -46,17 +59,9 @@ class Saver:
     def check_model_dir(self, model_name):
         self._add("Checking model directory", self.name)
         self.path = self.root_path + model_name + "/"
-        self.model_direct = self.root_path + model_name
+        self.model_directory = self.root_path + model_name
         if os.path.exists(self.path) is False:
             os.mkdir(self.path)
-        else:
-            self.model_file_name = self.check_model_file(model_name)
-        if self.model_file_name == "":
-            self.model_file_path = self.path
-        else:
-            self.model_file_path = self.path + self.model_file_name
-        self.model_conf_file_path = self.path + self.model_conf_file_name
-        self.model_summary_file_path = self.path + model_name.replace(".h5", "") + "_summary.txt"
 
     def check_log_dir(self, log_path):
         self._add("Checking log directory", self.name)
@@ -66,18 +71,11 @@ class Saver:
 
     def check_training_data_dir(self):
         self._add("Checking training data directory", self.name)
+        self.training_data_path = "training_data/"
         tmp_path = self.path + self.training_data_path
         if os.path.exists(tmp_path) is False:
             os.mkdir(tmp_path)
         self.training_data_path = tmp_path
-
-    def check_model_file(self, model_name):
-        self._add("Checking model files", self.name)
-        cdir = os.listdir(self.path)
-        for d in cdir:
-            if model_name in d and "_summary" not in d:
-                return d
-        return ""
 
     def check_log_file(self, log_name):
         self._add("Checking %s logs files" % log_name, self.name)
@@ -87,16 +85,45 @@ class Saver:
                 return d
         return log_name + "_" + time.strftime("%Y_%m_%d") + ".txt"
 
-    def _check(self, model_name, log_path):
+    def check_settings_files(self):
+        cdir = os.listdir(self.model_directory)
+        files = 0
+        for d in cdir:
+            if self.network_file_name in d or \
+                self.agent_file_name in d or\
+                 self.env_file_name in d:
+                files += 1
+        self.network_file_path = self.model_directory + "/" + self.network_file_name
+        self.agent_file_path = self.model_directory + "/" + self.agent_file_name
+        self.env_file_path = self.model_directory + "/" + self.env_file_name
+        if files == 3:
+            return True
+        else:
+            return False
+
+    def check_settings(self, env, agent, network):
+        if self.check_settings_files() is True:
+            _env, _agent, _network = self.load_settings()
+            if DeepDiff(_env, env) == {} and \
+                DeepDiff(_agent, agent) == {} and \
+                DeepDiff(_network, network) == {}:
+                return True
+            else:
+                return False
+        else:
+            return True
+
+    def _check(self, model_name, log_path, settings):
         self.check_save_dir()
-        self.check_model_dir(model_name)
+        self.check_model_dir(model_name + "_" + str(self.dir_id))
         self.check_log_dir(log_path)
         self.check_training_data_dir()
-        self.files_checked = True
-
-    def load_model_summary(self):
-        self._add("Loading model summary", self.name)
-        self.model_summary_file = open(self.model_summary_file_path, 'r')
+        if self.check_settings(settings['env'], settings['agent'], settings['network']) is False:
+            self.dir_id += 1
+            self._check(model_name, log_path, settings)
+        else:
+            self.save_settings(settings['env'], settings['agent'], settings['network'])
+            self.files_checked = True
 
     def load_conf(self):
         if not os.path.exists(self.conf_file_path):
@@ -105,6 +132,15 @@ class Saver:
         self._add("Loading configuration file", self.name)
         self.conf_file = open(self.conf_file_path, 'r')
 
+    def load_settings(self):
+        with open(self.env_file_path, 'r') as fp:
+            env = json.load(fp=fp)
+        with open(self.agent_file_path, 'r') as fp:
+            agent = json.load(fp=fp)
+        with open(self.network_file_path, 'r') as fp:
+            network = json.load(fp=fp)
+        return env, agent, network
+
     def load_log(self, log_name):
         self.log_file_name[log_name] = self.check_log_file(log_name)
         self.log_file_path[log_name] = self.log_path + "/" + self.log_file_name[log_name]
@@ -112,15 +148,10 @@ class Saver:
         self.log_file[log_name] = open(self.log_file_path[log_name], 'a')
 
     def _load(self):
-        self._add("Creating model configuration file", self.name)
-        open(self.model_conf_file_path, 'a').close()
         self._add("Creating training data in file", self.name)
         self.training_in_data_file = open(self.training_data_path + "/" + self.training_in_data_file_name, 'a')
         self._add("Creating training data out file", self.name)
         self.training_out_data_file = open(self.training_data_path + "/" + self.training_out_data_file_name, 'a')
-        if os.path.exists(self.model_summary_file_path) is False:
-            self._add("Creating model summary file", self.name)
-            self.model_summary_file = open(self.model_summary_file_path, 'w')
 
     def save_training_data(self, _in, out):
         self._add("Saving training data in", self.name)
@@ -134,10 +165,13 @@ class Saver:
         self.training_in_data_file = open(self.training_data_path + "/" + self.training_in_data_file_name, 'a')
         self.training_out_data_file = open(self.training_data_path + "/" + self.training_out_data_file_name, 'a')
 
-    def save_model_summary(self, model):
-        self._add("Saving model summary", self.name)
-        model.summary(print_fn=lambda x: self.model_summary_file.write(x + "\n"))
-        self.model_summary_file.close()
+    def save_settings(self, env, agent, network):
+        with open(self.env_file_path, 'w') as fp:
+            json.dump(env, fp, indent = 4)
+        with open(self.agent_file_path, 'w') as fp:
+            json.dump(agent, fp, indent = 4)
+        with open(self.network_file_path, 'w') as fp:
+            json.dump(network, fp, indent = 4)
 
     def save_logs(self, logs, name):
         self.log_file[name] = open(self.log_file_path[name], 'a')
@@ -149,16 +183,9 @@ class Saver:
         self.conf_file.write(conf)
         self.conf_file.close()
 
-    def save_model_conf(self, conf):
-        self.model_conf_file = open(self.model_conf_file_path, 'w')
-        self.model_conf_file.write(conf)
-        self.model_conf_file.close()
-
-    def _save(self, conf=None, logs=None, logs_name=None, model_conf=None):
+    def _save(self, conf=None, logs=None, logs_name=None):
         if conf:
             self.save_conf(conf)
-        if model_conf:
-            self.save_model_conf(model_conf)
         if logs:
             self.save_logs(logs, logs_name)
 

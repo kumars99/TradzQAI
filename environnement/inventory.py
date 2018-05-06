@@ -6,6 +6,7 @@ class Inventory(object):
         self.max_loss = max_loss
         self.columns = ['Price', 'POS', 'Order']
         self.inventory = pd.DataFrame(columns = self.columns)
+
         self.last_trade = dict(
             open = dict(
                 price = 0,
@@ -17,10 +18,12 @@ class Inventory(object):
             ),
             profit = 0
         )
+
         self.last_closed_order = dict(
             price = 0,
             pos = ""
         )
+
         self.trade_history = []
 
     def reset(self):
@@ -59,6 +62,7 @@ class Inventory(object):
             if env.wallet.profit['current'] < 0.00:
                 env.trade['loss'] += 1
                 env.daily_trade['loss'] += 1
+                env.reward['current'] = ret
             elif env.wallet.profit['current'] > 0.00 :
                 env.trade['win'] += 1
                 env.daily_trade['win'] += 1
@@ -86,6 +90,7 @@ class Inventory(object):
                 if env.wallet.profit['current'] < 0.00:
                     env.trade['loss'] += 1
                     env.daily_trade['loss'] += 1
+                    env.reward['current'] = ret
                 elif env.wallet.profit['current'] > 0.00 :
                     env.trade['win'] += 1
                     env.daily_trade['win'] += 1
@@ -136,6 +141,7 @@ class Inventory(object):
                 if env.wallet.profit['current'] < 0.00:
                     env.trade['loss'] += 1
                     env.daily_trade['loss'] += 1
+                    env.reward['current'] = env.wallet.profit['current']
                 elif env.wallet.profit['current'] > 0.00 :
                     env.trade['win'] += 1
                     env.daily_trade['win'] += 1
@@ -143,6 +149,7 @@ class Inventory(object):
                 else:
                     env.trade['draw'] += 1
                     env.daily_trade['draw'] += 1
+                    env.reward['current'] = 0
                 env.wallet.profit['current'] *= env.contract_settings['pip_value'] * self.inventory['Order'][POS_SELL]
                 self.save_last_closing(POS_SELL)
                 self.add_last_trade(env.price, env.contract_settings['pip_value'])
@@ -164,6 +171,7 @@ class Inventory(object):
                 if env.wallet.profit['current'] < 0.00:
                     env.trade['loss'] += 1
                     env.daily_trade['loss'] += 1
+                    env.reward['current'] = env.wallet.profit['current']
                 elif env.wallet.profit['current'] > 0.00 :
                     env.trade['win'] += 1
                     env.daily_trade['win'] += 1
@@ -171,6 +179,7 @@ class Inventory(object):
                 else:
                     env.trade['draw'] += 1
                     env.daily_trade['draw'] += 1
+                    env.reward['current'] = 0
                 env.wallet.profit['current'] *= env.contract_settings['pip_value'] * self.inventory['Order'][POS_BUY]
                 self.save_last_closing(POS_BUY)
                 self.add_last_trade(env.price, env.contract_settings['pip_value'])

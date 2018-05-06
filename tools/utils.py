@@ -18,6 +18,11 @@ def is_float(value):
     except ValueError:
         return False
 
+def str2bool(value):
+    if str(value).lower() in ("yes", "y", "true",  "t", "1", "1.0"): return True
+    if str(value).lower() in ("no",  "n", "false", "f", "0", "0.0"): return False
+    raise Exception('Invalid value for boolean conversion: ' + str(value))
+
 #### Data managment ####
 
 # Getting data
@@ -252,12 +257,12 @@ def getStockDataVec(key):
         chunksize = nlines // 10
         #lines = open(path, "r").read().splitlines()
         #names = ['ID', 'Time', 'Open', 'High', 'Low', 'Close', 'RSI', 'Volatility']
-        #names = ['Time', 'Open', 'High', 'Low', 'Close', '']
+        names = ['Time', 'Open', 'High', 'Low', 'Close', '']
         #names = ['ID', 'Close', 'RSI', 'MACD', 'Volatility', 'EMA20', 'EMA50', 'EMA100']
         #names = ['Time', 'BID', 'ASK', 'VOL']
-        names = ['Time', 'Price', 'Volume']
+        #names = ['Time', 'Price', 'Volume']
         for i in tqdm(range(0, nlines, chunksize), desc="Loading data "):
-            df = pd.read_csv(path, header=None, sep=',', nrows=chunksize, skiprows=i)#, names = names)
+            df = pd.read_csv(path, header=None, sep=';', nrows=chunksize, skiprows=i)#, names = names)
             df.columns = names
             if row is not None:
                 row = row.append(df, ignore_index = True)
@@ -268,10 +273,10 @@ def getStockDataVec(key):
             vec.append(float(line.split(";")[4]))
         '''
         time = row['Time'].copy(deep=True)
-        vec = row['Price'].copy(deep=True)
+        vec = row['Close'].copy(deep=True)
 
         #row.drop(row.columns[[0, 1, 3]], axis = 1, inplace = True)
-        #row.drop(row.columns[[0, 1, 2, 3, 5]], axis = 1, inplace = True)
+        row.drop(row.columns[[0, 1, 2, 3, 5]], axis = 1, inplace = True)
 
         '''
         for l in range(len(row['ASK'])):

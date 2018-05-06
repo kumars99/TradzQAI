@@ -16,8 +16,6 @@ class Environnement:
 
     def __init__(self, gui):
 
-        # Software settings
-
         self._name = os.path.basename(__file__).replace(".py", "")
         self.name = "TradzQAI"
         self.version = "v0.2"
@@ -26,43 +24,18 @@ class Environnement:
         self.agents = self.src_agents()
         self.gui = gui
 
-        # Agent settings
-
         self.model = None
-        self.model_name = "TRPO"
+        self.model_name = "PPO"
         self.mode = ""
 
-        ## Hyperparameters
 
-        self.hyperparameters = dict(
-            update_rate = 1e-1,
-            learning_rate = 1e-3,
-            gamma = 0.95,
-            epsilon = 1.0,
-            epsilon_min = 1e-2,
-            epsilon_decay = 0.995
-        )
 
-        # Environnement settings
-
-        self.stock_name = "DAX30_1M_2017_11"
+        self.stock_name = "DAX30_1M_2018_04"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 500
-        self.window_size = 30
-        self.batch_size = 64
+        self.window_size = 100
+        self.batch_size = 32
 
-        # Contract settings
-
-        self.contract_settings = dict(
-            pip_value = 5,
-            contract_price = 125,
-            spread = 1,
-            allow_short = False
-        )
-
-        # Risk managment
-
-        # Wallet settings
         self.daily_trade = dict(
             win = 0,
             loss = 0,
@@ -79,7 +52,7 @@ class Environnement:
         self.current_step = dict(
             order = "",
             episode = 0,
-            step = 0
+            step = -1
         )
 
         self.trade = dict(
@@ -98,60 +71,31 @@ class Environnement:
             total_month = 1,
             total_year = 1
         )
-        # Wallet state
-        self.step_left = 0
-
-
-        self.max_return = 0
-        self.max_drawdown = 0
-
-        # Agent state
-
-        self.pause = 0
-
-        self.action = None
-
-        # Worker env helper
 
         self.price = dict(
             buy = 0,
             sell = 0
         )
 
-        self.data = None
-        self.POS_BUY = -1
-        self.POS_SELL = -1
-
-        # Current data and order dropped from inventory
-
         self.last_closed_order = dict(
             current_price = 0,
             current_pos = ""
         )
 
-        # Current data and order from loop
-
-
-        # Time
-
+        self.step_left = 0
+        self.max_return = 0
+        self.max_drawdown = 0
+        self.pause = 0
+        self.action = None
+        self.data = None
+        self.POS_BUY = -1
+        self.POS_SELL = -1
         self.start_t = 0
         self.loop_t = 0
-
-        # date
-
         self._date = None
-
-        # Other
-
         self.mod_ordr = False
         self.day_changed = False
         self.new_episode = False
-
-        # List for graph building
-
-        ## Daily list
-
-        ### Overview list
 
         self.lst_data = []
         self.lst_inventory_len = []
@@ -164,18 +108,12 @@ class Environnement:
         self.lst_draw_order = []
         self.lst_capital = []
 
-        ### Model list
-
         self.lst_act = deque(maxlen=1000)
         self.lst_reward = deque(maxlen=1000)
         self.lst_state = deque(maxlen=1000)
 
-        # Training datasets
-
         self.train_in = []
         self.train_out = []
-
-        # Gui helper
 
         self.time = None
         self.lst_data_full = deque(maxlen=100)
@@ -184,19 +122,104 @@ class Environnement:
 
         self.lst_reward_daily = []
 
-        # Managment
-
-        self.logger = None
         self.readed = None
-
-
 
         self.wallet = Wallet()
         self.inventory = Inventory(self.wallet.risk_managment['stop_loss'])
-        #self.reset()
-        self._load_conf()
         self.data, self.raw, self._date = getStockDataVec(self.stock_name)
+
+        self.settings = dict(
+            network = self.get_network(),
+            agent = self.get_agent_settings(),
+            env = self.get_env_settings()
+        )
+
+        self.logger = Logger()
+        self.logger._load_conf(self)
+        '''
+        add network, env, agent config checking
+        '''
+
         self.check_dates()
+
+    def get_network(self):
+        network = [dict(type='dense', size=64),
+                   dict(type='dense', size=64)]
+
+        return network
+
+    def get_agent_settings(self):
+        self.update_mode = dict(
+            unit = 'timesteps',
+            batch_size = self.batch_size,
+            frequency = self.batch_size // 8
+        )
+
+        self.summarizer = dict(
+            directory="./board/",
+            steps=1000,
+            labels=['configuration',
+                    'gradients_scalar',
+                    'regularization',
+                    'inputs',
+                    'losses',
+                    'variables']
+        )
+
+        self.memory=dict(
+            type='latest',
+            include_next_states=True,
+            capacity=((len(self.data) - 1) * self.batch_size)
+        )
+
+        self.hyperparameters = dict(
+            update_rate = 1e-3,
+            learning_rate = 1e-3,
+            gamma = 0.97,
+            epsilon = 1.0,
+            epsilon_min = 1e-1,
+            epsilon_decay = 0.995
+        )
+
+        self.exploration = dict(
+            type = 'epsilon_anneal',
+            initial_epsilon = self.hyperparameters['epsilon'],
+            final_epsilon = self.hyperparameters['epsilon_min']
+        )
+
+        self.optimizer = dict(
+            type='adam',
+            learning_rate=self.hyperparameters['learning_rate']
+        )
+
+        agent = [self.hyperparameters,
+                 self.exploration,
+                 self.update_mode,
+                 self.summarizer,
+                 self.memory,
+                 self.optimizer]
+
+        return agent
+
+    def get_env_settings(self):
+        self.contract_settings = dict(
+            pip_value = 5,
+            contract_price = 125,
+            spread = 1,
+            allow_short = False
+        )
+
+        self.meta = dict(
+            window_size = self.window_size,
+            batch_size = self.batch_size
+        )
+
+        env = [self.contract_settings,
+               self.wallet.settings,
+               self.wallet.risk_managment,
+               self.meta]
+
+        return env
 
     def _pause(self):
         self.pause = 1
@@ -360,56 +383,35 @@ class Environnement:
                                            self.lst_data_preprocessed[3], #high
                                            self.lst_act[len(self.lst_act) - 1])
 
-    def _load_conf(self):
-        self.logger = Logger()
-        self.logger.load_conf()
-        try:
-            lines = self.logger.conf_file.read()
-            lines = lines.split("\n")
-        except:
-            lines = ""
-        self.readed = lines
-        for line in lines:
-            if "Model name" in line:
-                self.model_name = (line.split(":")[1]).replace(" ", "")
-            if "Learning rate" in line:
-                self.hyperparameters['learning_rate'] = float((line.split(":")[1]).replace(" ", ""))
-            if "Gamma" in line:
-                self.hyperparameters['gamma'] = float((line.split(":")[1]).replace(" ", ""))
-            if "Espilon" in line:
-                self.hyperparameters['epsilon'] = float((line.split(":")[1]).replace(" ", ""))
-            if "Stock name" in line:
-                self.stock_name = (line.split(":")[1]).replace(" ", "")
-            if "Window size" in line:
-                self.window_size = int((line.split(":")[1]).replace(" ", ""))
-            if "Episode" in line:
-                self.episode_count = int((line.split(":")[1]).replace(" ", ""))
-            if "Batch size" in line:
-                self.batch_size = int((line.split(":")[1]).replace(" ", ""))
-            if "Contract price" in line:
-                self.contract_settings['contract_price'] = int((line.split(":")[1]).replace(" ", ""))
-            if "Pip value" in line:
-                self.contract_settings['pip_value'] = int((line.split(":")[1]).replace(" ", ""))
-            if "Spread" in line:
-                self.contract_settings['spread'] = float((line.split(":")[1]).replace(" ", ""))
-            if "Capital" in line:
-                self.wallet.settings['capital'] = int((line.split(":")[1]).replace(" ", ""))
-                self.wallet.settings['saved_capital'] = self.wallet.settings['capital']
-                self.wallet.settings['usable_margin'] = self.wallet.settings['capital']
-            if "Exposure" in line:
-                self.wallet.risk_managment['exposure'] = float((line.split(":")[1]).replace(" ", ""))
-            if "Max pip loss" in line:
-                self.wallet.risk_managment['stop_loss'] = int((line.split(":")[1]).replace(" ", ""))
-            if "Max pos" in line:
-                self.wallet.risk_managment['max_pos'] = int((line.split(":")[1]).replace(" ", ""))
-        self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
-        self.logger.conf_file.close()
+    def daily_processing(self, terminal):
+        if self.manage_date() == 1 or terminal is True:
+            self.lst_reward_daily.append(self.reward['daily'])
+            self.wallet.episode_process(self.trade)
+            '''
+            self.logger._add("Daily reward : " + str(self.reward['daily']), self._name)
+            self.logger._add("Daily average rewards : " + str(self.avg_reward(env.lst_reward, 0)), self._name)
+            self.logger._add("Daily profit : " + str(self.wallet.profit['daily']), self._name)
+            self.logger._add("Daily trade : " + str(self.daily_trade['loss'] + self.daily_trade['win'] + self.daily_trade['draw']), self._name)
+            if self.daily_trade['win'] + self.daily_trade['loss'] > 1:
+                self.logger._add("Daily W/L : " + str('{:.3f}'.format(self.daily_trade['win'] / (self.daily_trade['loss'] + self.daily_trade['win']))), self._name)
+            else:
+                self.logger._add("Daily W/L : " + str('{:.3f}'.format(self.daily_trade['win'] / 1)), self._name)
+            '''
+            if self.wallet.profit['daily'] > 0:
+                '''
+                self.logger._add("Saving training data with " +
+                                str(self.wallet.profit['daily']) +
+                                " daily profit", self._name)
+                '''
+                self.logger.save_training_data(self.train_in,
+                                              self.train_out)
+            self.daily_reset()
 
     def execute(self, action):
+        self.current_step['step'] += 1
         self.action = action
         self.POS_BUY = -1
         self.POS_SELL = -1
-        done = True if len(self.data) == self.current_step['step'] - 1 else False
         if self.step_left == 0:
             self.check_time_before_closing()
         self.step_left -= 1
@@ -444,16 +446,18 @@ class Environnement:
         self.reward['daily'] += self.reward['current']
         self.reward['total'] += self.reward['current']
         self.lst_reward.append(self.reward['current'])
-        self.lst_return.append(self.wallet.profit['current'])
         self.def_act()
         self.wallet.manage_wallet(self.inventory.get_inventory(), self.price, self.contract_settings)
         self.chart_preprocessing(self.data[self.current_step['step']])
-        if self.wallet.risk_managment['current_max_pos'] < 1 or self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
-            self.wallet.settings['capital'] = self.wallet.settings['saved_capital']
         self.state = getState(self.raw,
                               self.current_step['step'] + 1,
                               self.window_size + 1)
-        self.current_step['step'] += 1
+
+        self.wallet.daily_process()
+        done = True if len(self.data) - 1 == self.current_step['step'] else False
+        if self.wallet.risk_managment['current_max_pos'] < 1 or self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
+            self.wallet.settings['capital'] = self.wallet.settings['saved_capital']
+            done = True
         return self.state, done, self.reward['current']
 
     def avg_reward(self, reward, n):
@@ -478,6 +482,10 @@ class Environnement:
         self.train_out = []
 
     def reset(self):
+        self.daily_reset()
+        self.wallet.reset()
+        self.inventory.reset()
+
         try:
             self.h_lst_reward.append(self.reward['total'])
             self.h_lst_profit.append(self.wallet.profit['total'])
@@ -505,11 +513,7 @@ class Environnement:
         self.trade['draw'] = 0
         self.trade['total'] = 0
         self.current_step['order'] = ""
-        self.current_step['episode'] = 0
-        self.current_step['step'] = 0
-        self.daily_reset()
-        self.wallet.reset()
-        self.inventory.reset()
+        self.current_step['step'] = -1
         self.reward['total'] = 0
         self.new_episode = True
         self.state = getState(self.raw,
