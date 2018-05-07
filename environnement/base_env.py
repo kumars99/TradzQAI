@@ -28,12 +28,10 @@ class Environnement:
         self.model_name = "PPO"
         self.mode = ""
 
-
-
-        self.stock_name = "DAX30_1M_2018_04"
+        self.stock_name = "DAX30_TICK_2018_03_15"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 500
-        self.window_size = 100
+        self.window_size = 10
         self.batch_size = 32
 
         self.daily_trade = dict(
@@ -120,6 +118,9 @@ class Environnement:
         self.lst_data_preprocessed = []
         self.offset = 0
 
+        self.tensorOCHL = [[] for _ in range(4)]
+
+
         self.lst_reward_daily = []
 
         self.readed = None
@@ -136,15 +137,43 @@ class Environnement:
 
         self.logger = Logger()
         self.logger._load_conf(self)
-        '''
-        add network, env, agent config checking
-        '''
-
         self.check_dates()
 
     def get_network(self):
-        network = [dict(type='dense', size=64),
-                   dict(type='dense', size=64)]
+
+        network = [dict(type='dense', size=64, activation='relu'),
+                   dict(type='dense', size=32, activation='relu'),
+                   dict(type='dense', size=8, activation='relu')]
+
+
+
+        '''
+
+        network = [dict(
+                type = "conv1d",
+                size = 64,
+                window = 4,
+                stride = 1,
+                padding = "SAME"
+            ),
+            dict(
+                type = "conv1d",
+                size = 64,
+                window = 2,
+                stride = 1,
+                padding = "SAME"
+            ),
+            dict(
+                type = "flatten"
+            ),
+            dict(
+                type="dense",
+                size=128,
+                activation="relu"
+            )
+        ]
+        '''
+
 
         return network
 
@@ -177,7 +206,7 @@ class Environnement:
             learning_rate = 1e-3,
             gamma = 0.97,
             epsilon = 1.0,
-            epsilon_min = 1e-1,
+            epsilon_min = 1e-2,
             epsilon_decay = 0.995
         )
 
@@ -322,6 +351,48 @@ class Environnement:
         else:
             return 0
 
+    def get3DState(self):
+        for idx in range(len(self.lst_data_preprocessed)):
+            self.tensorOCHL[idx].append(self.lst_data_preprocessed[idx])
+        state = getState(self.raw,
+                         self.current_step['step'] + 1,
+                         self.window_size + 1)
+        d = self.current_step['step'] - self.window_size + 1
+        #tensorState = [[] for _ in range(len(self.tensorOCHL))]
+        tensorState = []
+        for i in range(self.window_size):
+            if d+i > 0 and i > 0:
+                if self._date[self.current_step['step'] - (d + i)][11] == "0" or self._date[self.current_step['step'] - (d + i) + 1][11] == "5":
+                    tensorState.append([state[i], state[i], state[i], state[i]])
+                    #tensorState[1].append(state[i])
+                    #tensorState[2].append(state[i])
+                    #tensorState[3].append(state[i])
+                elif self.current_step['step'] and self.tensorOCHL[2][self.current_step['step'] - (d + i)] > self.tensorOCHL[2][self.current_step['step'] - (d + i) + 1]:
+                    tensorState.append([state[i], tensorState[i - 1][1], state[i], tensorState[i - 1][3]])
+                    #tensorState[0].append(state[i])
+                    #tensorState[1].append(tensorState[1][i - 1])
+                    #tensorState[3].append(tensorState[3][i - 1])
+                elif self.current_step['step'] and self.tensorOCHL[3][self.current_step['step'] - (d + i)] < self.tensorOCHL[3][self.current_step['step'] - (d + i) + 1]:
+                    tensorState.append([state[i], tensorState[i - 1][1], tensorState[i - 1][2], state[i]])
+                    #tensorState[3].append(state[i])
+                    #tensorState[0].append(state[i])
+                    #tensorState[1].append(tensorState[1][i - 1])
+                    #tensorState[2].append(tensorState[2][i - 1])
+                else:
+                    tensorState.append([tensorState[i - 1][0], state[i], tensorState[i - 1][2], tensorState[i - 1][3]])
+                    #tensorState[0].append(tensorState[0][i - 1])
+                    #tensorState[3].append(tensorState[3][i - 1])
+                    #tensorState[2].append(tensorState[2][i - 1])
+                    #tensorState[1].append(state[i])
+            else:
+                tensorState.append([state[i], state[i], state[i], state[i]])
+                #tensorState[0].append(state[i])
+                #tensorState[1].append(state[i])
+                #tensorState[2].append(state[i])
+                #tensorState[3].append(state[i])
+
+        return np.array(tensorState)
+
     def chart_preprocessing(self, data):
         if self.current_step['step'] == 0:
             self.lst_data_preprocessed = [data, data, data, data]
@@ -417,7 +488,7 @@ class Environnement:
         self.step_left -= 1
         self.price['buy'] = self.data[self.current_step['step']] - (self.contract_settings['spread'] / 2)
         self.price['sell'] = self.data[self.current_step['step']] + (self.contract_settings['spread'] / 2)
-        self.lst_state.append(self.state[0])
+        #self.lst_state.append(self.state[0])
         self.reward['current'] = 0
         self.wallet.profit['current'] = 0
         self.wallet.manage_exposure(self.contract_settings)
@@ -448,13 +519,14 @@ class Environnement:
         self.lst_reward.append(self.reward['current'])
         self.def_act()
         self.wallet.manage_wallet(self.inventory.get_inventory(), self.price, self.contract_settings)
-        self.chart_preprocessing(self.data[self.current_step['step']])
-        self.state = getState(self.raw,
-                              self.current_step['step'] + 1,
-                              self.window_size + 1)
-
+        if self.gui == 1:
+            self.chart_preprocessing(self.data[self.current_step['step']])
+        self.state = getState(
+                            self.raw,
+                            self.current_step['step'] + 1,
+                            self.window_size + 1)
         self.wallet.daily_process()
-        done = True if len(self.data) - 1 == self.current_step['step'] else False
+        done = True if len(self.data) - 2 == self.current_step['step'] else False
         if self.wallet.risk_managment['current_max_pos'] < 1 or self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
             self.wallet.settings['capital'] = self.wallet.settings['saved_capital']
             done = True
@@ -499,6 +571,7 @@ class Environnement:
             self.h_lst_loose_order = []
             self.h_lst_draw_order = []
 
+        self.tensorOCHL = [[] for _ in range(4)]
         self.lst_reward_daily = []
         self.lst_data_full = deque(maxlen=100)
         self.date['day'] = 1
@@ -516,8 +589,9 @@ class Environnement:
         self.current_step['step'] = -1
         self.reward['total'] = 0
         self.new_episode = True
-        self.state = getState(self.raw,
-                              0,
-                              self.window_size + 1)
+        self.state = getState(
+                                self.raw,
+                                0,
+                                self.window_size + 1)
         self.current_step['episode'] += 1
         return self.state
