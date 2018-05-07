@@ -1,6 +1,6 @@
 # TradzQAI
 
-This project contains GUI for monitoring behaviour and/or backtesting trading agent (or algorithms) on a trading env, and some RL agent like DQN agent.
+Trading environnement for RL agents, backtesting and training.
 
 TradzQAI has been inspired by q-trader.
 Indicators lib come from [pyti](https://github.com/kylejusticemagnuson/pyti)
@@ -13,22 +13,18 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
 
 ## Getting Started
 
-  All this project run with python 3
-
 - Dependencies :
-  - [Keras](https://github.com/keras-team/keras) (with [Tensorflow](https://github.com/tensorflow/tensorflow) backend)
+  - [Tensorflow](https://github.com/tensorflow/tensorflow)
   - [Tensorforce](https://github.com/reinforceio/tensorforce)
+  - [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph)
   - Pandas
   - Numpy
   - PyQt5
   - tqdm
   - h5py
-  - [pyqtgraph](https://github.com/pyqtgraph/pyqtgraph)
-  ```
-  pip install -r requirements.txt
-  or
-  pip install --upgrade -r requirements.txt
-  ```
+
+  - Installation :
+    ```pip install -r requirements.txt```
 
 - Running the project
   ```
@@ -37,28 +33,10 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
     python run.py -g=1 (Display interface)
     python run.py (Run without interface)
   ```
-
-- Building indicators
-
-    It build : RSI, MACD, VOLATILITY, EMA20, EMA50, EMA100
-
-  - In [build.py](https://github.com/kkuette/TradzQAI/blob/master/build.py)
-
-    change :   ```row_path = "../dataset/DAX30/1M", new_path = "./data/DAX30_full_wi.csv```
-
-    To :     ```row_path = "your_dataset_directory_path", new_path = "your_file_path.csv" ```
-
-    and run : ```py build.py```
+  When you run it for the first time, a file named "conf.cfg" is created, you can change it to changes environnement settings and some agents settings.
+  If you launch it with the gui, the conf file is just saving the settings from gui.
+  It save settings (env, agent, network) in a save directory, and create a new directory if make any changes.
 
 ## Relevant project
   - [TradingBrain](https://github.com/Prediction-Machines/Trading-Brain)
-  - [Keras-rl](https://github.com/matthiasplappert/keras-rl)
   - [q-trader](https://github.com/edwardhdlu/q-trader)
-
-## References
-  - [DQN](https://arxiv.org/abs/1312.5602)
-  - [DRQN](https://arxiv.org/abs/1507.06527)
-  - [DDQN](https://arxiv.org/abs/1509.06461)
-  - [DDPG](https://arxiv.org/abs/1509.02971)
-  - [EIIE](https://arxiv.org/abs/1706.10059) [Official code for paper](https://github.com/ZhengyaoJiang/PGPortfolio)
-  - [Keon](https://keon.io/deep-q-learning/)
