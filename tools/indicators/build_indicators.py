@@ -8,7 +8,7 @@ from tools.indicators.relative_strength_index import relative_strength_index as 
 from tools.indicators.moving_average_convergence_divergence import moving_average_convergence_divergence as macd
 from tools.indicators.bollinger_bands import bandwidth as bb
 
-class indicators():
+class Indicators():
 
     def __init__(self):
 

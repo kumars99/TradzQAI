@@ -8,7 +8,7 @@ from tqdm import tqdm
 import subprocess
 
 
-from tools.indicators import indicators
+from .indicators import Indicators
 
 
 def is_float(value):
