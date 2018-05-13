@@ -12,6 +12,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
 env = Environnement(1)
+device = '/cpu:0'
 
 h = 950
 w = 550
@@ -553,7 +554,15 @@ class Start_Window(QWidget):
         # Save configuration
         env.logger._save_conf(env)
 
-        self.worker = Worker(env)
+        if env.model_name in env.agents:
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore",category=FutureWarning)
+                Agent = getattr(__import__("agents", fromlist=[env.model_name]), env.model_name)
+        else:
+            raise ValueError('could not import %s' % env.model_name)
+        self.worker = Worker(env=env, agent=Agent(env=env, device=device))
+
         self.worker.sig_step.connect(self.update)
         self.worker.sig_batch.connect(self.batch_up)
         self.worker.sig_episode.connect(self.episode_up)
