@@ -247,47 +247,51 @@ def formatPrice(n):
 
 # returns the vector containing stock data from a fixed file
 def getStockDataVec(key):
-        vec = []
-        full = []
         path = "data/" + key + ".csv"
+        vec = None
         row = None
         chunksize = 10000
         nlines = subprocess.check_output('wc -l %s' % path, shell=True)
         nlines = int(nlines.split()[0])
         chunksize = nlines // 10
-        #lines = open(path, "r").read().splitlines()
-        #names = ['ID', 'Time', 'Open', 'High', 'Low', 'Close', 'RSI', 'Volatility']
-        names = ['Time', 'Open', 'High', 'Low', 'Close', '']
-        #names = ['ID', 'Close', 'RSI', 'MACD', 'Volatility', 'EMA20', 'EMA50', 'EMA100']
-        #names = ['Time', 'BID', 'ASK', 'VOL']
-        #names = ['Time', 'Price', 'Volume']
+        lines = subprocess.check_output('head %s' % path, shell=True).decode()
+        lines = lines.split('\n')[0]
+
+        if ',' in lines:
+            sep = ','
+            len_row = len(lines.split(sep))
+            if len_row == 4:
+                names = ['Time', 'BID', 'ASK', 'VOL']
+            elif len_row == 3:
+                names = ['Time', 'Price', 'Volume']
+        elif ';' in lines:
+            sep = ';'
+            len_row = len(lines.split(sep))
+            if len_row == 6:
+                names = ['Time', 'Open', 'High', 'Low', 'Close', '']
+
         for i in tqdm(range(0, nlines, chunksize), desc="Loading data "):
-            df = pd.read_csv(path, header=None, sep=';', nrows=chunksize, skiprows=i)#, names = names)
+            df = pd.read_csv(path, header=None, sep=sep, nrows=chunksize, skiprows=i)#, names = names)
             df.columns = names
             if row is not None:
                 row = row.append(df, ignore_index = True)
             else:
                 row = df.copy(deep=True)
-        '''
-        for line in lines[1:]:
-            vec.append(float(line.split(";")[4]))
-        '''
+
         time = row['Time'].copy(deep=True)
-        vec = row['Close'].copy(deep=True)
 
-        #row.drop(row.columns[[0, 1, 3]], axis = 1, inplace = True)
-        row.drop(row.columns[[0, 1, 2, 3, 5]], axis = 1, inplace = True)
+        if len_row == 4 and ',' in sep:
+            vec = row['ASK'].copy(deep=True)
+            row.drop(row.columns[[0, 1, 3]], axis=1, inplace=True)
 
-        '''
-        for l in range(len(row['ASK'])):
-            vec.append(row['ASK'].iloc[l])
+        elif len_row == 3 and ',' in sep:
+            vec = row['Price'].copy(deep=True)
+            row.drop(row.columns[[0, 2]], axis=1, inplace=True)
 
-        row['EMA20'] /= 10000
-        row['EMA50'] /= 10000
-        row['EMA100'] /= 10000
-        row['Close'] /= 10000
-        row['RSI'] /= 100
-        '''
+        elif len_row == 6 and ';' in sep:
+            vec = row['Close'].copy(deep=True)
+            row.drop(row.columns[[0, 1, 2, 3, 5]], axis=1, inplace=True)
+
         return vec, row, time
 
 # returns the sigmoid
