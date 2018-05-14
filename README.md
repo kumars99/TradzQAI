@@ -2,14 +2,39 @@
 
 Trading environnement for RL agents, backtesting and training.
 
+- Available sessions:
+    - Local
+        - 1M bar datasets any size.
+            - header should be ['Time', 'Open', 'High', 'Low', 'Close', 'Volume'] with ';' as separator
+        - Tick datasets any size.
+            - header should be ['Time', 'BID', 'ASK', 'VOL'] or ['Time', 'Price', 'Volume'] with ',' as separator
+    - Live
+        - Gdax API
+
+- Available agents:
+    - DDPG
+    - DQFD
+    - DQN
+    - DQNN
+    - NAF
+    - PPO
+    - TRPO
+    - VPG
+
+- Available contract type:
+    - CFD
+    - Classic
+
 TradzQAI has been inspired by q-trader.
+
 Indicators lib come from [pyti](https://github.com/kylejusticemagnuson/pyti)
 
-More datasets available [here](http://www.histdata.com/download-free-forex-data/?/ascii/1-minute-bar-quotes)
+More datasets available [here](http://www.histdata.com/download-free-forex-data/)
 
 ## Status
 
     Alpha in development
+        It should be ready soon for live trading with gdax API
 
 ## Getting Started
 
