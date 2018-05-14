@@ -76,17 +76,20 @@ class WebsocketClient(object):
 
         self.ws.send(json.dumps(sub_params))
 
+    def keepalive(self, interval=30):
+        while not self.stop:
+            if self.ws:
+                self.ws.ping("keepalive")
+                if self.should_print:
+                    print ("Keeping Alive")
+                time.sleep(interval)
+
     def _listen(self):
-        start_t = 0
+        Thread(target=self.keepalive).start()
         while not self.stop:
             try:
-                if time.time() - start_t >= 30:
-                    # Set a 30 second ping to keep connection alive
-                    self.ws.ping("keepalive")
-                    start_t = time.time()
                 data = self.ws.recv()
                 msg = json.loads(data)
-
             except ValueError as e:
                 self.on_error(e)
             except Exception as e:

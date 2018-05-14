@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 class Inventory(object):
 
@@ -29,6 +30,7 @@ class Inventory(object):
         )
 
         self.trade_history = []
+        self.wallet_len = 0
 
     def reset(self):
         self.inventory = pd.DataFrame(columns = self.columns)
@@ -52,14 +54,14 @@ class Inventory(object):
 
     def src_sell(self):
         '''Search for first sell order'''
-        for i  in range(len(self.inventory['POS'])):
+        for i  in range(self.wallet_len):
             if "SELL" in self.inventory['POS'].loc[i]:
                 return (i)
         return (-1)
 
     def src_buy(self):
         '''Search for first buy order'''
-        for i  in range(len(self.inventory['POS'])):
+        for i  in range(self.wallet_len):
             if "BUY" in self.inventory['POS'].loc[i]:
                 return (i)
         return (-1)
@@ -97,7 +99,7 @@ class Inventory(object):
         env.closed = True
 
     def trade_closing(self, env):
-        if len(self.inventory) > 0 and env.step_left == len(self.inventory):
+        if self.wallet_len > 0 and env.step_left == self.wallet_len:
             current = self.inventory['Price'].iloc[0]
             if "SELL" in self.inventory['POS'].iloc[0]:
                 ret = current - env.price['sell']
@@ -113,12 +115,13 @@ class Inventory(object):
 
     def stop_loss(self, env):
         '''Stop loss'''
+        self.wallet_len = len(self.inventory['POS'])
         current = 0
-        for i in range(len(self.inventory)):
-            current = self.inventory['Price'][i]
-            if "SELL" in self.inventory['POS'][i]:
+        for i in range(self.wallet_len):
+            current = self.inventory['Price'].iloc[i]
+            if "SELL" in self.inventory['POS'].iloc[i]:
                 ret = env.price['buy'] - current
-            elif "BUY" in self.inventory['POS'][i]:
+            elif "BUY" in self.inventory['POS'].iloc[i]:
                 ret = current - env.price['sell']
             if abs(ret) >= env.wallet.risk_managment['stop_loss'] and ret < 0:
                 fee = env.wallet.calc_fees(ret * self.inventory['Order'].iloc[i])
@@ -129,17 +132,15 @@ class Inventory(object):
         return False
 
     def inventory_managment(self, env):
-        POS = len(self.inventory['POS']) # Number of contract in inventory
+        POS =  self.wallet_len # Number of contract in inventory
         if 1 == env.action: # Buy
             POS_SELL = self.src_sell() # Check if SELL order in inventory
             if POS_SELL == -1 and POS < env.wallet.risk_managment['current_max_pos'] and env.step_left > env.wallet.risk_managment['current_max_pos']: # Open order
-                #buy = [env.price['buy'], "BUY", env.wallet.risk_managment['max_order_size'], env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['buy'])]
-                buy = (((pd.DataFrame([env.price['buy']], columns = [self.columns[0]])).join(pd.DataFrame(["BUY"],
-                columns = [self.columns[1]]))).join(pd.DataFrame([env.wallet.risk_managment['max_order_size']],
-                columns = [self.columns[2]]))).join(pd.DataFrame([env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['buy'])],
-                columns = [self.columns[3]]))
-                #self.inventory = self.inventory.append(pd.DataFrame(buy, columns=self.columns), ignore_index=True)
-                self.inventory = self.inventory.append(buy, ignore_index=True)
+                buy = [env.price['buy'], 'BUY', env.wallet.risk_managment['max_order_size'],
+                    env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['buy'])]
+                self.inventory = self.inventory.append(pd.DataFrame([buy],
+                                columns=self.columns),
+                                ignore_index=True)
             elif POS_SELL != -1:# Close order in inventory
                 '''Selling order from inventory list
                 Calc profit and total profit
@@ -155,13 +156,11 @@ class Inventory(object):
         elif 2 == env.action: # Sell
             POS_BUY = self.src_buy() # Check if BUY order in inventory
             if POS_BUY == -1 and POS < env.wallet.risk_managment['current_max_pos'] and env.contract_settings['allow_short'] is True and env.wallet.risk_managment['current_max_pos'] and env.step_left > env.wallet.risk_managment['current_max_pos']: #Open order
-                #sell = [env.price['sell'], "SELL", env.wallet.risk_managment['max_order_size'], env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['sell'])]
-                sell = (((pd.DataFrame([env.price['sell']], columns = [self.columns[0]])).join(pd.DataFrame(["SELL"],
-                    columns = [self.columns[1]]))).join(pd.DataFrame([env.wallet.risk_managment['max_order_size']],
-                    columns = [self.columns[2]]))).join(pd.DataFrame([env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['sell'])],
-                    columns = [self.columns[3]]))
-                #self.inventory = self.inventory.append(pd.DataFrame(sell, columns=self.columns), ignore_index=True)
-                self.inventory = self.inventory.append(sell, ignore_index=True)
+                sell = [env.price['sell'], 'SELL', env.wallet.risk_managment['max_order_size'],
+                    env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['sell'])]
+                self.inventory = self.inventory.append(pd.DataFrame([sell],
+                                columns=self.columns),
+                                ignore_index=True)
             elif POS_BUY != -1:# Close order in inventory
                 '''Selling order from inventory list
                 Calc profit and total profit

@@ -23,32 +23,9 @@ class Environnement:
         self.agents = self.src_agents()
         self.gui = gui
 
-        self.model_name = "PPO"
-        self.mode = ""
-
-        self.daily_trade = dict(
-            win = 0,
-            loss = 0,
-            draw = 0,
-            total = 0
-        )
-
-        self.reward = dict(
-            current = 0,
-            daily = 0,
-            total = 0
-        )
-
         self.current_step = dict(
             episode = 0,
             step = -1
-        )
-
-        self.trade = dict(
-            win = 0,
-            loss = 0,
-            draw = 0,
-            total = 0,
         )
 
         self.date = dict(
@@ -61,37 +38,15 @@ class Environnement:
             total_year = 1
         )
 
-        self.price = dict(
-            buy = 0,
-            sell = 0
-        )
-
-        self.last_closed_order = dict(
-            current_price = 0,
-            current_pos = ""
-        )
-
         self.step_left = 0
         self.pause = 0
         self.action = None
-        self.data = None
         self.start_t = 0
         self.loop_t = 0
-        self._date = None
         self.mod_ordr = False
         self.day_changed = False
         self.new_episode = False
-
-        self.lst_data = []
-        self.lst_inventory_len = []
-        self.lst_return = deque(maxlen=1000)
-        self.lst_mean_return = []
-        self.lst_sharp_ratio = []
-        self.lst_drawdown = []
-        self.lst_win_order = []
-        self.lst_loose_order = []
-        self.lst_draw_order = []
-        self.lst_capital = []
+        self.closed = False
 
         self.lst_act = deque(maxlen=1000)
         self.lst_reward = deque(maxlen=1000)
@@ -106,10 +61,6 @@ class Environnement:
         self.offset = 0
 
         self.tensorOCHL = [[] for _ in range(4)]
-
-        self.closed = False
-
-        self.lst_reward_daily = []
 
     def get_network(self):
 

@@ -22,8 +22,8 @@ class Wallet(object):
         )
 
         self.settings = dict(
-            capital = 20000,
-            fee = 0.1,
+            capital = 1000000,
+            fee = 0.3,
             used_margin = 0,
             GL_pip = 0,
             GL_profit = 0
@@ -57,6 +57,8 @@ class Wallet(object):
 
         self.settings['saved_capital'] = self.settings['capital']
         self.settings['usable_margin'] = self.settings['capital']
+
+        self.firstCheck = True
 
     def daily_reset(self):
         self.profit['daily'] = 0
@@ -168,3 +170,7 @@ class Wallet(object):
                 self.risk_managment['max_order_size'] = int(max_order_valid // self.risk_managment['max_pos'])
             else:
                 self.risk_managment['max_order_size'] = 1
+        if self.risk_managment['current_max_pos'] < 1 and self.firstCheck:
+            raise ValueError('current_max_pos : {}. We cant afford any contract. Please check wallet settings.'.format(self.risk_managment['current_max_pos']))
+        else:
+            self.firstCheck = False

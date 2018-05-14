@@ -69,7 +69,6 @@ class Local_Worker(QThread):
 
                 if self.env.gui == 0:
                     dat.close()
-                self.env.episode_process()
                 self.sig_episode.emit()
                 if self.agent.should_stop():
                     break

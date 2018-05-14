@@ -102,7 +102,7 @@ class Saver:
             return False
 
     def check_settings(self, env, agent, network):
-        if self.check_settings_files() is True:
+        if self.check_settings_files():
             _env, _agent, _network = self.load_settings()
             if DeepDiff(_env, env) == {} and \
                 DeepDiff(_agent, agent) == {} and \
@@ -118,7 +118,7 @@ class Saver:
         self.check_model_dir(model_name + "_" + str(self.dir_id))
         self.check_log_dir(log_path)
         self.check_training_data_dir()
-        if self.check_settings(settings['env'], settings['agent'], settings['network']) is False:
+        if not self.check_settings(settings['env'], settings['agent'], settings['network']):
             self.dir_id += 1
             self._check(model_name, log_path, settings)
         else:

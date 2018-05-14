@@ -1,11 +1,11 @@
-from .base.base_env import Environnement
+from .base import Environnement
 from .contracts import CFD, Classic
 from tools import *
 
 import pandas as pd
 import numpy as np
 from collections import deque
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
 import os
 import sys
@@ -16,13 +16,14 @@ class Local_env(Environnement):
     def __init__(self, mode, gui=0, contract_type="classic"):
 
         Environnement.__init__(self, gui)
-
         if "cfd" in contract_type:
             self.contracts = CFD()
         elif "classic" in contract_type:
             self.contracts = Classic()
         else:
             raise ValueError("Contract does not exist")
+
+        self.model_name = "PPO"
 
         self.stock_name = "DAX30_1M_2018_04"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
@@ -36,11 +37,7 @@ class Local_env(Environnement):
         self.inventory = self.contracts.getInventory()
 
         self.data, self.raw, self._date = getStockDataVec(self.stock_name)
-
-        self.state = getState(self.raw,
-                                0,
-                                self.window_size + 1)
-
+        self.state = getState(self.raw, 0, self.window_size + 1)
         self.len_data = len(self.data) - 1
 
         self.settings = dict(
@@ -59,12 +56,7 @@ class Local_env(Environnement):
         self.logger.new_logs(self._name)
 
     def get_env_settings(self):
-        self.contract_settings = dict(
-            pip_value = 5,
-            contract_price = 125,
-            spread = 1,
-            allow_short = False
-        )
+        self.contract_settings = self.contracts.getSettings()
 
         self.meta = dict(
             window_size = self.window_size,
@@ -83,20 +75,20 @@ class Local_env(Environnement):
             while (self.pause == 1):
                 time.sleep(0.01)
         self.current_step['step'] += 1
+        self.contract_settings['contract_price'] = self.contracts.getContractPrice(self.data[self.current_step['step']])
         self.closed = False
         self.action = action
         if self.step_left == 0:
             self.check_time_before_closing()
         self.step_left -= 1
-        self.price['buy'] = self.data[self.current_step['step']] - (self.contract_settings['spread'] / 2)
-        self.price['sell'] = self.data[self.current_step['step']] + (self.contract_settings['spread'] / 2)
+        self.price['buy'], self.price['sell'] = self.contracts.calcBidnAsk(self.data[self.current_step['step']])
         self.reward['current'] = 0
         self.wallet.profit['current'] = 0
         self.wallet.manage_exposure(self.contract_settings)
         stopped = self.inventory.stop_loss(self)
-        if stopped == False:
+        if not stopped:
             force_closing = self.inventory.trade_closing(self)
-            if force_closing == False:
+            if not force_closing:
                 self.inventory.inventory_managment(self)
             else:
                 if self.inventory.get_last_trade()['close']['pos'] == "SELL":
@@ -116,31 +108,35 @@ class Local_env(Environnement):
         self.reward['total'] += self.reward['current']
         self.lst_reward.append(self.reward['current'])
         self.def_act()
-        self.wallet.manage_wallet(self.inventory.get_inventory(), self.price, self.contract_settings)
+        self.wallet.manage_wallet(self.inventory.get_inventory(), self.price,
+                            self.contract_settings)
         if self.gui == 1:
             self.chart_preprocessing(self.data[self.current_step['step']])
-        self.state = getState(
-                            self.raw,
-                            self.current_step['step'] + 1,
+        self.state = getState(self.raw, self.current_step['step'] + 1,
                             self.window_size + 1)
         self.wallet.daily_process()
         done = True if self.len_data - 1 == self.current_step['step'] else False
-        if self.wallet.risk_managment['current_max_pos'] < 1 or self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
+        if self.wallet.risk_managment['current_max_pos'] < 1 or \
+            self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
             self.wallet.settings['capital'] = self.wallet.settings['saved_capital']
             done = True
         self.daily_processing(done)
+        if done:
+            self.episode_process()
         return self.state, done, self.reward['current']
 
     def daily_reset(self):
         self.wallet.daily_reset()
         self.lst_reward = []
 
-        self.daily_trade['win'] = 0
-        self.daily_trade['loss'] = 0
-        self.daily_trade['draw'] = 0
-        self.daily_trade['total'] = 0
-        self.price['buy'] = 0
-        self.price['sell'] = 0
+        self.daily_trade = dict(
+            win = 0,
+            loss = 0,
+            draw = 0,
+            total = 0
+        )
+
+
         self.reward['current'] = 0
         self.reward['daily'] = 0
 
@@ -148,10 +144,6 @@ class Local_env(Environnement):
         self.train_out = []
 
     def reset(self):
-        self.daily_reset()
-        self.wallet.reset()
-        self.inventory.reset()
-
         try:
             self.h_lst_reward.append(self.reward['total'])
             self.h_lst_profit.append(self.wallet.profit['total'])
@@ -175,17 +167,31 @@ class Local_env(Environnement):
         self.date['total_day'] = 1
         self.date['total_month'] = 1
         self.date['total_year'] = 1
-        self.trade['win'] = 0
-        self.trade['loss'] = 0
-        self.trade['draw'] = 0
-        self.trade['total'] = 0
-        self.current_step['order'] = ""
+
+        self.reward = dict(
+            current = 0,
+            daily = 0,
+            total = 0
+        )
+
+        self.trade = dict(
+            win = 0,
+            loss = 0,
+            draw = 0,
+            total = 0,
+        )
+
+        self.price = dict(
+            buy = 0,
+            sell = 0
+        )
+        self.daily_reset()
+        self.wallet.reset()
+        self.inventory.reset()
         self.current_step['step'] = -1
-        self.reward['total'] = 0
         self.new_episode = True
-        self.state = getState(self.raw,
-                                0,
-                                self.window_size + 1)
+        self.state = getState(self.raw, 0, self.window_size + 1)
         self.current_step['episode'] += 1
-        self.logger._add("Starting episode : " + str(self.current_step['episode']), self._name)
+        self.logger._add("Starting episode : " + str(self.current_step['episode']),
+                    self._name)
         return self.state
