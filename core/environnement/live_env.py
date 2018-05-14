@@ -14,6 +14,7 @@ import time
 class Live_env(Environnement):
 
     def __init__(self, mode, gui, contract_type):
+        self.Total_time = time.time()
         Environnement.__init__(self, gui)
         if "cfd" in contract_type:
             self.contracts = CFD()

@@ -301,21 +301,8 @@ def sigmoid(x):
 # returns an an n-day state representation ending at time t
 def getState(data, t, n):
         d = t - n + 1
-
         tmp = np.asarray(data)
-
         block = tmp[d:t + 1] if d >= 0 else np.concatenate([-d * [tmp[0]]] + [tmp[0:t + 1]])
-
-        '''
-        for i in range(len(block) - 1):
-            tmp = []
-            for r in block[i]:
-                tmp.append(r)
-            for z in inv_block[i]:
-                tmp.append(z)
-            res.append(np.asarray(tmp))
-        res = np.asarray(res)
-        '''
         res = []
         for i in range(n - 1):
             res.append(sigmoid(block[i + 1] - block[i]))

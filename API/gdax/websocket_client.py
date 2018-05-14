@@ -76,7 +76,7 @@ class WebsocketClient(object):
 
         self.ws.send(json.dumps(sub_params))
 
-    def keepalive(self, interval=30):
+    def keepalive(self, interval=10):
         while not self.stop:
             if self.ws:
                 self.ws.ping("keepalive")

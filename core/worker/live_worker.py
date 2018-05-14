@@ -3,6 +3,7 @@ from tools import *
 import time
 import sys
 import json
+import datetime
 
 from threading import Thread
 from API import gdax
@@ -69,8 +70,8 @@ class Live_Worker(QThread, gdax.WebsocketClient):
                 if self.env.stop:
                     self.stop = self.env.stop
                 if 'ticker' in msg['type'] and not self.firstMsg:
-                    #if self.should_print:
-                        #print (json.dumps(msg, indent=4, sort_keys=True))
+                    if self.should_print:
+                        print (json.dumps(msg, indent=4, sort_keys=True))
                     self.env.addData(msg)
                     self.on_message()
                 else:
@@ -102,13 +103,18 @@ class Live_Worker(QThread, gdax.WebsocketClient):
             self.sig_step.emit() # Update GUI
             time.sleep(0.07)
         self.env.loop_t = time.time() - tmp
-        if self.should_print:
-            print (self.env.loop_t)
+        #if self.should_print:
+            #print (self.env.loop_t)
         if terminal is True or self.agent.should_stop():
             if self.env.gui == 1:
                 self.sig_episode.emit()
             self.env.start_t = time.time()
             self.firstData = True
+
+    def on_close(self):
+        if self.should_print:
+            print("\n-- Socket Closed --")
+            print ("Exec time {}".format(datetime.datetime.now() - self.env.exec_time))
 
     def run(self):
         # Should define an 'episode' for Live_Worker
