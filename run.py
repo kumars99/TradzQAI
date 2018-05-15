@@ -10,6 +10,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 agent = "PPO"
 device = '/cpu:0'
 
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="TradzQAI, all model configuration are in conf.cfg")
@@ -17,10 +18,12 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--verbose", type=int, help="Verbosity mode, default : 0", default=0, choices=[0, 1])
     parser.add_argument("-m", "--mode", type=str, help="Training or eval mode, default is training. Uselfull only without gui displayed", default='train', choices=['train', 'eval'])
     parser.add_argument("-s", "--session", type=str, help="Session live or local. Default local", default='local', choices=['local', 'live'])
+    parser.add_argument("-d", "--device", type=str, help="Device selection for the session, /cpu:0 , /device:GPU:0 /device:GPU:1, etc... Default cpu", default='/cpu:0')
+    parser.add_argument("-c", "--config", type=str, help="Config directory to load from. Default config/", default='config/')
     args = parser.parse_args()
 
     if 'on' in args.gui:
-        raise NotImplementedError
+        raise NotImplementedError("gui isnt fonctionnal with session yet")
         import qdarkstyle
         from PyQt5 import QtGui
         from PyQt5.QtWidgets import QApplication
@@ -37,8 +40,8 @@ if __name__ == '__main__':
             from core import Local_session as Session
         else:
             from core import Live_session as Session
-        session = Session(mode=args.mode)
-        session.setAgent()
+        session = Session(mode=args.mode, config=args.config)
+        session.setAgent(device=args.device)
         session.loadSession()
         session.start()
 
