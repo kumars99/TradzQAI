@@ -20,9 +20,9 @@ class Local_Worker(QThread):
         if not env or not agent:
             raise ValueError("The worker need an agent and an environnement")
 
-        if env.gui == 0:
-            env.init_logger()
-            env.logger._save_conf(env)
+        #if env.gui == 0:
+            #env.init_logger()
+            #env.logger._save_conf(env)
 
         self.env = env
         self.agent = agent

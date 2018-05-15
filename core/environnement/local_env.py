@@ -13,7 +13,7 @@ import time
 
 class Local_env(Environnement):
 
-    def __init__(self, mode, gui=0, contract_type="classic"):
+    def __init__(self, mode="train", gui=0, contract_type="classic", config=None):
 
         Environnement.__init__(self, gui)
         if "cfd" in contract_type:
@@ -36,18 +36,27 @@ class Local_env(Environnement):
         self.wallet = self.contracts.getWallet()
         self.inventory = self.contracts.getInventory()
 
-        self.data, self.raw, self._date = getStockDataVec(self.stock_name)
-        self.state = getState(self.raw, 0, self.window_size + 1)
-        self.len_data = len(self.data) - 1
-
         self.settings = dict(
             network = self.get_network(),
             agent = self.get_agent_settings(),
             env = self.get_env_settings()
         )
 
-        self.logger = Logger()
-        self.logger._load_conf(self)
+        self.saver = Saver()
+        if self.saver.check_settings_files(config):
+            self.settings['env'], self.settings['agent'], self.settings['network'] = self.saver.load_settings(config)
+            self.get_settings(self.settings['env'], self.settings['agent'])
+        else:
+            self.saver.save_settings(self.settings['env'],
+                self.settings['agent'], self.settings['network'], config)
+        self.saver._check(self.model_name, self.settings)
+
+        self.data, self.raw, self._date = getStockDataVec(self.stock_name)
+        self.state = getState(self.raw, 0, self.window_size + 1)
+        self.len_data = len(self.data) - 1
+        
+        #self.logger = Logger()
+        #self.logger._load_conf(self)
         self.check_dates()
 
     def init_logger(self):
@@ -59,8 +68,11 @@ class Local_env(Environnement):
         self.contract_settings = self.contracts.getSettings()
 
         self.meta = dict(
+            episodes = self.episode_count,
             window_size = self.window_size,
-            batch_size = self.batch_size
+            batch_size = self.batch_size,
+            agent = self.model_name,
+            stock = self.stock_name
         )
 
         env = [self.contract_settings,
@@ -192,6 +204,6 @@ class Local_env(Environnement):
         self.new_episode = True
         self.state = getState(self.raw, 0, self.window_size + 1)
         self.current_step['episode'] += 1
-        self.logger._add("Starting episode : " + str(self.current_step['episode']),
-                    self._name)
+        #self.logger._add("Starting episode : " + str(self.current_step['episode']),
+        #            self._name)
         return self.state

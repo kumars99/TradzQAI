@@ -13,8 +13,7 @@ import time
 
 class Live_env(Environnement):
 
-    def __init__(self, mode, gui, contract_type):
-        self.Total_time = time.time()
+    def __init__(self, mode="train", gui=0, contract_type="classic", config='config/'):
         Environnement.__init__(self, gui)
         if "cfd" in contract_type:
             self.contracts = CFD()
@@ -22,6 +21,11 @@ class Live_env(Environnement):
             self.contracts = Classic()
         else:
             raise ValueError("Contract does not exist")
+
+        self.valid_stocks = ['BTC-EUR', 'BTC-USD', 'BTC-GBP',
+                        'BCH-EUR', 'BCH-USD', 'BCH-BTC',
+                        'ETH-EUR', 'ETH-USD', 'ETH-BTC',
+                        'LTC-EUR', 'LTC-USD', 'LTC-BTC']
 
         self.model_name = "PPO"
 
@@ -49,8 +53,21 @@ class Live_env(Environnement):
             env = self.get_env_settings()
         )
 
-        self.logger = Logger()
-        self.logger._load_conf(self)
+        self.saver = Saver()
+        if self.saver.check_settings_files(config):
+            self.settings['env'], self.settings['agent'], self.settings['network'] = self.saver.load_settings(config)
+            self.get_settings(self.settings['env'], self.settings['agent'])
+        else:
+            self.saver.save_settings(self.settings['env'],
+                self.settings['agent'], self.settings['network'], config)
+        self.saver._check(self.model_name, self.settings)
+
+        if self.stock_name not in self.valid_stocks:
+            raise ValueError("Your stock {} inst in the valid stock list.\
+                \nValid stocks are : {}".format(self.stock_name, self.valid_stocks))
+
+        #self.logger = Logger()
+        #self.logger._load_conf(self)
         #self.check_dates()
 
     def init_logger(self):
@@ -70,8 +87,11 @@ class Live_env(Environnement):
         self.contract_settings = self.contracts.getSettings()
 
         self.meta = dict(
+            episodes = self.episode_count,
             window_size = self.window_size,
-            batch_size = self.batch_size
+            batch_size = self.batch_size,
+            agent = self.model_name,
+            stock = self.stock_name
         )
 
         env = [self.contract_settings,
@@ -142,8 +162,6 @@ class Live_env(Environnement):
         self.train_out = []
 
     def reset(self):
-
-
         try:
             self.h_lst_reward.append(self.reward['total'])
             self.h_lst_profit.append(self.wallet.profit['total'])

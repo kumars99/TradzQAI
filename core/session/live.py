@@ -6,11 +6,11 @@ import datetime
 
 class Live_session(Thread):
 
-    def __init__(self, mode="train", gui=0, contract_type="classic", db=None):
-        #raise NotImplementedError("Live session isnt ready yet")
-
+    def __init__(self, mode="train", gui=0, contract_type="classic", config='config/', db=None):
         self.db = db
-        self.env = Live_env(mode, gui, contract_type)
+        if not "/" in config[len(config)-1]:
+            raise ValueError("You forget \"/\" at the end, it should be {}/".format(config))
+        self.env = Live_env(mode=mode, gui=gui, contract_type=contract_type, config=config)
         self.env.exec_time = datetime.datetime.now()
         self.agent = None
         self.worker = Live_Worker

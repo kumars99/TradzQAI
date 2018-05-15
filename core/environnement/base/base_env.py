@@ -104,24 +104,19 @@ class Environnement:
         self.update_mode = dict(
             unit = 'timesteps',
             batch_size = self.batch_size,
-            frequency = self.batch_size // 8
+            frequency = self.batch_size
         )
 
         self.summarizer = dict(
-            directory="./board/",
-            steps=1000,
-            labels=['configuration',
-                    'gradients_scalar',
-                    'regularization',
-                    'inputs',
-                    'losses',
-                    'variables']
+            directory=None,
+            steps=100,
+            labels=[]
         )
 
         self.memory=dict(
             type='latest',
             include_next_states=True,
-            capacity=((len(self.data) - 1) * self.batch_size)
+            capacity=1000
         )
 
         self.hyperparameters = dict(
@@ -152,6 +147,22 @@ class Environnement:
                  self.optimizer]
 
         return agent
+
+    def get_settings(self, env, agent):
+        self.contract_settings = env[0]
+        self.batch_size = env[3]['batch_size']
+        self.window_size = env[3]['window_size']
+        self.model_name = env[3]['agent']
+        self.stock_name = env[3]['stock']
+        self.episode_count = env[3]['episodes']
+        self.wallet.settings = env[1]
+        self.wallet.risk_managment = env[2]
+        self.hyperparameters = agent[0]
+        self.exploration = agent[1]
+        self.update_mode = agent[2]
+        self.summarizer = agent[3]
+        self.memory = agent[4]
+        self.optimizer = agent[5]
 
     def _pause(self):
         self.pause = 1
@@ -317,19 +328,15 @@ class Environnement:
                                    self.lst_act[len(self.lst_act) - 1])
 
     def chart_preprocessing(self, data):
-        #toutes les 5 ou 1 M ajouter nouvelle entrer dans la liste
-        #modifier la liste dans cet interval
         if self.current_step['step'] == 0:
             self.reset_OCHL(data)
         elif self.time == "Tick":
-            #Passage en 1M
             if self._date[self.current_step['step'] - 1][11] != self._date[self.current_step['step']][11]:
                 self.reset_OCHL(data)
             else:
                 self.add_OCHL(data)
 
         elif self.time == "1M":
-            #Passage en 5M
             if self._date[self.current_step['step']][11] == "0" or self._date[self.current_step['step']][11] == "5":
                 self.reset_OCHL(data)
             else:
@@ -367,6 +374,7 @@ class Environnement:
 
     def episode_process(self):
         self.wallet.historic_process()
+        '''
         self.logger._add("######################################################", self._name)
         self.logger._add("Total reward : " + str(self.reward['total']), self._name)
         self.logger._add("Average daily reward : " + str('{:.3f}'.format(self.avg_reward(self.lst_reward_daily, 0))), self._name)
@@ -382,3 +390,4 @@ class Environnement:
             self.logger._add("Trade W/L : " + str('{:.3f}'.format(self.trade['win'] / 1)), self._name)
         self.logger._add("Step : " + str(self.current_step['step']), self._name)
         self.logger._add("######################################################", self._name)
+        '''

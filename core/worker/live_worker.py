@@ -11,6 +11,8 @@ from API import gdax
 from tqdm import tqdm
 tqdm.monitor_interval = 0
 
+from websocket import WebSocketConnectionClosedException
+
 from PyQt5.QtCore import *
 
 class Live_Worker(QThread, gdax.WebsocketClient):
@@ -25,9 +27,9 @@ class Live_Worker(QThread, gdax.WebsocketClient):
         if env == None or agent == None:
             raise ValueError("The worker need an agent and an environnement")
 
-        if env.gui == 0:
-            env.init_logger()
-            env.logger._save_conf(env)
+        #if env.gui == 0:
+            #env.init_logger()
+            #env.logger._save_conf(env)
 
         self.env = env
         self.agent = agent
@@ -87,24 +89,24 @@ class Live_Worker(QThread, gdax.WebsocketClient):
         action = self.agent.act(self.state) # Get action from agent
         # Get new state
         next_state, terminal, reward = self.env.execute(action)
-        #if self.should_print:
-            #print (self.env.wallet.settings['capital'], self.env.wallet.profit['current'],
-                #action, reward, terminal)
-            #print (str(self.env.inventory.get_inventory()))
+        if self.should_print:
+            print (self.env.wallet.settings['capital'], self.env.wallet.profit['current'],
+                action, reward, terminal)
+            print (str(self.env.inventory.get_inventory()))
         self.state = next_state
         if "train" in self.env.mode:
             self.agent.observe(reward=reward, terminal=terminal)
             if int((time.time() - self.save_time) / 60) >= 5:
-                #if self.should_print:
-                    #print ("Saving", int(time.time() - self.save_time))
+                if self.should_print:
+                    print ("Saving ", int(time.time() - self.save_time))
                 self.agent._save_model()
                 self.save_time = time.time()
         if self.env.gui == 1:
             self.sig_step.emit() # Update GUI
             time.sleep(0.07)
         self.env.loop_t = time.time() - tmp
-        #if self.should_print:
-            #print (self.env.loop_t)
+        if self.should_print:
+            print (self.env.loop_t)
         if terminal is True or self.agent.should_stop():
             if self.env.gui == 1:
                 self.sig_episode.emit()
@@ -117,5 +119,4 @@ class Live_Worker(QThread, gdax.WebsocketClient):
             print ("Exec time {}".format(datetime.datetime.now() - self.env.exec_time))
 
     def run(self):
-        # Should define an 'episode' for Live_Worker
         self._start()
