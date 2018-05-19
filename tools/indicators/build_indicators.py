@@ -10,7 +10,7 @@ from tools.indicators.bollinger_bands import bandwidth as bb
 
 class Indicators():
 
-    def __init__(self):
+    def __init__(self, settings=None):
 
         self.bb_period = 20
         self.rsi_period = 14
@@ -20,35 +20,61 @@ class Indicators():
         self.volatility_period = 20
         self.macd_long = 24
         self.macd_short = 12
+        self.ema_periods = [20, 50, 100]
+        self.settings = settings
+        self.build_func = None
+        self.names = []
+
+    def add_building(self, settings=None):
+        if settings:
+            self.settings = settings
+        if self.settings:
+            self.build_func = []
+            for key, value in self.settings.items():
+                if not value:
+                    continue
+                elif "RSI" == key and value:
+                    self.names.append('RSI')
+                    if 'default' != value:
+                        self.rsi_period = value
+                    self.build_func.append([RSI, 'RSI', self.rsi_period])
+                elif "MACD" == key and value:
+                    self.names.append('MACD')
+                    if 'default' != value:
+                        self.macd_long = value[1],
+                        self.macd_short = value[0]
+                    self.build_func.append([macd, 'MACD', [self.macd_short, self.macd_long]])
+                elif "Volatility" == key and value:
+                    self.names.append('Volatility')
+                    if 'default' != value:
+                        self.volatility_period = value
+                    self.build_func.append([vol, 'Volatility', self.volatility_period])
+                elif "EMA" == key and value:
+                    if 'default' != value:
+                        for values in value:
+                            self.names.append('EMA'+str(values))
+                            self.build_func.append([ema, 'EMA'+str(values), values])
+                elif "Bollinger_bands" == key and value:
+                    self.names.append('Bollinger_bands')
+                    if 'default' != value:
+                        self.bb_period = value
+                    self.build_func.append([bb, 'Bollinger_bands', self.bb_period])
+                elif "Stochastic" == key and value:
+                    self.names.append('Stochastic_D')
+                    self.names.append('Stochastic_K')
+                    if 'default' != value:
+                        self.stoch_period = value
+                    self.build_func.append([D, 'Stochastic_D', self.stoch_period])
+                    self.build_func.append([K, 'Stochastic_K', self.stoch_period])
 
     def build_indicators(self, data):
-        names = ['RSI', 'MACD', 'Volatility', 'EMA20', 'EMA50','EMA100']
-        indicators = pd.DataFrame(columns = names)
-
-        print ("Building RSI")
-        indicators['RSI'] = RSI(data, self.rsi_period)
-
-        print ("Building MACD")
-        indicators['MACD'] = macd(data, self.macd_short, self.macd_long)
-
-        print ("Building Volatility")
-        indicators['Volatility'] = vol(data, self.volatility_period)
-
-        #print ("Building Stoch_D")
-        #indicators['Stoch_D'] = D(data, self.stoch_period)
-
-        #print ("Building Stoch_K")
-        #indicators['Stock_K'] = K(data, self.stoch_period)
-
-        print ("Building EMA20")
-        indicators['EMA20'] = ema(data, 20)
-
-        print ("Building EMA50")
-        indicators['EMA50'] = ema(data, 50)
-
-        print ("Building EMA100")
-        indicators['EMA100'] = ema(data, 100)
-
-        #print ("Building bollinger band")
-        #indicators['BB'] = bb(data, self.bb_period)
+        if not self.build_func:
+            raise ValueError("No indicators to build.")
+        indicators = pd.DataFrame(columns=self.names)
+        for idx in self.build_func:
+            print (idx[1])
+            if "MACD" in idx[1]:
+                indicators[idx[1]] = idx[0](data, idx[2][0], idx[2][1])
+            else:
+                indicators[idx[1]] = idx[0](data, idx[2])
         return indicators
