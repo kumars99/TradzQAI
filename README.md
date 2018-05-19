@@ -55,12 +55,12 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
   ```
   Usage:
     python run.py -h (Show usage)
-    python run.py -g on (Display interface, it does not support live session)
-    python run.py -s live (for live session)
+    python run.py -g on (Display interface, it does not support live session) # Gui is not available while not session is not fully integrated
+    python run.py -s live (for live session) # Not fully fonctionnal
+    python run.py -c config_dir/ # load config from directory, make sure you have agent, env and network json files in it
     python run.py (Run as default)
   ```
-  When you run it for the first time, a file named "conf.cfg" is created, you can change it to changes environnement settings and some agents settings.
-  If you launch it with the gui, the conf file is just saving the settings from gui.
+  When you run it for the first time, a config directory is created, you can change it to changes environnement settings and some agents settings.
   It save settings (env, agent, network) in a save directory, and create a new directory if make any changes.
 
   You can also do your own runner.
