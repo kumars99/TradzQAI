@@ -1,5 +1,9 @@
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
+import json
+from decimal import *
+import time
 
 class Inventory(object):
 
@@ -18,6 +22,7 @@ class Inventory(object):
                 pos = "",
                 fee = 0
             ),
+            size = 0,
             profit = 0,
             fee = 0
         )
@@ -26,7 +31,7 @@ class Inventory(object):
             price = 0,
             pos = "",
             fee = 0,
-            order = 0
+            size = 0
         )
 
         self.trade_history = []
@@ -48,7 +53,7 @@ class Inventory(object):
         '''Save last trade and drop it from inventory'''
         self.last_closed_order['price'] = (self.inventory['Price']).iloc[POS]
         self.last_closed_order['pos'] = (self.inventory['POS']).iloc[POS]
-        self.last_closed_order['order'] = (self.inventory['Order']).iloc[POS]
+        self.last_closed_order['size'] = (self.inventory['Order']).iloc[POS]
         self.last_closed_order['fee'] = (self.inventory['Fee']).iloc[POS]
         self.inventory = (self.inventory.drop(self.inventory.index[POS])).reset_index(drop=True)
 
@@ -66,33 +71,43 @@ class Inventory(object):
                 return (i)
         return (-1)
 
-    def add_last_trade(self, prices, pip_value, fee):
+    def add_last_trade(self, env, fee):
         self.last_trade['open']['price'] = self.last_closed_order['price']
         self.last_trade['open']['pos'] = self.last_closed_order['pos']
         self.last_trade['open']['fee'] = self.last_closed_order['fee']
-        if "SELL" in self.last_closed_order['pos']:
-            self.last_trade['close']['price'] = prices['buy']
+        self.last_trade['fee'] = self.last_trade['open']['fee'] + fee
+        if "SELL" in self.last_trade['open']['pos']:
+            self.last_trade['close']['price'] = env.price['sell']
             self.last_trade['close']['pos'] = "BUY"
-            self.last_trade['profit'] = (self.last_closed_order['price'] - prices['buy']) * pip_value * self.last_closed_order['order']
-            self.last_trade['close']['pos'] = fee
-        elif "BUY" in self.last_closed_order['pos']:
-            self.last_trade['close']['price'] = prices['sell']
-            self.last_trade['close']['pos'] = "SELL"
-            self.last_trade['profit'] = (prices['sell'] - self.last_closed_order['price']) * pip_value * self.last_closed_order['order']
+            self.last_trade['profit'] = ((self.last_closed_order['price'] - env.price['sell']) * env.contract_settings['pip_value'] * self.last_closed_order['size'] * env.contract_settings['contract_size']) + self.last_trade['fee']
             self.last_trade['close']['fee'] = fee
-        self.last_trade['fee'] = self.last_trade['close']['fee'] + self.last_trade['open']['fee']
+        elif "BUY" in self.last_trade['open']['pos']:
+            self.last_trade['close']['price'] = env.price['buy']
+            self.last_trade['close']['pos'] = "SELL"
+            self.last_trade['profit'] = ((env.price['buy'] - self.last_closed_order['price']) * env.contract_settings['pip_value'] * self.last_closed_order['size'] * env.contract_settings['contract_size']) + self.last_trade['fee']
+            self.last_trade['close']['fee'] = fee
+        self.last_trade['size'] = self.last_closed_order['size'] * env.contract_settings['contract_size']
+        if env.is_crypto:
+            env.wallet.manage_trade_total_value(self.last_trade['open']['price'] * env.contract_settings['contract_size'])
+            env.wallet.manage_trade_total_value(self.last_trade['close']['price'] * env.contract_settings['contract_size'])
+        #tqdm.write(json.dumps(self.last_trade, indent=4))
+        #tqdm.write(str(env.wallet.profit['current']))
+        #tqdm.write(str(env.reward['current']))
+        #tqdm.write(str(env.trade['win'] / (env.trade['win']+env.trade['loss'])))
+        #time.sleep(0.2)
         self.trade_history.append(self.last_trade)
 
-    def manage_trade(self, env, profit, fee):
-        env.wallet.profit['current'] = (profit * self.inventory['Order'].iloc[0] * env.contract_settings['pip_value']) + fee
-        if env.wallet.profit['current'] < 0.00:
+    def manage_trade(self, env, profit, fee, idx):
+        fee += self.inventory['Fee'].iloc[idx]
+        env.wallet.profit['current'] = (profit * self.inventory['Order'].iloc[idx] * env.contract_settings['pip_value']) + fee
+        if env.wallet.profit['current'] < 0.0:
             env.trade['loss'] += 1
             env.daily_trade['loss'] += 1
-            env.reward['current'] = profit + fee
-        elif env.wallet.profit['current'] > 0.00 :
+            env.reward['current'] = round((profit + fee), 3)
+        elif env.wallet.profit['current'] > 0.0 :
             env.trade['win'] += 1
             env.daily_trade['win'] += 1
-            env.reward['current'] = profit + fee
+            env.reward['current'] = round((profit + fee), 3)
         else:
             env.trade['draw'] += 1
             env.daily_trade['draw'] += 1
@@ -102,16 +117,17 @@ class Inventory(object):
         if self.wallet_len > 0 and env.step_left == self.wallet_len:
             current = self.inventory['Price'].iloc[0]
             if "SELL" in self.inventory['POS'].iloc[0]:
-                ret = current - env.price['sell']
-            elif "BUY" in self.inventory['POS'].iloc[0]:
                 ret = env.price['buy'] - current
-            fee = env.wallet.calc_fees(ret * self.inventory['Order'].iloc[0])
-            self.manage_trade(env, ret, fee)
+                fee = env.wallet.calc_fees(env.price['sell'] * self.inventory['Order'].iloc[0] * env.contract_settings['contract_size'])
+            elif "BUY" in self.inventory['POS'].iloc[0]:
+                ret = current - env.price['sell']
+                fee = env.wallet.calc_fees(env.price['buy'] * self.inventory['Order'].iloc[0] * env.contract_settings['contract_size'])
+            ret *= env.contract_settings['contract_size']
+            self.manage_trade(env, ret, fee, 0)
             self.save_last_closing(0)
-            self.add_last_trade(env.price, env.contract_settings['pip_value'], fee)
+            self.add_last_trade(env, fee)
             return True
         return False
-
 
     def stop_loss(self, env):
         '''Stop loss'''
@@ -121,13 +137,15 @@ class Inventory(object):
             current = self.inventory['Price'].iloc[i]
             if "SELL" in self.inventory['POS'].iloc[i]:
                 ret = env.price['buy'] - current
+                fee = env.wallet.calc_fees(env.price['buy'] * self.inventory['Order'].iloc[i] * env.contract_settings['contract_size'])
             elif "BUY" in self.inventory['POS'].iloc[i]:
                 ret = current - env.price['sell']
+                fee = env.wallet.calc_fees(env.price['sell'] * self.inventory['Order'].iloc[i] * env.contract_settings['contract_size'])
             if abs(ret) >= env.wallet.risk_managment['stop_loss'] and ret < 0:
-                fee = env.wallet.calc_fees(ret * self.inventory['Order'].iloc[i])
-                self.manage_trade(env, ret, fee)
+                ret *= env.contract_settings['contract_size']
+                self.manage_trade(env, ret, fee, i)
                 self.save_last_closing(i)
-                self.add_last_trade(env.price, env.contract_settings['pip_value'], fee)
+                self.add_last_trade(env, fee)
                 return True
         return False
 
@@ -136,8 +154,8 @@ class Inventory(object):
         if 1 == env.action: # Buy
             POS_SELL = self.src_sell() # Check if SELL order in inventory
             if POS_SELL == -1 and POS < env.wallet.risk_managment['current_max_pos'] and env.step_left > env.wallet.risk_managment['current_max_pos']: # Open order
-                buy = [env.price['buy'], 'BUY', env.wallet.risk_managment['max_order_size'],
-                    env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['buy'])]
+                buy = [env.price['buy'], "BUY", env.wallet.risk_managment['max_order_size'],
+                    env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['buy'] * env.contract_settings['contract_size'])]
                 self.inventory = self.inventory.append(pd.DataFrame([buy],
                                 columns=self.columns),
                                 ignore_index=True)
@@ -145,19 +163,19 @@ class Inventory(object):
                 '''Selling order from inventory list
                 Calc profit and total profit
                 Add last Sell order to env'''
-                ret = self.inventory['Price'][POS_SELL] - env.price['sell']
-                fee = env.wallet.calc_fees(ret * self.inventory['Order'].iloc[POS_SELL])
-                self.manage_trade(env, ret, fee)
+                profit = (self.inventory['Price'].iloc[POS_SELL] - env.price['sell']) * env.contract_settings['contract_size']
+                fee = env.wallet.calc_fees(env.price['sell'] * self.inventory['Order'].iloc[POS_SELL] * env.contract_settings['contract_size'])
+                self.manage_trade(env, profit, fee, POS_SELL)
                 self.save_last_closing(POS_SELL)
-                self.add_last_trade(env.price, env.contract_settings['pip_value'], fee)
+                self.add_last_trade(env, fee)
             else:
                 env.reward['current'] = 0
 
         elif 2 == env.action: # Sell
             POS_BUY = self.src_buy() # Check if BUY order in inventory
             if POS_BUY == -1 and POS < env.wallet.risk_managment['current_max_pos'] and env.contract_settings['allow_short'] is True and env.wallet.risk_managment['current_max_pos'] and env.step_left > env.wallet.risk_managment['current_max_pos']: #Open order
-                sell = [env.price['sell'], 'SELL', env.wallet.risk_managment['max_order_size'],
-                    env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['sell'])]
+                sell = [env.price['sell'], "SELL", env.wallet.risk_managment['max_order_size'],
+                    env.wallet.calc_fees(env.wallet.risk_managment['max_order_size'] * env.price['sell'] * env.contract_settings['contract_size'])]
                 self.inventory = self.inventory.append(pd.DataFrame([sell],
                                 columns=self.columns),
                                 ignore_index=True)
@@ -165,11 +183,11 @@ class Inventory(object):
                 '''Selling order from inventory list
                 Calc profit and total profit
                 Add last Sell order to env'''
-                ret = env.price['buy'] - self.inventory['Price'][POS_BUY]
-                fee = env.wallet.calc_fees(ret * self.inventory['Order'].iloc[POS_BUY])
-                self.manage_trade(env, ret, fee)
+                profit = (env.price['buy'] - self.inventory['Price'].iloc[POS_BUY]) * env.contract_settings['contract_size']
+                fee = env.wallet.calc_fees(env.price['buy'] * self.inventory['Order'].iloc[POS_BUY] * env.contract_settings['contract_size'])
+                self.manage_trade(env, profit, fee, POS_BUY)
                 self.save_last_closing(POS_BUY)
-                self.add_last_trade(env.price, env.contract_settings['pip_value'], fee)
+                self.add_last_trade(env, fee)
             else:
                 env.reward['current'] = 0
         else: # Hold

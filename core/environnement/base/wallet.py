@@ -1,6 +1,7 @@
 from collections import deque
-
+from decimal import *
 import numpy as np
+from tqdm import tqdm
 
 class Wallet(object):
 
@@ -22,7 +23,7 @@ class Wallet(object):
         )
 
         self.settings = dict(
-            capital = 1000000,
+            capital = 20000,
             fee = 0.3,
             used_margin = 0,
             GL_pip = 0,
@@ -84,6 +85,7 @@ class Wallet(object):
         self.episode['max_return'] = []
         self.episode['capital'] = []
         self.episode['_return'] = []
+        self.total_trade_value = 0
 
     def historic_process(self):
         self.historic['mean_return'].append(self.episode['mean_return'][len(self.episode['mean_return']) - 1])
@@ -115,7 +117,12 @@ class Wallet(object):
         return price - ((1 + (self.settings['fee'] / 100)) * price)
 
     def calc_sharp_ratio(self, _return, period):
-        return np.sqrt(period) * np.mean(_return[len(_return) - 1 - period:]) / np.std(_return[len(_return) - 1 - period:], ddof=1)
+        if np.sum(_return[len(_return) - 1 - period:]) == 0:
+            return 0
+        std = np.std(_return[len(_return) - 1 - period:], ddof=1)
+        mean = np.mean(_return[len(_return) - 1 - period:])
+        sqrt = np.sqrt(period)
+        return sqrt * mean / std
 
     def calc_max_return(self, capital):
         if len(capital) < 2:
@@ -136,6 +143,13 @@ class Wallet(object):
         max_before_min = np.argmax(capital[:min])
         drawdown = 100 * (capital[min] - capital[max_before_min]) / capital[max_before_min]
         return drawdown
+
+    def manage_trade_total_value(self, value):
+        self.total_trade_value += value
+        if self.total_trade_value >= 10000000 and self.total_trade_value <= 100000000:
+            self.settings['fee'] = 0.2
+        elif self.total_trade_value > 100000000:
+            self.settings['fee'] = 0.1
 
     def manage_wallet(self, inventory, price, contract_settings):
         avg = 0
@@ -159,7 +173,7 @@ class Wallet(object):
 
     def manage_exposure(self, contract_settings):
         self.risk_managment['capital_exposure'] = self.settings['capital'] - (self.settings['capital'] * (1 - (self.risk_managment['exposure'] / 100)))
-        max_order_valid = self.risk_managment['capital_exposure'] // (contract_settings['contract_price'] + (self.risk_managment['stop_loss'] * contract_settings['pip_value']))
+        max_order_valid = self.risk_managment['capital_exposure'] // (contract_settings['contract_size'] * (contract_settings['contract_price'] + (self.risk_managment['stop_loss'] * contract_settings['pip_value'])))
         if max_order_valid <= self.risk_managment['max_pos']:
             self.risk_managment['current_max_pos'] = max_order_valid
             self.risk_managment['max_order_size'] = 1
@@ -171,6 +185,24 @@ class Wallet(object):
             else:
                 self.risk_managment['max_order_size'] = 1
         if self.risk_managment['current_max_pos'] < 1 and self.firstCheck:
-            raise ValueError('current_max_pos : {}. We cant afford any contract. Please check wallet settings.'.format(self.risk_managment['current_max_pos']))
+            raise ValueError('current_max_pos : {} We cant afford any contract. Please check wallet settings.'.format(self.risk_managment['current_max_pos']))
         else:
             self.firstCheck = False
+
+    def manage_contract_size(self, contract_settings):
+        self.risk_managment['capital_exposure'] = self.settings['capital'] - (self.settings['capital'] * (1 - (self.risk_managment['exposure'] / 100)))
+        size = self.risk_managment['capital_exposure'] / (contract_settings['contract_price'] + (self.risk_managment['stop_loss'] * contract_settings['pip_value']))
+        idx = self.risk_managment['max_pos']
+        min_price = float(Decimal(str(10 / contract_settings['contract_price'])).quantize(Decimal('.000001'), rounding=ROUND_UP))
+        tmp_size = size / idx
+        while idx >= 1 and tmp_size <= min_price:
+            idx = idx * (1-size)
+            tmp_size = float(Decimal(str(size / idx)).quantize(Decimal('.000001'), rounding=ROUND_UP))
+        idx = int(idx)
+        size = tmp_size
+        if (size < min_price or idx < 1) and self.firstCheck:
+            raise ValueError("Your contract size {:.4f} is too small, or you cannot afford any contract max pos : {}. Please check your settings".format(size, idx))
+        elif size < 1.0:
+            return size
+        else:
+            return 1
