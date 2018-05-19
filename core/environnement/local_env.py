@@ -10,6 +10,7 @@ from tqdm import tqdm
 import os
 import sys
 import time
+import json
 
 class Local_env(Environnement):
 
@@ -23,18 +24,24 @@ class Local_env(Environnement):
         else:
             raise ValueError("Contract does not exist")
 
-        self.model_name = "PPO"
+        self.model_name = "DDPG"
+
+        self.crypto = ['BTC', 'LTC', 'BCH', 'ETH']
+        self.is_crypto = False
 
         self.stock_name = "DAX30_1M_2018_04"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 500
-        self.window_size = 10
+        self.window_size = 20
         self.batch_size = 32
 
         self.mode = mode
 
         self.wallet = self.contracts.getWallet()
         self.inventory = self.contracts.getInventory()
+
+        self.data, self.raw, self._date = getStockDataVec(self.stock_name)
+        self.state = getState(self.raw, 0, self.window_size + 1)
 
         self.settings = dict(
             network = self.get_network(),
@@ -49,20 +56,37 @@ class Local_env(Environnement):
         else:
             self.saver.save_settings(self.settings['env'],
                 self.settings['agent'], self.settings['network'], config)
-        self.saver._check(self.model_name, self.settings)
+        self.saver._check(self.model_dir, self.settings)
 
-        self.data, self.raw, self._date = getStockDataVec(self.stock_name)
-        self.state = getState(self.raw, 0, self.window_size + 1)
+        if self.stock_name.split("_")[0] in self.crypto:
+            self.is_crypto = True
+
+        if self.is_crypto and 'cfd' in contract_type:
+            raise ValueError("Cryptocurrencies cannot be traded as cfd.\
+                \nPlease change contract type to classic.")
+
+
         self.len_data = len(self.data) - 1
-        
-        #self.logger = Logger()
-        #self.logger._load_conf(self)
+
+        self.logger = Logger()
+        self.logger.set_log_path(self.saver.get_model_dir()+"/")
+        self.logger.new_logs(self._name)
+        self.logger.start()
+
         self.check_dates()
 
-    def init_logger(self):
-        self.logger.init_saver(self)
-        self.logger._load()
-        self.logger.new_logs(self._name)
+    def get_agent_settings(self):
+        if self.model_name in self.agents:
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore",category=FutureWarning)
+                tmp_agent = getattr(__import__('agents'), self.model_name)
+        else:
+            raise ValueError('could not import %s' %self.model_name)
+
+        agent = tmp_agent.get_specs(env=self)
+
+        return agent
 
     def get_env_settings(self):
         self.contract_settings = self.contracts.getSettings()
@@ -72,7 +96,16 @@ class Local_env(Environnement):
             window_size = self.window_size,
             batch_size = self.batch_size,
             agent = self.model_name,
-            stock = self.stock_name
+            stock = self.stock_name,
+        )
+
+        self.indicators = dict(
+            RSI = 'default',
+            MACD = 'default',
+            Volatility = 'default',
+            EMA = [20, 50, 100],
+            Bollinger_bands = 'default',
+            Stochastic = None
         )
 
         env = [self.contract_settings,
@@ -87,15 +120,18 @@ class Local_env(Environnement):
             while (self.pause == 1):
                 time.sleep(0.01)
         self.current_step['step'] += 1
-        self.contract_settings['contract_price'] = self.contracts.getContractPrice(self.data[self.current_step['step']])
+
         self.closed = False
         self.action = action
         if self.step_left == 0:
             self.check_time_before_closing()
         self.step_left -= 1
-        self.price['buy'], self.price['sell'] = self.contracts.calcBidnAsk(self.data[self.current_step['step']])
+        self.contract_settings['contract_price'] = self.contracts.getContractPrice(self.data[self.current_step['step']])
         self.reward['current'] = 0
         self.wallet.profit['current'] = 0
+        if self.is_crypto:
+            self.contract_settings['contract_size'] = self.wallet.manage_contract_size(self.contract_settings)
+        self.price['buy'], self.price['sell'] = self.contracts.calcBidnAsk(self.data[self.current_step['step']])
         self.wallet.manage_exposure(self.contract_settings)
         stopped = self.inventory.stop_loss(self)
         if not stopped:
@@ -128,8 +164,8 @@ class Local_env(Environnement):
                             self.window_size + 1)
         self.wallet.daily_process()
         done = True if self.len_data - 1 == self.current_step['step'] else False
-        if self.wallet.risk_managment['current_max_pos'] < 1 or \
-            self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
+        if self.wallet.risk_managment['current_max_pos'] < 1: #or \
+            #self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
             self.wallet.settings['capital'] = self.wallet.settings['saved_capital']
             done = True
         self.daily_processing(done)
@@ -147,7 +183,6 @@ class Local_env(Environnement):
             draw = 0,
             total = 0
         )
-
 
         self.reward['current'] = 0
         self.reward['daily'] = 0
@@ -204,6 +239,6 @@ class Local_env(Environnement):
         self.new_episode = True
         self.state = getState(self.raw, 0, self.window_size + 1)
         self.current_step['episode'] += 1
-        #self.logger._add("Starting episode : " + str(self.current_step['episode']),
-        #            self._name)
+        self.logger._add("Starting episode : " + str(self.current_step['episode']),
+                    self._name)
         return self.state

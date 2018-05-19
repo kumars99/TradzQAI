@@ -8,7 +8,7 @@ import argparse
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 agent = "PPO"
-device = '/cpu:0'
+device = None
 
 
 if __name__ == '__main__':
@@ -18,7 +18,6 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--verbose", type=int, help="Verbosity mode, default : 0", default=0, choices=[0, 1])
     parser.add_argument("-m", "--mode", type=str, help="Training or eval mode, default is training. Uselfull only without gui displayed", default='train', choices=['train', 'eval'])
     parser.add_argument("-s", "--session", type=str, help="Session live or local. Default local", default='local', choices=['local', 'live'])
-    parser.add_argument("-d", "--device", type=str, help="Device selection for the session, /cpu:0 , /device:GPU:0 /device:GPU:1, etc... Default cpu", default='/cpu:0')
     parser.add_argument("-c", "--config", type=str, help="Config directory to load from. Default config/", default='config/')
     args = parser.parse_args()
 
@@ -40,9 +39,14 @@ if __name__ == '__main__':
             from core import Local_session as Session
         else:
             from core import Live_session as Session
-        session = Session(mode=args.mode, config=args.config)
-        session.setAgent(device=args.device)
-        session.loadSession()
-        session.start()
 
-        sys.exit(0)
+        try:
+            session = Session(mode=args.mode, config=args.config, contract_type='classic')
+            session.setAgent(device=device)
+            session.loadSession()
+            session.start()
+            while True:
+                time.sleep(100)
+        except (KeyboardInterrupt, ValueError):
+            session._stop()
+            sys.exit(0)

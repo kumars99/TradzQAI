@@ -30,7 +30,7 @@ class Live_session(Thread):
     def getAgent(self):
         return self.agent
 
-    def setAgent(self, agent=None, device='/cpu:0'):
+    def setAgent(self, agent=None, device=None):
         if agent:
             self.env.model_name = agent
         if self.env.model_name in self.env.agents:

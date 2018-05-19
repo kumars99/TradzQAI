@@ -38,6 +38,7 @@ class Environnement:
             total_year = 1
         )
 
+        self.actions = 3
         self.step_left = 0
         self.pause = 0
         self.action = None
@@ -65,88 +66,53 @@ class Environnement:
     def get_network(self):
 
         network = [dict(type='dense', size=64, activation='relu'),
-                   dict(type='dense', size=32, activation='relu'),
-                   dict(type='dense', size=8, activation='relu')]
-
-
+                   dict(type='dense', size=64, activation='relu'),
+                   dict(type='dense', size=32, activation='relu')]
 
         '''
 
         network = [dict(
                 type = "conv1d",
-                size = 64,
-                window = 4,
+                size = 32,
+                window = 10,
                 stride = 1,
                 padding = "SAME"
             ),
+            #dict(
+            #    type="pool2d",
+            #    pooling_type='max',
+            #    window=4,
+            #    stride=1,
+            #    padding='SAME'
+            #),
             dict(
                 type = "conv1d",
-                size = 64,
-                window = 2,
+                size = 32,
+                window = 5,
                 stride = 1,
                 padding = "SAME"
             ),
+            #dict(
+            #    type="pool2d",
+            #    pooling_type='max',
+            #    window=2,
+            #    stride=1,
+            #    padding='SAME'
+            #),
             dict(
                 type = "flatten"
             ),
             dict(
                 type="dense",
-                size=128,
-                activation="relu"
+                size=256,
+                activation="relu",
             )
         ]
         '''
 
 
+
         return network
-
-    def get_agent_settings(self):
-        self.update_mode = dict(
-            unit = 'timesteps',
-            batch_size = self.batch_size,
-            frequency = self.batch_size
-        )
-
-        self.summarizer = dict(
-            directory=None,
-            steps=100,
-            labels=[]
-        )
-
-        self.memory=dict(
-            type='latest',
-            include_next_states=True,
-            capacity=1000
-        )
-
-        self.hyperparameters = dict(
-            update_rate = 1e-3,
-            learning_rate = 1e-3,
-            gamma = 0.97,
-            epsilon = 1.0,
-            epsilon_min = 1e-2,
-            epsilon_decay = 0.995
-        )
-
-        self.exploration = dict(
-            type = 'epsilon_anneal',
-            initial_epsilon = self.hyperparameters['epsilon'],
-            final_epsilon = self.hyperparameters['epsilon_min']
-        )
-
-        self.optimizer = dict(
-            type='adam',
-            learning_rate=self.hyperparameters['learning_rate']
-        )
-
-        agent = [self.hyperparameters,
-                 self.exploration,
-                 self.update_mode,
-                 self.summarizer,
-                 self.memory,
-                 self.optimizer]
-
-        return agent
 
     def get_settings(self, env, agent):
         self.contract_settings = env[0]
@@ -157,12 +123,6 @@ class Environnement:
         self.episode_count = env[3]['episodes']
         self.wallet.settings = env[1]
         self.wallet.risk_managment = env[2]
-        self.hyperparameters = agent[0]
-        self.exploration = agent[1]
-        self.update_mode = agent[2]
-        self.summarizer = agent[3]
-        self.memory = agent[4]
-        self.optimizer = agent[5]
 
     def _pause(self):
         self.pause = 1
@@ -205,7 +165,7 @@ class Environnement:
         return ordr
 
     def src_agents(self):
-        ignore = ['agent.py', '__init__.py', '__pycache__']
+        ignore = ['Agent.py', '__init__.py', '__pycache__']
         valid = []
         for f in os.listdir("agents"):
             if f not in ignore:
@@ -213,7 +173,10 @@ class Environnement:
         return valid
 
     def check_dates(self):
-        self._date = self._date.apply(lambda x: x.replace(" ", "")[:12])
+        if type(self._date[0]) == str():
+            self._date = self._date.apply(lambda x: x.replace(" ", "")[:12])
+        else:
+            self._date = self._date.apply(lambda x: str(x))
         if self.gui == 0:
             ldate = tqdm(range(1, self.len_data), desc = "Checking dates ")
         else:
@@ -235,7 +198,9 @@ class Environnement:
             self.time = "1M"
 
     def check_time_before_closing(self):
-        for idx in range(self.current_step['step'] + 1 , self.len_data):
+        if self.current_step['step'] == self.len_data - 1:
+            return
+        for idx in range(self.current_step['step'] + 1 , self.len_data - 1):
             if self._date[idx - 1][7] != self._date[idx][7]:
                 break
         self.step_left = idx - self.current_step['step'] + 1
@@ -374,11 +339,11 @@ class Environnement:
 
     def episode_process(self):
         self.wallet.historic_process()
-        '''
+
         self.logger._add("######################################################", self._name)
-        self.logger._add("Total reward : " + str(self.reward['total']), self._name)
+        self.logger._add("Total reward : " + str(round(self.reward['total'], 3)), self._name)
         self.logger._add("Average daily reward : " + str('{:.3f}'.format(self.avg_reward(self.lst_reward_daily, 0))), self._name)
-        self.logger._add("Total profit : " + str(self.wallet.profit['total']), self._name)
+        self.logger._add("Total profit : " + str(round(self.wallet.profit['total'], 3)), self._name)
         self.logger._add("Total trade : " + str(self.trade['loss'] + self.trade['win'] + self.trade['draw']), self._name)
         self.logger._add("Sharp ratio : " + str('{:.3f}'.format(self.wallet.historic['sharp_ratio'][self.current_step['episode'] - 1])), self._name)
         self.logger._add("Mean return : " + str('{:.3f}'.format(self.wallet.historic['mean_return'][self.current_step['episode'] - 1])), self._name)
@@ -390,4 +355,3 @@ class Environnement:
             self.logger._add("Trade W/L : " + str('{:.3f}'.format(self.trade['win'] / 1)), self._name)
         self.logger._add("Step : " + str(self.current_step['step']), self._name)
         self.logger._add("######################################################", self._name)
-        '''

@@ -13,10 +13,14 @@ class Local_session(Thread):
         self.agent = None
         self.worker = Local_Worker
         self.env.stop = False
-        keyboard.add_hotkey('ctrl+c', self._stop)
+        #keyboard.add_hotkey('ctrl+c', self._stop)
         Thread.__init__(self)
 
     def _stop(self):
+        try:
+            self.env.logger._running = False
+        except:
+            pass
         self.env.stop = True
 
     def getWorker(self):
@@ -28,14 +32,14 @@ class Local_session(Thread):
     def getAgent(self):
         return self.agent
 
-    def setAgent(self, agent=None, device='/cpu:0'):
+    def setAgent(self, agent=None, device=None):
         if agent:
             self.env.model_name = agent
         if self.env.model_name in self.env.agents:
             import warnings
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore",category=FutureWarning)
-                self.agent = getattr(__import__("agents", fromlist=[self.env.model_name]), self.env.model_name)
+                self.agent = getattr(__import__('agents'), self.env.model_name)
                 self.device = device
         else:
             raise ValueError('could not import %s' %self. env.model_name)
@@ -47,6 +51,10 @@ class Local_session(Thread):
     def initAgent(self):
         if not self.agent:
             self.setAgent()
+        for classe in self.agent.__mro__:
+            if ("tensorforce" and self.agent.__name__) in str(classe):
+                self.agent = self.agent(env=self.env, device=self.device)._get()
+                return
         self.agent = self.agent(env=self.env, device=self.device)
 
     def initWorker(self):

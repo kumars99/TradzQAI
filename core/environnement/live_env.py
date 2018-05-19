@@ -42,7 +42,7 @@ class Live_env(Environnement):
         self.inventory = self.contracts.getInventory()
 
         #self.data, self.raw, self._date = getStockDataVec(self.stock_name)
-        self.data = [3000.00]
+        self.data = [[3000.00, 0.01]]
         self._date = []
         self.state = getState(self.data, 0, self.window_size + 1)
         #self.len_data = len(self.data) - 1
@@ -61,6 +61,13 @@ class Live_env(Environnement):
             self.saver.save_settings(self.settings['env'],
                 self.settings['agent'], self.settings['network'], config)
         self.saver._check(self.model_name, self.settings)
+
+        if self.stock_name.split("-")[0] in self.crypto:
+            self.is_crypto = True
+
+        if self.is_crypto and 'cfd' in contract_type:
+            raise ValueError("Cryptocurrencies cannot be traded as cfd.\
+                \nPlease change contract type to classic.")
 
         if self.stock_name not in self.valid_stocks:
             raise ValueError("Your stock {} inst in the valid stock list.\
@@ -112,6 +119,8 @@ class Live_env(Environnement):
         self.price['buy'], self.price['sell'] = self.contracts.calcBidnAsk(self.data[self.current_step['step']])
         self.reward['current'] = 0
         self.wallet.profit['current'] = 0
+        if self.is_crypto:
+            self.contract_settings['contract_size'] = self.wallet.manage_contract_size(self.contract_settings)
         self.wallet.manage_exposure(self.contract_settings)
         stopped = self.inventory.stop_loss(self)
         if not stopped:
