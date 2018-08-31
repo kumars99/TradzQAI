@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="TradzQAI, all model configuration are in conf.cfg")
     parser.add_argument("-g", "--gui", type=str, help="Display gui, default not displaying", default='off', choices=['on', 'off'])
-    parser.add_argument("-v", "--verbose", type=int, help="Verbosity mode, default : 0", default=0, choices=[0, 1])
+    #parser.add_argument("-v", "--verbose", type=int, help="Verbosity mode, default : 0", default=0, choices=[0, 1])
     parser.add_argument("-m", "--mode", type=str, help="Training or eval mode, default is training. Uselfull only without gui displayed", default='train', choices=['train', 'eval'])
     parser.add_argument("-s", "--session", type=str, help="Session live or local. Default local", default='local', choices=['local', 'live'])
     parser.add_argument("-c", "--config", type=str, help="Config directory to load from. Default config/", default='config/')
@@ -39,14 +39,14 @@ if __name__ == '__main__':
             from core import Local_session as Session
         else:
             from core import Live_session as Session
-
+        session = Session(mode=args.mode, config=args.config, contract_type='cfd')
+        session.setAgent(device=device)
+        session.loadSession()
+        session.start()
         try:
-            session = Session(mode=args.mode, config=args.config, contract_type='classic')
-            session.setAgent(device=device)
-            session.loadSession()
-            session.start()
             while True:
                 time.sleep(100)
-        except (KeyboardInterrupt, ValueError):
-            session._stop()
+        except (KeyboardInterrupt, ValueError, AttributeError):
+            if session:
+                session._stop()
             sys.exit(0)
