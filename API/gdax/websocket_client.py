@@ -42,9 +42,19 @@ class WebsocketClient(object):
             self._disconnect()
 
         self.stop = False
+        self.error = None
         self.on_open()
         self.thread = Thread(target=_go)
         self.thread.start()
+
+    def _reconnect(self):
+        if self.should_print:
+            print("\n-- Reconnected! --\n")
+        if self.ws:
+            self.ws.close()
+        self.ws = None
+        self.ws = create_connection(self.url)
+        self.ws.send(json.dumps(self.sub_params))
 
     def _connect(self):
         if self.products is None:
@@ -56,9 +66,9 @@ class WebsocketClient(object):
             self.url = self.url[:-1]
 
         if self.channels is None:
-            sub_params = {'type': 'subscribe', 'product_ids': self.products}
+            self.sub_params = {'type': 'subscribe', 'product_ids': self.products}
         else:
-            sub_params = {'type': 'subscribe', 'product_ids': self.products, 'channels': self.channels}
+            self.sub_params = {'type': 'subscribe', 'product_ids': self.products, 'channels': self.channels}
 
         if self.auth:
             timestamp = str(time.time())
@@ -74,14 +84,14 @@ class WebsocketClient(object):
 
         self.ws = create_connection(self.url)
 
-        self.ws.send(json.dumps(sub_params))
+        self.ws.send(json.dumps(self.sub_params))
 
-    def keepalive(self, interval=5):
+    def keepalive(self, interval=30):
         while not self.stop:
             if self.ws:
                 self.ws.ping("keepalive")
-                if self.should_print:
-                    print ("Keeping Alive")
+                #if self.should_print:
+                    #print ("Keeping Alive")
                 time.sleep(interval)
 
     def _listen(self):
@@ -90,10 +100,12 @@ class WebsocketClient(object):
             try:
                 data = self.ws.recv()
                 msg = json.loads(data)
+            except WebSocketConnectionClosedException:
+                self._reconnect()
             except ValueError as e:
-                self.on_error(e)
+                self._reconnect()
             except Exception as e:
-                self.on_error(e)
+                self.on_error(e, data=data)
             else:
                 self.on_message(msg)
 
@@ -101,8 +113,8 @@ class WebsocketClient(object):
         try:
             if self.ws:
                 self.ws.close()
-        except WebSocketConnectionClosedException as e:
-            self.on_error(e)
+        except:
+            pass
 
         self.on_close()
 

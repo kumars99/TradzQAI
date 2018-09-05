@@ -7,6 +7,7 @@
 from sortedcontainers import SortedDict
 from decimal import Decimal
 import pickle
+import json
 
 from .public_client import PublicClient
 from .websocket_client import WebsocketClient
