@@ -8,7 +8,7 @@ import argparse
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 agent = "PPO"
-device = None
+device = "/cpu:0"
 
 
 if __name__ == '__main__':
@@ -39,7 +39,7 @@ if __name__ == '__main__':
             from core import Local_session as Session
         else:
             from core import Live_session as Session
-        session = Session(mode=args.mode, config=args.config, contract_type='cfd')
+        session = Session(mode=args.mode, config=args.config, contract_type='classic')
         session.setAgent(device=device)
         session.loadSession()
         session.start()

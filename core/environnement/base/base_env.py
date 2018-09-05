@@ -11,7 +11,7 @@ import os
 import sys
 import time
 
-class Environnement:
+class Environnement(object):
 
     def __init__(self, gui):
 
@@ -67,7 +67,7 @@ class Environnement:
 
         network = [dict(type='dense', size=64, activation='relu'),
                    dict(type='dense', size=64, activation='relu'),
-                   dict(type='dense', size=32, activation='relu')]
+                   dict(type='dense', size=64, activation='relu')]
 
         '''
 

@@ -2,6 +2,7 @@ from tools import *
 
 import time
 import sys
+import numpy as np
 
 from tqdm import tqdm
 tqdm.monitor_interval = 0
@@ -24,9 +25,10 @@ class Local_Worker(QThread):
         self.agent = agent
         #env.logger.new_logs(self.name)
         #env.logger._add("Initialization", self.name)
-        if "eval" in env.mode:
-            env.episode_count = 1
+        if "eval" in self.env.mode:
+            self.env.episode_count = 1
         QThread.__init__(self)
+
 
     def run(self):
         ep = range(self.env.episode_count)
@@ -58,9 +60,10 @@ class Local_Worker(QThread):
                     self.agent.save_model(directory=self.env.saver.model_file_path, append_timestep=True)
                     break
 
+            tqdm.write(str(terminal))
             if self.env.gui == 0:
                 dat.close()
             elif self.env.gui == 1:
                 self.sig_episode.emit()
-            if self.agent.should_stop() or self.env.stop:
+            if self.agent.should_stop() or self.env.stop or e == self.env.episode_count - 1:
                 break

@@ -32,7 +32,7 @@ def formatPrice(n):
 def getStockDataVec(key):
         path = "data/" + key + ".csv"
         if not os.path.exists(path):
-            raise ValueError("Your stock {} isnt in data/ directory.".format(key))
+            raise ValueError("Your stock {} is not in data/ directory.".format(key))
         vec = None
         row = None
         chunksize = 10000
@@ -77,7 +77,7 @@ def getStockDataVec(key):
 
         elif len_row == 3 and ',' in sep:
             vec = row['Price'].copy(deep=True)
-            #row.drop(row.columns[[0]], axis=1, inplace=True)
+            row.drop(row.columns[[0,2]], axis=1, inplace=True)
 
         elif len_row == 9 and ',' in sep:
             vec = row['Price'].copy(deep=True)
@@ -85,7 +85,7 @@ def getStockDataVec(key):
 
         elif len_row == 6 and ';' in sep:
             vec = row['Close'].copy(deep=True)
-            row.drop(row.columns[[0,5]], axis=1, inplace=True)
+            row.drop(row.columns[[0,1,2,5]], axis=1, inplace=True)
 
         return vec, row, time
 
@@ -94,7 +94,7 @@ def sigmoid(x):
         return 1 / (1 + math.exp(-x))
 
 # returns an an n-day state representation ending at time t
-def getState(data, t, n):
+def getState(data, t, n, fn_process=sigmoid):
         d = t - n + 1
         temp = []
         for col in data.columns:
@@ -103,14 +103,16 @@ def getState(data, t, n):
             res = []
             for i in range(n - 1):
                 if not "Volume" in col:
-                    res.append(sigmoid(block[i + 1] - block[i]))
+                    res.append(fn_process(block[i + 1] - block[i]))
                 else:
                     res.append(block[i])
             temp.append(res)
+
         datas = []
         for idx in range(len(temp[0])):
             datas.append([temp[i][idx] for i in range(len(data.columns))])
-        return np.array(datas)
+
+        return np.array(res)
 
 def act_processing(act):
     if act == 1:
@@ -119,3 +121,34 @@ def act_processing(act):
         return ([0, 1, 0])
     else:
         return ([0, 0, 1])
+
+def style(s, style):
+    return style + s + '\033[0m'
+
+
+def green(s):
+    return style(s, '\033[92m')
+
+
+def blue(s):
+    return style(s, '\033[94m')
+
+
+def yellow(s):
+    return style(s, '\033[93m')
+
+
+def red(s):
+    return style(s, '\033[91m')
+
+
+def pink(s):
+    return style(s, '\033[95m')
+
+
+def bold(s):
+    return style(s, '\033[1m')
+
+
+def underline(s):
+    return style(s, '\033[4m')

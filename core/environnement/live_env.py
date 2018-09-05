@@ -14,13 +14,13 @@ import time
 class Live_env(Environnement):
 
     def __init__(self, mode="train", gui=0, contract_type="classic", config='config/'):
-        Environnement.__init__(self, gui)
+        Environnement.__init__(self, gui=0)
         if "cfd" in contract_type:
             self.contracts = CFD()
         elif "classic" in contract_type:
             self.contracts = Classic()
         else:
-            raise ValueError("Contract does not exist")
+            raise ValueError("Contract type does not exist")
 
         self.valid_stocks = ['BTC-EUR', 'BTC-USD', 'BTC-GBP',
                         'BCH-EUR', 'BCH-USD', 'BCH-BTC',

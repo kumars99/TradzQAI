@@ -16,32 +16,29 @@ class Local_env(Environnement):
 
     def __init__(self, mode="train", gui=0, contract_type="classic", config=None):
 
-        Environnement.__init__(self, gui)
+        Environnement.__init__(self, gui=0)
         if "cfd" in contract_type:
             self.contracts = CFD()
         elif "classic" in contract_type:
             self.contracts = Classic()
         else:
-            raise ValueError("Contract does not exist")
+            raise ValueError("Contract type does not exist")
 
-        self.model_name = "DDPG"
+        self.model_name = "PPO"
 
         self.crypto = ['BTC', 'LTC', 'BCH', 'ETH']
         self.is_crypto = False
 
-        self.stock_name = "DAX30_1M_2018_04"
+        self.stock_name = "BTC_EUR_2018_04_25"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 500
-        self.window_size = 20
+        self.window_size = 10
         self.batch_size = 32
 
         self.mode = mode
 
         self.wallet = self.contracts.getWallet()
         self.inventory = self.contracts.getInventory()
-
-        self.data, self.raw, self._date = getStockDataVec(self.stock_name)
-        self.state = getState(self.raw, 0, self.window_size + 1)
 
         self.settings = dict(
             network = self.get_network(),
@@ -50,6 +47,7 @@ class Local_env(Environnement):
         )
 
         self.saver = Saver()
+
         if self.saver.check_settings_files(config):
             self.settings['env'], self.settings['agent'], self.settings['network'] = self.saver.load_settings(config)
             self.get_settings(self.settings['env'], self.settings['agent'])
@@ -58,13 +56,15 @@ class Local_env(Environnement):
                 self.settings['agent'], self.settings['network'], config)
         self.saver._check(self.model_dir, self.settings)
 
+        self.data, self.raw, self._date = getStockDataVec(self.stock_name)
+        self.state = getState(self.raw, 0, self.window_size + 1)
+
         if self.stock_name.split("_")[0] in self.crypto:
             self.is_crypto = True
 
         if self.is_crypto and 'cfd' in contract_type:
             raise ValueError("Cryptocurrencies cannot be traded as cfd.\
                 \nPlease change contract type to classic.")
-
 
         self.len_data = len(self.data) - 1
 
@@ -82,7 +82,7 @@ class Local_env(Environnement):
                 warnings.filterwarnings("ignore",category=FutureWarning)
                 tmp_agent = getattr(__import__('agents'), self.model_name)
         else:
-            raise ValueError('could not import %s' %self.model_name)
+            raise ValueError('could not import %s' % self.model_name)
 
         agent = tmp_agent.get_specs(env=self)
 
@@ -150,14 +150,16 @@ class Local_env(Environnement):
                 self.action = 1
         self.train_in.append(self.state)
         self.train_out.append(act_processing(self.action))
+        self.wallet.manage_wallet(self.inventory.get_inventory(), self.price,
+                            self.contract_settings)
+        #self.reward['current'] += self.wallet.settings['GL_profit']
         self.wallet.profit['daily'] += self.wallet.profit['current']
         self.wallet.profit['total'] += self.wallet.profit['current']
         self.reward['daily'] += self.reward['current']
         self.reward['total'] += self.reward['current']
         self.lst_reward.append(self.reward['current'])
         self.def_act()
-        self.wallet.manage_wallet(self.inventory.get_inventory(), self.price,
-                            self.contract_settings)
+
         if self.gui == 1:
             self.chart_preprocessing(self.data[self.current_step['step']])
         self.state = getState(self.raw, self.current_step['step'] + 1,

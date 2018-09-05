@@ -64,4 +64,7 @@ class Local_session(Thread):
         if not self.agent:
             raise ValueError("add an agent and load the session before running")
         else:
-            self.worker.run()
+            if self.env.gui == 0:
+                Thread(target=self.worker.run).start()
+            else:
+                self.worker.start()

@@ -4,11 +4,11 @@ import json
 from sortedcontainers import SortedDict
 from deepdiff import DeepDiff
 
-class Saver:
+class Saver(object):
 
     def __init__(self):
 
-        self.root_path = "./save/"
+        self.root_path = "save/"
 
         self.name = os.path.basename(__file__).replace(".py", "")
 
@@ -69,8 +69,8 @@ class Saver:
         files = 0
         for d in cdir:
             if self.network_file_name in d or \
-                self.agent_file_name in d or\
-                 self.env_file_name in d:
+                self.agent_file_name in d or \
+                self.env_file_name in d:
                 files += 1
         if files == 3:
             return True
