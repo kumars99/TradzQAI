@@ -152,7 +152,7 @@ class Local_env(Environnement):
         self.train_out.append(act_processing(self.action))
         self.wallet.manage_wallet(self.inventory.get_inventory(), self.price,
                             self.contract_settings)
-        #self.reward['current'] += self.wallet.settings['GL_profit']
+        self.reward['current'] += self.wallet.settings['GL_profit']
         self.wallet.profit['daily'] += self.wallet.profit['current']
         self.wallet.profit['total'] += self.wallet.profit['current']
         self.reward['daily'] += self.reward['current']
@@ -168,7 +168,6 @@ class Local_env(Environnement):
         done = True if self.len_data - 1 == self.current_step['step'] else False
         if self.wallet.risk_managment['current_max_pos'] < 1: #or \
             #self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
-            self.wallet.settings['capital'] = self.wallet.settings['saved_capital']
             done = True
         self.daily_processing(done)
         if done:
@@ -207,6 +206,7 @@ class Local_env(Environnement):
             self.h_lst_draw_order = []
 
         self.tensorOCHL = [[] for _ in range(4)]
+        self.step_left = 0
         self.lst_reward_daily = []
         self.lst_data_full = deque(maxlen=100)
         self.date['day'] = 1
