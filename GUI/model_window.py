@@ -1,5 +1,3 @@
-from environnement import Environnement
-
 import PyQt5
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -24,8 +22,8 @@ class ModelWindow(QWidget):
         QW = QWidget()
         GL = QGridLayout()
 
-        self.g_eloss = pg.PlotWidget()
-        self.g_eloss.setTitle('Loss')
+        #self.g_eloss = pg.PlotWidget()
+        #self.g_eloss.setTitle('Loss')
 
         self.g_ereward = pg.PlotWidget()
         self.g_ereward.setTitle('Reward')
@@ -33,7 +31,7 @@ class ModelWindow(QWidget):
         self.g_eprofit = pg.PlotWidget()
         self.g_eprofit.setTitle('Return')
 
-        GL.addWidget(self.g_eloss, 0, 0)
+        #GL.addWidget(self.g_eloss, 0, 0)
         GL.addWidget(self.g_ereward, 1, 0)
         GL.addWidget(self.g_eprofit, 2, 0)
 
@@ -102,7 +100,7 @@ class ModelWindow(QWidget):
         self.g_profit.clear()
         self.g_act.clear()
 
-        self.g_reward.plot(env.lst_reward)
-        self.g_profit.plot(env.lst_return)
-        self.g_act.plot(env.lst_act)
-        self.g_state.plot(env.lst_state)
+        self.g_reward.plot(self.env.lst_reward)
+        self.g_profit.plot(self.env.lst_return)
+        self.g_act.plot(self.env.lst_act)
+        self.g_state.plot(self.env.lst_state)

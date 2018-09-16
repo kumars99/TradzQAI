@@ -1,45 +1,46 @@
-from core import Local_Worker as Worker
-from environnement import Environnement
 from .overview_window import OverviewWindow
 from .model_window import ModelWindow
 from .wallet_window import WalletWindow
 from tools import *
 
 import os
+import sys
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-env = Environnement(1)
-device = '/cpu:0'
-
 h = 950
 w = 550
 hp = 1855
-
+wp = 1080 - 55
+'''
 if env._platform == 'win32':
     wp = 1080 - 55
 elif env._platform == 'Linux':
     wp = 1080 - 30
+'''
 
 class MainWindow(QWidget):
 
-    def __init__(self):
+    def __init__(self, session):
         super(MainWindow, self).__init__()
+        self.session = session
         self.Set_UI()
 
     def Set_UI(self):
         self.resize(h, w)
-        self.setWindowTitle(env.name)
+        self.setWindowTitle(self.session.env.name)
         self.move(520, 300)
-        Start_Window(self)
+        Start_Window(self, self.session)
 
 class Start_Window(QWidget):
 
-    def __init__(self, root):
+    def __init__(self, root, session):
         super(QWidget, self).__init__(root)
-        #env.ui = self
+        self.env = session.env
+        self.env.gui = 1
+        self.session = session
         self.root = root
         self.Wtrain = None
         self.Weval = None
@@ -157,12 +158,12 @@ class Start_Window(QWidget):
         self.lerror.setStyleSheet("QLabel {background-color : }")
 
     def BuildTrain(self):
-        env.mode = "train"
-        return self._Build(env.mode)
+        self.env.mode = "train"
+        return self._Build(self.env.mode)
 
     def BuildEval(self):
-        env.mode = "eval"
-        return self._Build(env.mode)
+        self.env.mode = "eval"
+        return self._Build(self.env.mode)
 
     def lock_error(self):
         if self.error is False:
@@ -286,22 +287,22 @@ class Start_Window(QWidget):
         an = "Can\'t find agent"
         Dname = ['DRQN', 'DDRQN']
         names = ['DQN', 'DDQN', 'DDPG', 'EIIE']
-        for agent in env.agents:
+        for agent in self.env.agents:
             if name == agent:
                 self.lemn.setStyleSheet("QLineEdit {border-color : }")
                 if self.add_error(an) == 1:
                     self.del_error(an)
                 self.check_error()
-                if env.mode == "train":
-                    if (name in Dname and env.model_name not in names) or (name in names and env.model_name not in Dname):
-                        env.model_name = name
-                        self.check_changed_ur(env.hyperparameters['update_rate'])
-                        self.check_changed_lr(env.hyperparameters['learning_rate'])
+                if self.env.mode == "train":
+                    if (name in Dname and self.env.model_name not in names) or (name in names and self.env.model_name not in Dname):
+                        self.env.model_name = name
+                        #self.check_changed_ur(self.env.settings['env']['update_rate'])
+                        #self.check_changed_lr(self.env.settings['env']['learning_rate'])
                         self.clearLayout(self.msGlayout)
                         self.gbox_ms.layout().removeItem(self.msGlayout)
-                        self.gbox_ms.setLayout(self._build_model_settings(env.mode))
+                        self.gbox_ms.setLayout(self._build_model_settings(self.env.mode))
                     else:
-                        env.model_name = name
+                        self.env.model_name = name
                 return
         self.lemn.setStyleSheet("QLineEdit {border-color : red}")
         if self.add_error(an) == 0:
@@ -348,28 +349,28 @@ class Start_Window(QWidget):
 
         lc = QLabel('Capital : ')
         self.sbc = QSpinBox()
-        self.sbc.setMinimum(5000)
+        self.sbc.setMinimum(100)
         self.sbc.setMaximum(10000000)
-        self.sbc.setValue(env.wallet.settings['capital'])
+        self.sbc.setValue(self.env.wallet.settings['capital'])
 
         lexposure = QLabel('Exposure : ')
         self.sbexposure = QDoubleSpinBox()
         self.sbexposure.setMinimum(1)
         self.sbexposure.setMaximum(100)
         self.sbexposure.setSingleStep(0.1)
-        self.sbexposure.setValue(env.wallet.risk_managment['exposure'])
+        self.sbexposure.setValue(self.env.wallet.risk_managment['exposure'])
 
         lmpd = QLabel('Stop loss : ')
         self.sbmpd = QSpinBox()
         self.sbmpd.setMinimum(5)
         self.sbmpd.setMaximum(400)
-        self.sbmpd.setValue(env.wallet.risk_managment['stop_loss'])
+        self.sbmpd.setValue(self.env.wallet.risk_managment['stop_loss'])
 
         lmo = QLabel('Max pos : ')
         self.sbmo = QSpinBox()
         self.sbmo.setMinimum(1)
         self.sbmo.setMaximum(1000)
-        self.sbmo.setValue(env.wallet.risk_managment['max_pos'])
+        self.sbmo.setValue(self.env.wallet.risk_managment['max_pos'])
 
         Glayout.addWidget(lc, 0, 0)
         Glayout.addWidget(self.sbc, 0, 1)
@@ -395,8 +396,9 @@ class Start_Window(QWidget):
 
         lmn = QLabel('Agent : ')
         self.lemn = QLineEdit()
-        self.lemn.setText(str(env.model_name))
+        self.lemn.setText(str(self.env.model_name))
 
+        '''
         llr = QLabel('Learning rate : ')
         self.lelr = QLineEdit()
         self.lelr.setText(str(env.hyperparameters['learning_rate']))
@@ -418,9 +420,11 @@ class Start_Window(QWidget):
         self.lee.setMaximum(1)
         self.lee.setSingleStep(0.01)
         self.lee.setValue(env.hyperparameters['epsilon'])
+        '''
 
         self.msGlayout.addWidget(lmn, 0, 0)
         self.msGlayout.addWidget(self.lemn, 0, 1)
+        '''
         if mode == "train":
             self.msGlayout.addWidget(llr, 1, 0)
             self.msGlayout.addWidget(self.lelr, 1, 1)
@@ -434,6 +438,7 @@ class Start_Window(QWidget):
 
         self.lelr.textChanged.connect(self.check_changed_lr)
         self.leur.textChanged.connect(self.check_changed_ur)
+        '''
         self.lemn.textChanged.connect(self.check_changed_an)
 
         #gbox.setLayout(Glayout)
@@ -446,44 +451,44 @@ class Start_Window(QWidget):
 
         lm = QLabel('Data : ')
         self.lem = QLineEdit()
-        self.lem.setText(str(env.stock_name))
+        self.lem.setText(str(self.env.stock_name))
 
         lcp = QLabel('Contract price : ')
         self.sbcp = QSpinBox()
         self.sbcp.setMaximum(1000)
         self.sbcp.setMinimum(1)
-        self.sbcp.setValue(env.contract_settings['contract_price'])
+        self.sbcp.setValue(self.env.contract_settings['contract_price'])
 
         lpv = QLabel('Pip value : ')
         self.sbpv = QSpinBox()
         self.sbpv.setMaximum(1000)
         self.sbpv.setMinimum(1)
-        self.sbpv.setValue(env.contract_settings['pip_value'])
+        self.sbpv.setValue(self.env.contract_settings['pip_value'])
 
         ls = QLabel('Spread : ')
         self.sbs = QDoubleSpinBox()
         self.sbs.setMaximum(10)
         self.sbs.setMinimum(0.01)
         self.sbs.setSingleStep(0.01)
-        self.sbs.setValue(env.contract_settings['spread'])
+        self.sbs.setValue(self.env.contract_settings['spread'])
 
         lec = QLabel('Episodes : ')
         self.sbec = QSpinBox()
         self.sbec.setMinimum(1)
         self.sbec.setMaximum(10000)
-        self.sbec.setValue(env.episode_count)
+        self.sbec.setValue(self.env.episode_count)
 
         lws = QLabel('Window size : ')
         self.sbws = QSpinBox()
         self.sbws.setMinimum(1)
         self.sbws.setMaximum(1000)
-        self.sbws.setValue(env.window_size)
+        self.sbws.setValue(self.env.window_size)
 
         lbs = QLabel('Batch size : ')
         self.sbbs = QSpinBox()
         self.sbbs.setMinimum(1)
         self.sbbs.setMaximum(1024)
-        self.sbbs.setValue(env.batch_size)
+        self.sbbs.setValue(self.env.batch_size)
 
         Glayout.addWidget(lm, 0, 0)
         Glayout.addWidget(self.lem, 0, 1)
@@ -523,45 +528,40 @@ class Start_Window(QWidget):
         self.StFrame.show()
 
     def _get_env_var(self):
-        env.stock_name = self.lem.text()
-        env.model_name = self.lemn.text()
-        env.hyperparameters['learning_rate'] = float(self.lelr.text())
+        self.env.stock_name = self.lem.text()
+        self.env.model_name = self.lemn.text()
+        #env.hyperparameters['learning_rate'] = float(self.lelr.text())
 
-        env.hyperparameters['gamma'] = self.leg.value()
-        env.hyperparameters['epsilon'] = self.lee.value()
-        env.episode_count = self.sbec.value()
-        env.window_size = self.sbws.value()
-        env.batch_size = self.sbbs.value()
-        env.wallet.settings['capital'] = self.sbc.value()
-        env.wallet.risk_managment['exposure'] = self.sbexposure.value()
-        env.wallet.risk_managment['stop_loss'] = self.sbmpd.value()
-        env.wallet.risk_managment['max_pos'] = self.sbmo.value()
-        env.contract_settings['pip_value'] = self.sbpv.value()
-        env.contract_settings['spread'] = self.sbs.value()
-        env.contract_settings['contract_price'] = self.sbcp.value()
+        #env.hyperparameters['gamma'] = self.leg.value()
+        #env.hyperparameters['epsilon'] = self.lee.value()
+        self.env.episode_count = self.sbec.value()
+        self.env.window_size = self.sbws.value()
+        self.env.batch_size = self.sbbs.value()
+        self.env.wallet.settings['capital'] = self.sbc.value()
+        self.env.wallet.risk_managment['exposure'] = self.sbexposure.value()
+        self.env.wallet.risk_managment['stop_loss'] = self.sbmpd.value()
+        self.env.wallet.risk_managment['max_pos'] = self.sbmo.value()
+        self.env.contract_settings['pip_value'] = self.sbpv.value()
+        self.env.contract_settings['spread'] = self.sbs.value()
+        self.env.contract_settings['contract_price'] = self.sbcp.value()
 
     def Build_Primary_Window(self):
         self.Hide_Swindow()
         self._resize()
 
-        if env.mode == "eval":
-            env.episode_count = 1
+        if self.env.mode == "eval":
+            self.env.episode_count = 1
 
         # Getting env settings
         self._get_env_var()
+        self.session.setAgent()
+        self.session.loadSession()
 
-        env.init_logger()
+        #env.init_logger()
         # Save configuration
-        env.logger._save_conf(env)
+        #env.logger._save_conf(env)
 
-        if env.model_name in env.agents:
-            import warnings
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore",category=FutureWarning)
-                Agent = getattr(__import__("agents", fromlist=[env.model_name]), env.model_name)
-        else:
-            raise ValueError('could not import %s' % env.model_name)
-        self.worker = Worker(env=env, agent=Agent(env=env, device=device))
+        self.worker = self.session.getWorker()
 
         self.worker.sig_step.connect(self.update)
         self.worker.sig_batch.connect(self.batch_up)
@@ -577,8 +577,8 @@ class Start_Window(QWidget):
         b_resume = QPushButton('Resume')
 
         b_run.clicked.connect(self.worker.start)
-        b_pause.clicked.connect(env._pause)
-        b_resume.clicked.connect(env._resume)
+        b_pause.clicked.connect(self.env._pause)
+        b_resume.clicked.connect(self.env._resume)
 
         HLayout.addWidget(b_run)
         HLayout.addWidget(b_pause)
@@ -587,10 +587,10 @@ class Start_Window(QWidget):
 
 
         self.main_tab = QTabWidget()
-        self.overview = OverviewWindow(self.main_tab, env)
-        self.model = ModelWindow(self.main_tab, env)
+        self.overview = OverviewWindow(self.main_tab, self.env)
+        self.model = ModelWindow(self.main_tab, self.env)
         self.settings = QWidget()
-        self.wallet = WalletWindow(self.main_tab, env)
+        self.wallet = WalletWindow(self.main_tab, self.env)
         self.logs = QWidget()
 
         self.main_tab.addTab(self.overview, 'OverView')
@@ -610,17 +610,18 @@ class Start_Window(QWidget):
     def _end(self):
         #if env.logger.model_conf_file:
             #env.logger._end()
-        quit()
+        self.session._stop()
+        sys.exit(0)
 
     def update(self):
-        self.overview.ordr = env.manage_orders(self.overview.ordr)
-        self.overview.Update_Overview(env)
-        self.model.update_step(env)
-        self.wallet.Update_chart(env)
+        self.overview.ordr = self.env.manage_orders(self.overview.ordr)
+        self.overview.Update_Overview(self.env)
+        #self.model.update_step(self.env)
+        self.wallet.Update_chart(self.env)
 
     def batch_up(self):
         #self.model.update_batch(env)
         pass
 
     def episode_up(self):
-        self.model.update_episode(env)
+        self.model.update_episode(self.env)

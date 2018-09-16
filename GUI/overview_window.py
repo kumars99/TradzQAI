@@ -1,4 +1,3 @@
-from environnement import Environnement
 from tools import *
 
 import time
@@ -294,7 +293,7 @@ class OverviewWindow(QWidget):
             for i in range(len(np.array(self.ordr))):
                 if "Profit : -" in str(np.array(self.ordr)[i]):
                     self.l[i].setStyleSheet("QLabel {color: red}")
-                elif "Profit : 0.00" in str(np.array(self.ordr)[i]):
+                elif float(str(np.array(self.ordr)[i]).split(" ")[10]) == 0:
                     self.l[i].setStyleSheet("QLabel {color: white}")
                 else:
                     self.l[i].setStyleSheet("QLabel {color: green}")
