@@ -77,7 +77,7 @@ def getStockDataVec(key):
 
         elif len_row == 3 and ',' in sep:
             vec = row['Price'].copy(deep=True)
-            row.drop(row.columns[[0,2]], axis=1, inplace=True)
+            row.drop(row.columns[[0]], axis=1, inplace=True)
 
         elif len_row == 9 and ',' in sep:
             vec = row['Price'].copy(deep=True)
@@ -102,7 +102,7 @@ def getState(data, t, n, fn_process=sigmoid):
             block = tmp[d:t + 1] if d >= 0 else np.concatenate([-d * [tmp[0]]] + [tmp[0:t + 1]])
             res = []
             for i in range(n - 1):
-                if not "Volume" in col:
+                if ("Price" or "EMA") in col:
                     res.append(fn_process(block[i + 1] - block[i]))
                 else:
                     res.append(block[i])
@@ -112,7 +112,7 @@ def getState(data, t, n, fn_process=sigmoid):
         for idx in range(len(temp[0])):
             datas.append([temp[i][idx] for i in range(len(data.columns))])
 
-        return np.array(res)
+        return np.array(datas)
 
 def act_processing(act):
     if act == 1:

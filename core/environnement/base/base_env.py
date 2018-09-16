@@ -152,9 +152,9 @@ class Environnement(object):
                    + " : " \
                    + '{:.2f}'.format(last_trade['close']['price']) \
                    + " | Profit : " \
-                   + '{:.2f}'.format(last_trade['profit']) \
+                   + '{:.5f}'.format(last_trade['profit']) \
                    + " | Fee : " \
-                   + '{:.2f}'.format(last_trade['fee'])]
+                   + '{:.5f}'.format(last_trade['fee'])]
 
             if len(ordr['Orders']) > 37:
                 ordr = (ordr.drop(0)).reset_index(drop=True)

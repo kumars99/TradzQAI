@@ -8,6 +8,7 @@ from tqdm import tqdm
 tqdm.monitor_interval = 0
 
 from PyQt5.QtCore import *
+# QThread
 
 class Local_Worker(QThread):
 
@@ -25,8 +26,10 @@ class Local_Worker(QThread):
         self.agent = agent
         #env.logger.new_logs(self.name)
         #env.logger._add("Initialization", self.name)
+        self.deterministic = False
         if "eval" in self.env.mode:
             self.env.episode_count = 1
+            self.deterministic = True
         QThread.__init__(self)
 
 
@@ -37,14 +40,15 @@ class Local_Worker(QThread):
 
         for e in ep:
             state = self.env.reset()
-            #self.agent.reset()
+            self.agent.reset()
             self.env.start_t = time.time()
             dat = range(self.env.len_data)
             if self.env.gui == 0:
                 dat = tqdm(dat, desc="Step Processing ")
             for t in dat:
                 tmp = time.time()
-                action = self.agent.act(state) # Get action from agent
+                action = self.agent.act(state, deterministic=self.deterministic) # Get action from agent
+                #tqdm.write(str(action))
                 # Get new state
                 next_state, terminal, reward = self.env.execute(action)
                 state = next_state
@@ -56,14 +60,16 @@ class Local_Worker(QThread):
                 elif self.env.gui == 0:
                     dat.update(1)
                 self.env.loop_t = time.time() - tmp
-                if terminal is True or self.agent.should_stop() or self.env.stop:
-                    self.agent.save_model(directory=self.env.saver.model_file_path, append_timestep=True)
+                if terminal or self.agent.should_stop() or self.env.stop:
+                    if terminal:
+                        self.agent.save_model(directory=self.env.saver.model_file_path, append_timestep=True)
                     break
 
-            tqdm.write(str(terminal))
             if self.env.gui == 0:
                 dat.close()
+                ep.update(1)
             elif self.env.gui == 1:
                 self.sig_episode.emit()
             if self.agent.should_stop() or self.env.stop or e == self.env.episode_count - 1:
+                self.env.stop = True
                 break

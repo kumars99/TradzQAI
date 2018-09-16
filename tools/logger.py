@@ -74,7 +74,7 @@ class Logger(Thread):
                     self.current_index[name] += 1
                     self.save_logs(logs=self.logs[name][self.current_index[name]], name=name)
 
-    def run(self, write_time=10):
+    def run(self, write_time=2):
         self._running = True
         while self._running:
             self.write_logs()

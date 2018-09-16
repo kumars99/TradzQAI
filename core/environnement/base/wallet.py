@@ -23,7 +23,7 @@ class Wallet(object):
         )
 
         self.settings = dict(
-            capital = 200000,
+            capital = 200,
             fee = 0.3,
             used_margin = 0,
             GL_pip = 0,
@@ -155,18 +155,20 @@ class Wallet(object):
         avg = 0
         i = 0
         while i != len(inventory['POS']):
-            avg += inventory['Price'][i]
+            avg += inventory['Price'].iloc[i]
             i += 1
         if i > 0:
             avg /= i
             if "SELL" in inventory['POS'][0]:
-                self.settings['GL_profit'] = (avg - price['sell']) * i * contract_settings['pip_value'] * self.risk_managment['max_order_size']
+                self.settings['GL_profit'] = (avg - price['sell']) * i * contract_settings['pip_value'] * contract_settings['contract_size'] + \
+                    (self.calc_fees(avg * contract_settings['contract_size']) * i)
             elif "BUY" in inventory['POS'][0]:
-                self.settings['GL_profit'] = (price['buy'] - avg) * i * contract_settings['pip_value'] * self.risk_managment['max_order_size']
+                self.settings['GL_profit'] = (price['buy'] - avg) * i * contract_settings['pip_value'] * contract_settings['contract_size'] + \
+                    (self.calc_fees(avg * contract_settings['contract_size']) * i)
         else:
             self.settings['GL_profit'] = 0
         self.settings['capital'] += self.profit['current']
-        self.settings['used_margin'] = (len(inventory['POS']) * contract_settings['contract_price'] * self.risk_managment['max_order_size']) + (self.settings['GL_profit'] * -1)
+        self.settings['used_margin'] = self.settings['GL_profit']
         self.settings['usable_margin'] = self.risk_managment['capital_exposure'] - self.settings['used_margin']
         if self.settings['used_margin'] < 0:
             self.settings['used_margin'] = 0

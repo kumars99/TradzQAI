@@ -29,10 +29,10 @@ class Local_env(Environnement):
         self.crypto = ['BTC', 'LTC', 'BCH', 'ETH']
         self.is_crypto = False
 
-        self.stock_name = "BTC_EUR_2018_04_25"
+        self.stock_name = "BTC_EUR_2018_09_14"
         self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
         self.episode_count = 500
-        self.window_size = 10
+        self.window_size = 20
         self.batch_size = 32
 
         self.mode = mode
@@ -72,6 +72,9 @@ class Local_env(Environnement):
         self.logger.set_log_path(self.saver.get_model_dir()+"/")
         self.logger.new_logs(self._name)
         self.logger.start()
+
+        self.r_period = 10
+
 
         self.check_dates()
 
@@ -115,6 +118,16 @@ class Local_env(Environnement):
 
         return env
 
+    def rewa(self):
+        self.r_av.append(self.r_pnl[self.current_step['step']] - self.r_pnl[self.current_step['step'] - 1])
+        if self.current_step['step'] > 0:
+            if self.current_step['step'] > self.r_period:
+                return np.average(self.r_av[self.current_step['step']-self.r_period:])
+            else:
+                return np.average(self.r_av)
+        else:
+            return 0
+
     def execute(self, action):
         if self.pause == 1:
             while (self.pause == 1):
@@ -152,7 +165,9 @@ class Local_env(Environnement):
         self.train_out.append(act_processing(self.action))
         self.wallet.manage_wallet(self.inventory.get_inventory(), self.price,
                             self.contract_settings)
-        self.reward['current'] += self.wallet.settings['GL_profit']
+        self.r_pnl.append(self.wallet.settings['GL_profit'])
+        #self.reward['current'] += round(self.rewa(), 4)
+        #self.reward['current'] += (self.r_pnl[self.current_step['step']] - self.r_av[self.current_step['step']])
         self.wallet.profit['daily'] += self.wallet.profit['current']
         self.wallet.profit['total'] += self.wallet.profit['current']
         self.reward['daily'] += self.reward['current']
@@ -165,6 +180,17 @@ class Local_env(Environnement):
         self.state = getState(self.raw, self.current_step['step'] + 1,
                             self.window_size + 1)
         self.wallet.daily_process()
+        '''
+        tqdm.write("Reward: " + str(self.reward['current']) +
+                   " | Profit: " + str(self.wallet.profit['current']) +
+                   " | G/L: " + str(self.wallet.settings['GL_profit']) +
+                   " | Inventory: " + str(self.inventory.get_inventory()))
+
+        if stopped:
+            tqdm.write("closed")
+        if force_closing:
+            tqdm.write("force closed")
+        '''
         done = True if self.len_data - 1 == self.current_step['step'] else False
         if self.wallet.risk_managment['current_max_pos'] < 1: #or \
             #self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
@@ -216,6 +242,11 @@ class Local_env(Environnement):
         self.date['total_day'] = 1
         self.date['total_month'] = 1
         self.date['total_year'] = 1
+
+        self.r_pnl = []
+        self.r_av = []
+        self.start = 0
+        self.switch = 0
 
         self.reward = dict(
             current = 0,

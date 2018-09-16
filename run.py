@@ -22,17 +22,24 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if 'on' in args.gui:
-        raise NotImplementedError("gui isnt fonctionnal with session yet")
+        #raise NotImplementedError("gui isnt fonctionnal with session yet")
+
         import qdarkstyle
         from PyQt5 import QtGui
         from PyQt5.QtWidgets import QApplication
         from GUI import MainWindow
 
+        if "local" in args.session:
+            from core import Local_session as Session
+        else:
+            from core import Live_session as Session
+
         app = QApplication(sys.argv)
         app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        launch = MainWindow()
+        launch = MainWindow(Session(mode=args.mode, config=args.config, contract_type='classic'))
         launch.show()
         sys.exit(app.exec_())
+
 
     else:
         if "local" in args.session:
@@ -44,8 +51,10 @@ if __name__ == '__main__':
         session.loadSession()
         session.start()
         try:
-            while True:
-                time.sleep(100)
+            while not session.env.stop:
+                time.sleep(1)
+            session._stop()
+            sys.exit(0)
         except (KeyboardInterrupt, ValueError, AttributeError):
             if session:
                 session._stop()
