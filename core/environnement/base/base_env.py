@@ -15,7 +15,7 @@ class Environnement(object):
 
     def __init__(self, gui):
 
-        self._name = os.path.basename(__file__).replace(".py", "")
+        #self._name = os.path.basename(__file__).replace(".py", "")
         self.name = "TradzQAI"
         self.version = "v0.2"
         self.v_state = "Alpha"
@@ -115,14 +115,16 @@ class Environnement(object):
         return network
 
     def get_settings(self, env, agent):
-        self.contract_settings = env[0]
-        self.batch_size = env[3]['batch_size']
-        self.window_size = env[3]['window_size']
-        self.model_name = env[3]['agent']
-        self.stock_name = env[3]['stock']
-        self.episode_count = env[3]['episodes']
-        self.wallet.settings = env[1]
-        self.wallet.risk_managment = env[2]
+        self.contract_settings = env['contract_settings']
+        self.window_size = env['env_settings']['window_size']
+        #self.model_name = env['env_settings']['agent']
+        self.dataDirectory = env['env_settings']['data_directory']
+        self.episode_count = env['env_settings']['episodes']
+        for name, value in env['wallet_settings'].items():
+            self.wallet.settings[name] = value
+        for name, value in env['risk_managment'].items():
+            self.wallet.risk_managment[name] = value
+        self.wallet.init_default()
 
     def _pause(self):
         self.pause = 1
@@ -177,10 +179,10 @@ class Environnement(object):
             self._date = self._date.apply(lambda x: x.replace(" ", "")[:12])
         else:
             self._date = self._date.apply(lambda x: str(x))
-        if self.gui == 0:
-            ldate = tqdm(range(1, self.len_data), desc = "Checking dates ")
-        else:
-            ldate = range(1, self.len_data)
+        #if self.gui == 0:
+            #ldate = tqdm(range(1, self.len_data), desc = "Checking dates ")
+        #else:
+        ldate = range(1, self.len_data)
         for r in ldate:
             date_c = self._date[r]
             date_p = self._date[r - 1]

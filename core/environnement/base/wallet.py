@@ -55,11 +55,12 @@ class Wallet(object):
             _return = [],
             capital = []
         )
+        self.init_default()
+        self.firstCheck = True
 
+    def init_default(self):
         self.settings['saved_capital'] = self.settings['capital']
         self.settings['usable_margin'] = self.settings['capital']
-
-        self.firstCheck = True
 
     def daily_reset(self):
         self.profit['daily'] = 0
@@ -167,6 +168,7 @@ class Wallet(object):
                     (self.calc_fees(avg * contract_settings['contract_size']) * i)
         else:
             self.settings['GL_profit'] = 0
+
         self.settings['capital'] += self.profit['current']
         self.settings['used_margin'] = self.settings['GL_profit']
         self.settings['usable_margin'] = self.risk_managment['capital_exposure'] - self.settings['used_margin']
@@ -174,8 +176,8 @@ class Wallet(object):
             self.settings['used_margin'] = 0
 
     def manage_exposure(self, contract_settings):
-        self.risk_managment['capital_exposure'] = self.settings['capital'] - (self.settings['capital'] * (1 - (self.risk_managment['exposure'] / 100)))
-        max_order_valid = self.risk_managment['capital_exposure'] // (contract_settings['contract_size'] * (contract_settings['contract_price'] + (self.risk_managment['stop_loss'] * contract_settings['pip_value'])))
+        #self.risk_managment['capital_exposure'] = self.settings['capital'] - (self.settings['capital'] * (1 - (self.risk_managment['exposure'] / 100)))
+        max_order_valid = self.risk_managment['capital_exposure'] // (contract_settings['contract_size'] * (contract_settings['contract_price'] * contract_settings['pip_value']))
         if max_order_valid <= self.risk_managment['max_pos']:
             self.risk_managment['current_max_pos'] = max_order_valid
             self.risk_managment['max_order_size'] = 1
@@ -193,18 +195,18 @@ class Wallet(object):
 
     def manage_contract_size(self, contract_settings):
         self.risk_managment['capital_exposure'] = self.settings['capital'] - (self.settings['capital'] * (1 - (self.risk_managment['exposure'] / 100)))
-        size = self.risk_managment['capital_exposure'] / (contract_settings['contract_price'] + (self.risk_managment['stop_loss'] * contract_settings['pip_value']))
+        size = self.risk_managment['capital_exposure'] / (contract_settings['contract_price'] * contract_settings['pip_value'])
         idx = self.risk_managment['max_pos']
-        min_price = float(Decimal(str(10 / contract_settings['contract_price'])).quantize(Decimal('.000001'), rounding=ROUND_UP))
+        min_price = 10 / contract_settings['contract_price']
         tmp_size = size / idx
         while idx >= 1 and tmp_size <= min_price:
             idx = idx * (1-size)
-            tmp_size = float(Decimal(str(size / idx)).quantize(Decimal('.000001'), rounding=ROUND_UP))
+            tmp_size = size / idx
         idx = int(idx)
-        size = tmp_size
+        size = float(Decimal(str(tmp_size)).quantize(Decimal('.000001'), rounding=ROUND_DOWN))
         if (size < min_price or idx < 1) and self.firstCheck:
             raise ValueError("Your contract size {:.4f} is too small, or you cannot afford any contract max pos : {}. Please check your settings".format(size, idx))
-        elif size < 1.0:
-            return size
+        #elif size < 1.0:
+            #return size
         else:
-            return 1
+            return size

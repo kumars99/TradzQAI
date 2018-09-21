@@ -29,13 +29,14 @@ class Local_env(Environnement):
         self.crypto = ['BTC', 'LTC', 'BCH', 'ETH']
         self.is_crypto = False
 
-        self.stock_name = "BTC_EUR_2018_09_14"
-        self.model_dir = self.model_name + "_" + self.stock_name.split("_")[0]
-        self.episode_count = 500
+        self.dataDirectory = "data/BTC_EUR_2018_08/"
+        self.model_dir = self.model_name + "_" + self.dataDirectory.replace("/", "")
+        self.episode_count = 1
         self.window_size = 20
         self.batch_size = 32
 
         self.mode = mode
+        self._name = self.mode
 
         self.wallet = self.contracts.getWallet()
         self.inventory = self.contracts.getInventory()
@@ -56,11 +57,17 @@ class Local_env(Environnement):
                 self.settings['agent'], self.settings['network'], config)
         self.saver._check(self.model_dir, self.settings)
 
-        self.data, self.raw, self._date = getStockDataVec(self.stock_name)
+        self.dl = dataLoader(directory=self.dataDirectory)
+        self.dl.loadFile()
+
+        self.data, self.raw, self._date = self.dl.getData(), self.dl.getRaw(), self.dl.getTime()
         self.state = getState(self.raw, 0, self.window_size + 1)
 
+        '''
         if self.stock_name.split("_")[0] in self.crypto:
             self.is_crypto = True
+        '''
+        self.is_crypto = True
 
         if self.is_crypto and 'cfd' in contract_type:
             raise ValueError("Cryptocurrencies cannot be traded as cfd.\
@@ -74,8 +81,12 @@ class Local_env(Environnement):
         self.logger.start()
 
         self.r_period = 10
+        self.check_dates()
 
-
+    def nextDataset(self):
+        self.dl.loadFile()
+        self.data, self.raw, self._date = self.dl.getData(), self.dl.getRaw(), self.dl.getTime()
+        self.len_data = len(self.data) - 1
         self.check_dates()
 
     def get_agent_settings(self):
@@ -97,24 +108,24 @@ class Local_env(Environnement):
         self.meta = dict(
             episodes = self.episode_count,
             window_size = self.window_size,
-            batch_size = self.batch_size,
-            agent = self.model_name,
-            stock = self.stock_name,
+            data_directory = self.dataDirectory
         )
 
-        self.indicators = dict(
-            RSI = 'default',
-            MACD = 'default',
-            Volatility = 'default',
-            EMA = [20, 50, 100],
-            Bollinger_bands = 'default',
-            Stochastic = None
+        w_settings = dict(
+            capital = self.wallet.settings['capital'],
+            fee = self.wallet.settings['fee']
         )
 
-        env = [self.contract_settings,
-               self.wallet.settings,
-               self.wallet.risk_managment,
-               self.meta]
+        r_settings = dict(
+            exposure = self.wallet.risk_managment['exposure'],
+            max_pos = self.wallet.risk_managment['max_pos'],
+            stop_loss = self.wallet.risk_managment['stop_loss']
+        )
+
+        env = dict(contract_settings = self.contract_settings,
+                   wallet_settings = w_settings,
+                   risk_managment = r_settings,
+                   env_settings = self.meta)
 
         return env
 
@@ -146,6 +157,7 @@ class Local_env(Environnement):
             self.contract_settings['contract_size'] = self.wallet.manage_contract_size(self.contract_settings)
         self.price['buy'], self.price['sell'] = self.contracts.calcBidnAsk(self.data[self.current_step['step']])
         self.wallet.manage_exposure(self.contract_settings)
+
         stopped = self.inventory.stop_loss(self)
         if not stopped:
             force_closing = self.inventory.trade_closing(self)
@@ -161,11 +173,15 @@ class Local_env(Environnement):
                 self.action = 2
             else:
                 self.action = 1
-        self.train_in.append(self.state)
-        self.train_out.append(act_processing(self.action))
+
+
         self.wallet.manage_wallet(self.inventory.get_inventory(), self.price,
                             self.contract_settings)
-        self.r_pnl.append(self.wallet.settings['GL_profit'])
+
+        #self.train_in.append(self.state)
+        #self.train_out.append(act_processing(self.action))
+
+        #self.r_pnl.append(self.wallet.settings['GL_profit'])
         #self.reward['current'] += round(self.rewa(), 4)
         #self.reward['current'] += (self.r_pnl[self.current_step['step']] - self.r_av[self.current_step['step']])
         self.wallet.profit['daily'] += self.wallet.profit['current']
@@ -173,9 +189,8 @@ class Local_env(Environnement):
         self.reward['daily'] += self.reward['current']
         self.reward['total'] += self.reward['current']
         self.lst_reward.append(self.reward['current'])
-        self.def_act()
-
         if self.gui == 1:
+            self.def_act()
             self.chart_preprocessing(self.data[self.current_step['step']])
         self.state = getState(self.raw, self.current_step['step'] + 1,
                             self.window_size + 1)
@@ -185,15 +200,15 @@ class Local_env(Environnement):
                    " | Profit: " + str(self.wallet.profit['current']) +
                    " | G/L: " + str(self.wallet.settings['GL_profit']) +
                    " | Inventory: " + str(self.inventory.get_inventory()))
-
-        if stopped:
-            tqdm.write("closed")
-        if force_closing:
-            tqdm.write("force closed")
         '''
+
         done = True if self.len_data - 1 == self.current_step['step'] else False
-        if self.wallet.risk_managment['current_max_pos'] < 1: #or \
-            #self.wallet.risk_managment['current_max_pos'] <= int(self.wallet.risk_managment['max_pos'] // 2):
+        if self.wallet.risk_managment['current_max_pos'] < 1:
+            tqdm.write(str(self.wallet.risk_managment))
+            tqdm.write(str(self.wallet.settings))
+            tqdm.write(str(self.contract_settings['contract_price']))
+            tqdm.write(str(self.contract_settings['contract_size']))
+            tqdm.write(str(self.current_step['step']))
             done = True
         self.daily_processing(done)
         if done:
@@ -218,6 +233,7 @@ class Local_env(Environnement):
         self.train_out = []
 
     def reset(self):
+
         try:
             self.h_lst_reward.append(self.reward['total'])
             self.h_lst_profit.append(self.wallet.profit['total'])
