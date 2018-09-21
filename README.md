@@ -85,7 +85,7 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
       if terminal or env.stop:
         break
     if env.stop or e == episode - 1:
-      self.env.logger._running = False #Close the logger thread
+      env.logger._running = False #Close the logger thread
       break
   ```
 
