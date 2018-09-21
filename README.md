@@ -66,14 +66,14 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
   It save settings (env, agent, network) in a save directory, and create a new directory if make any changes.
 
   You can also do your own runner.
-  ```
+  ```python
   from core import Local_session as Session
   session = Session() # Run with default values
   session.loadSession() # loading environnement, worker and agent
   session.start() # Start the session thread
   ```
   Also, you are able to use the environnement only.
-  ```
+  ```python
   from core import Local_env
   env = Local_env() # run with default values
   for e in episode:
