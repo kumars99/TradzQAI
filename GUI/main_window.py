@@ -451,7 +451,7 @@ class Start_Window(QWidget):
 
         lm = QLabel('Data : ')
         self.lem = QLineEdit()
-        self.lem.setText(str(self.env.stock_name))
+        self.lem.setText(str(self.env.dataDirectory))
 
         lcp = QLabel('Contract price : ')
         self.sbcp = QSpinBox()
@@ -528,7 +528,7 @@ class Start_Window(QWidget):
         self.StFrame.show()
 
     def _get_env_var(self):
-        self.env.stock_name = self.lem.text()
+        self.env.dataDirectory = self.lem.text()
         self.env.model_name = self.lemn.text()
         #env.hyperparameters['learning_rate'] = float(self.lelr.text())
 

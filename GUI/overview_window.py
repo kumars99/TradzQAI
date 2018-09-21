@@ -34,7 +34,7 @@ class OverviewWindow(QWidget):
         VBox = QVBoxLayout()
 
         self.lmode = QLabel('Mode : ' + env.mode)
-        self.lmodel = QLabel('Model : ' + env.stock_name)
+        self.lmodel = QLabel('Model : ' + env.dataDirectory)
         self.lmax_order = QLabel('Max pos : ' + str(env.wallet.risk_managment['max_pos']))
         self.lcontract_price = QLabel('Contract price : ' + str(env.contract_settings['contract_price']))
         self.lpip_value = QLabel('Pip Value : ' + str(env.contract_settings['pip_value']))
