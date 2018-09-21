@@ -55,7 +55,8 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
   ```
   Usage:
     python run.py -h (Show usage)
-    python run.py -g on (Display interface, it does not support live session) 
+    python run.py -b BUILD (to manually build config file)
+    python run.py -g on (Display interface, it does not support live session)
     python run.py -s live (for live session) # Not fully fonctionnal
     python run.py -c config_dir/ # load config from directory, make sure you have agent, env and network json files in it
     python run.py (Run as default)
