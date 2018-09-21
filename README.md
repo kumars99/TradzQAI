@@ -72,6 +72,22 @@ More datasets available [here](http://www.histdata.com/download-free-forex-data/
   session.loadSession() # loading environnement, worker and agent
   session.start() # Start the session thread
   ```
+  Also, you are able to use the environnement only.
+  ```
+  from core import Local_env
+  env = Local_env() # run with default values
+  for e in episode:
+    state = env.reset()
+    for s in step:
+      action = agent.act(state, ...)
+      next_state, terminal, reward = env.execute(action)
+      agent.observe(reward, terminal)
+      if terminal or env.stop:
+        break
+    if env.stop or e == episode - 1:
+      self.env.logger._running = False #Close the logger thread
+      break
+  ```
 
 ## Relevant project
   - [TradingBrain](https://github.com/Prediction-Machines/Trading-Brain)
