@@ -1,7 +1,6 @@
 from core import Local_Worker
 from core import Local_env
 from threading import Thread
-import keyboard
 
 class Local_session(Thread):
 
@@ -13,7 +12,6 @@ class Local_session(Thread):
         self.agent = None
         self.worker = Local_Worker
         self.env.stop = False
-        #keyboard.add_hotkey('ctrl+c', self._stop)
         Thread.__init__(self)
 
     def _stop(self):
