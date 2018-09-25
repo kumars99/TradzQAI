@@ -33,7 +33,7 @@ class Local_Worker(QThread):
         QThread.__init__(self)
 
     def run(self):
-        step = range(self.env.dl.files_count)
+        step = range(self.env.dl.files_count - 1)
         if self.env.gui == 0:
             step = tqdm(step)
 
@@ -46,6 +46,9 @@ class Local_Worker(QThread):
             self.env.nextDataset()
             if self.env.stop:
                 break
+        if self.env.mode == "eval":
+            self.env.eval_processing()
+        step.close()
         self.env.stop = True
 
     def step(self):
@@ -64,8 +67,7 @@ class Local_Worker(QThread):
                 tmp = time.time()
                 action = self.agent.act(state, deterministic=self.deterministic) # Get action from agent
                 # Get new state
-                next_state, terminal, reward = self.env.execute(action)
-                state = next_state
+                state, terminal, reward = self.env.execute(action)
                 if "train" in self.env.mode:
                     self.agent.observe(reward=reward, terminal=terminal)
                 if self.env.gui == 1:
@@ -80,8 +82,12 @@ class Local_Worker(QThread):
                     break
 
             if self.env.gui == 0:
+                dat.close()
                 ep.update(1)
             elif self.env.gui == 1:
                 self.sig_episode.emit()
-            if self.agent.should_stop() or self.env.stop or e == self.env.episode_count - 1:
+            if e == self.env.episode_count - 1:
+                self.env.next = True
+            if self.agent.should_stop() or self.env.stop or self.env.next:
+                ep.close()
                 break
