@@ -10,7 +10,8 @@ class Wallet(object):
         self.profit = dict(
             current = 0,
             daily = 0,
-            total = 0
+            total = 0,
+            percent = 0
         )
 
         self.risk_managment = dict(
@@ -55,7 +56,7 @@ class Wallet(object):
             _return = [],
             capital = []
         )
-        self.init_default()
+
         self.firstCheck = True
 
     def init_default(self):
@@ -80,6 +81,7 @@ class Wallet(object):
         self.risk_managment['max_order_size'] = 1
         self.risk_managment['current_max_pos'] = 0
         self.profit['total'] = 0
+        self.profit['percent'] = 0
         self.episode['mean_return'] = []
         self.episode['sharp_ratio'] = []
         self.episode['max_drawdown'] = []
@@ -100,6 +102,7 @@ class Wallet(object):
         self.episode['sharp_ratio'].append(self.calc_sharp_ratio(self.episode['_return'], (len(self.episode['_return']) - 1)))
         self.episode['max_drawdown'].append(self.calc_max_drawdown(np.array(self.episode['capital'])))
         self.episode['max_return'].append(self.calc_max_return(np.array(self.episode['capital'])))
+        self.profit['percent'] = self.profit['total'] / self.settings['saved_capital'] * 100
 
     def daily_process(self):
         self.episode['capital'].append(self.settings['capital'])
@@ -147,10 +150,11 @@ class Wallet(object):
 
     def manage_trade_total_value(self, value):
         self.total_trade_value += value
-        if self.total_trade_value >= 10000000 and self.total_trade_value <= 100000000:
-            self.settings['fee'] = 0.2
-        elif self.total_trade_value > 100000000:
-            self.settings['fee'] = 0.1
+        if self.settings['fee'] != 0:
+            if self.total_trade_value >= 10000000 and self.total_trade_value <= 100000000:
+                self.settings['fee'] = 0.2
+            elif self.total_trade_value > 100000000:
+                self.settings['fee'] = 0.1
 
     def manage_wallet(self, inventory, price, contract_settings):
         avg = 0
@@ -199,9 +203,10 @@ class Wallet(object):
         idx = self.risk_managment['max_pos']
         min_price = 10 / contract_settings['contract_price']
         tmp_size = size / idx
-        while idx >= 1 and tmp_size <= min_price:
-            idx = idx * (1-size)
-            tmp_size = size / idx
+        if idx > 1:
+            while idx >= 1 and tmp_size <= min_price:
+                idx = float(idx * (1-size))
+                tmp_size = size / idx
         idx = int(idx)
         size = float(Decimal(str(tmp_size)).quantize(Decimal('.000001'), rounding=ROUND_DOWN))
         if (size < min_price or idx < 1) and self.firstCheck:

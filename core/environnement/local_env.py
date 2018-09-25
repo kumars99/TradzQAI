@@ -30,41 +30,45 @@ class Local_env(Environnement):
         self.is_crypto = False
 
         self.dataDirectory = "data/BTC_EUR_2018_08/"
-        self.model_dir = self.model_name + "_" + self.dataDirectory.replace("/", "")
+
         self.episode_count = 1
         self.window_size = 20
         self.batch_size = 32
+        self.t_return = 2
 
         self.mode = mode
         self._name = self.mode
 
         self.wallet = self.contracts.getWallet()
         self.inventory = self.contracts.getInventory()
-
+        self.saver = Saver()
         self.settings = dict(
             network = self.get_network(),
             agent = self.get_agent_settings(),
             env = self.get_env_settings()
         )
 
-        self.saver = Saver()
-
         if self.saver.check_settings_files(config):
             self.settings['env'], self.settings['agent'], self.settings['network'] = self.saver.load_settings(config)
-            self.get_settings(self.settings['env'], self.settings['agent'])
+            self.get_settings(self.settings['env'])
+            self.model_dir = self.model_name + "_" + self.dataDirectory.replace("/", "") + "_"
         else:
+            self.model_dir = self.model_name + "_" + self.dataDirectory.replace("/", "") + "_"
             self.saver.save_settings(self.settings['env'],
                 self.settings['agent'], self.settings['network'], config)
         self.saver._check(self.model_dir, self.settings)
 
         self.dl = dataLoader(directory=self.dataDirectory)
+        self.episode_count = self.episode_count // self.dl.files_count
+        if self.episode_count < 1:
+            self.episode_count = 1
         self.dl.loadFile()
 
         self.data, self.raw, self._date = self.dl.getData(), self.dl.getRaw(), self.dl.getTime()
         self.state = getState(self.raw, 0, self.window_size + 1)
 
         '''
-        if self.stock_name.split("_")[0] in self.crypto:
+        if self.stock_name.split("_") in self.crypto:
             self.is_crypto = True
         '''
         self.is_crypto = True
@@ -78,6 +82,8 @@ class Local_env(Environnement):
         self.logger = Logger()
         self.logger.set_log_path(self.saver.get_model_dir()+"/")
         self.logger.new_logs(self._name)
+        if self.mode == "eval":
+            self.logger.new_logs("eval_summary")
         self.logger.start()
 
         self.r_period = 10
@@ -98,17 +104,23 @@ class Local_env(Environnement):
         else:
             raise ValueError('could not import %s' % self.model_name)
 
-        agent = tmp_agent.get_specs(env=self)
-
-        return agent
+        return tmp_agent.get_specs(env=self)
 
     def get_env_settings(self):
         self.contract_settings = self.contracts.getSettings()
 
+        c_settings = dict(
+            allow_short = self.contract_settings['allow_short'],
+            contract_size = self.contract_settings['contract_size'],
+            pip_value = self.contract_settings['pip_value'],
+            spread = self.contract_settings['spread']
+        )
+
         self.meta = dict(
             episodes = self.episode_count,
             window_size = self.window_size,
-            data_directory = self.dataDirectory
+            data_directory = self.dataDirectory,
+            targeted_return = self.t_return
         )
 
         w_settings = dict(
@@ -122,7 +134,7 @@ class Local_env(Environnement):
             stop_loss = self.wallet.risk_managment['stop_loss']
         )
 
-        env = dict(contract_settings = self.contract_settings,
+        env = dict(contract_settings = c_settings,
                    wallet_settings = w_settings,
                    risk_managment = r_settings,
                    env_settings = self.meta)
@@ -150,14 +162,15 @@ class Local_env(Environnement):
         if self.step_left == 0:
             self.check_time_before_closing()
         self.step_left -= 1
-        self.contract_settings['contract_price'] = self.contracts.getContractPrice(self.data[self.current_step['step']])
+
         self.reward['current'] = 0
         self.wallet.profit['current'] = 0
-        if self.is_crypto:
-            self.contract_settings['contract_size'] = self.wallet.manage_contract_size(self.contract_settings)
+        if self.current_step['step'] == 0:
+            self.contract_settings['contract_price'] = self.contracts.getContractPrice(self.data[self.current_step['step']])
+            if self.is_crypto:
+                self.contract_settings['contract_size'] = self.wallet.manage_contract_size(self.contract_settings)
         self.price['buy'], self.price['sell'] = self.contracts.calcBidnAsk(self.data[self.current_step['step']])
         self.wallet.manage_exposure(self.contract_settings)
-
         stopped = self.inventory.stop_loss(self)
         if not stopped:
             force_closing = self.inventory.trade_closing(self)
@@ -177,12 +190,16 @@ class Local_env(Environnement):
 
         self.wallet.manage_wallet(self.inventory.get_inventory(), self.price,
                             self.contract_settings)
+        if self.current_step['step'] > 0:
+            self.contract_settings['contract_price'] = self.contracts.getContractPrice(self.data[self.current_step['step']])
+            if self.is_crypto:
+                self.contract_settings['contract_size'] = self.wallet.manage_contract_size(self.contract_settings)
 
         #self.train_in.append(self.state)
         #self.train_out.append(act_processing(self.action))
 
-        #self.r_pnl.append(self.wallet.settings['GL_profit'])
-        #self.reward['current'] += round(self.rewa(), 4)
+        self.r_pnl.append(self.wallet.settings['GL_profit'])
+        self.reward['current'] += round(self.rewa(), 4)
         #self.reward['current'] += (self.r_pnl[self.current_step['step']] - self.r_av[self.current_step['step']])
         self.wallet.profit['daily'] += self.wallet.profit['current']
         self.wallet.profit['total'] += self.wallet.profit['current']
@@ -213,6 +230,8 @@ class Local_env(Environnement):
         self.daily_processing(done)
         if done:
             self.episode_process()
+            if self.wallet.profit['percent'] > self.t_return:
+                self.next = True
         return self.state, done, self.reward['current']
 
     def daily_reset(self):
@@ -233,7 +252,6 @@ class Local_env(Environnement):
         self.train_out = []
 
     def reset(self):
-
         try:
             self.h_lst_reward.append(self.reward['total'])
             self.h_lst_profit.append(self.wallet.profit['total'])
@@ -281,6 +299,7 @@ class Local_env(Environnement):
             buy = 0,
             sell = 0
         )
+        self.next = False
         self.daily_reset()
         self.wallet.reset()
         self.inventory.reset()

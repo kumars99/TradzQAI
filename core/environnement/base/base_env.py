@@ -61,6 +61,8 @@ class Environnement(object):
         self.lst_data_preprocessed = []
         self.offset = 0
 
+        self.historical = []
+
         self.tensorOCHL = [[] for _ in range(4)]
 
     def get_network(self):
@@ -114,12 +116,14 @@ class Environnement(object):
 
         return network
 
-    def get_settings(self, env, agent):
-        self.contract_settings = env['contract_settings']
+    def get_settings(self, env):
         self.window_size = env['env_settings']['window_size']
         #self.model_name = env['env_settings']['agent']
         self.dataDirectory = env['env_settings']['data_directory']
         self.episode_count = env['env_settings']['episodes']
+        self.t_return = env['env_settings']['targeted_return']
+        for name, value in env['contract_settings'].items():
+            self.contract_settings[name] = value
         for name, value in env['wallet_settings'].items():
             self.wallet.settings[name] = value
         for name, value in env['risk_managment'].items():
@@ -339,8 +343,60 @@ class Environnement(object):
             return np.average(np.array(reward))
         return np.average(np.array(reward[(len(reward) - 1) - n:]))
 
+    def eval_processing(self):
+        win = 0
+        loss = 0
+        avg_profit = 0
+        avg_trade = 0
+        avg_max_drawdown = 0
+        avg_max_return = 0
+        avg_trade_WL = 0
+        for data in self.historical:
+            for key, value in data.items():
+                if key == 'total_profit' and value > 0:
+                    win += 1
+                elif key == 'total_profit' and value < 0:
+                    loss += 1
+                if key == 'total_profit':
+                    avg_profit += value
+                if key == 'total_trade':
+                    avg_trade += value
+                if key == 'max_drawdown':
+                    avg_max_drawdown += value
+                if key == 'max_return':
+                    avg_max_return += value
+                if key == 'trade_WL':
+                    avg_trade_WL += value
+        h_len = len(self.historical) - 1
+        avg_profit /= h_len
+        avg_trade /= h_len
+        avg_trade_WL /= h_len
+        avg_max_return /= h_len
+        avg_max_drawdown /= h_len
+        avg_percent_return = avg_profit / self.wallet.settings['saved_capital'] * 100
+        self.logger._add("Average profit : " + str(round(avg_profit, 2)), "eval_summary")
+        self.logger._add("Average max return : " + str(round(avg_max_return, 3)), "eval_summary")
+        self.logger._add("Average max drawdown : " + str(round(avg_max_drawdown, 3)), "eval_summary")
+        self.logger._add("Average trade : " + str(round(avg_trade, 2)), "eval_summary")
+        self.logger._add("Average trade W/L : " + str(round(avg_trade_WL, 3)), "eval_summary")
+        self.logger._add("Average percent return : " + str(round(avg_percent_return, 3)), "eval_summary")
+        self.logger._add("Day W/L : " + str(round(win / (loss + win), 3)), "eval_summary")
+
     def episode_process(self):
         self.wallet.historic_process()
+
+        h_tmp = dict(
+            total_profit = round(self.wallet.profit['total'], 3),
+            total_trade = self.trade['loss'] + self.trade['win'] + self.trade['draw'],
+            sharp_ratio = self.wallet.historic['sharp_ratio'][self.current_step['episode'] - 1],
+            mean_return = self.wallet.historic['mean_return'][self.current_step['episode'] - 1],
+            max_drawdown = self.wallet.historic['max_drawdown'][self.current_step['episode'] - 1],
+            max_return = self.wallet.historic['max_return'][self.current_step['episode'] - 1],
+            percent_return = self.wallet.profit['percent'],
+            trade_WL = self.trade['win'] + self.trade['loss']
+        )
+
+        self.historical.append(h_tmp)
 
         self.logger._add("######################################################", self._name)
         self.logger._add("Total reward : " + str(round(self.reward['total'], 3)), self._name)
@@ -351,6 +407,7 @@ class Environnement(object):
         self.logger._add("Mean return : " + str('{:.3f}'.format(self.wallet.historic['mean_return'][self.current_step['episode'] - 1])), self._name)
         self.logger._add("Max Drawdown : " + str('{:.3f}'.format(self.wallet.historic['max_drawdown'][self.current_step['episode'] - 1])), self._name)
         self.logger._add("Max return : " + str('{:.3f}'.format(self.wallet.historic['max_return'][self.current_step['episode'] - 1])), self._name)
+        self.logger._add("Percent return : " + str('{:.3f}'.format(self.wallet.profit['percent'])), self._name)
         if  self.trade['win'] + self.trade['loss'] > 0:
             self.logger._add("Trade W/L : " + str('{:.3f}'.format(self.trade['win'] / (self.trade['loss'] + self.trade['win']))), self._name)
         else:
