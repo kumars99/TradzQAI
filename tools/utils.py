@@ -14,9 +14,9 @@ from .indicators import Indicators
 class dataLoader(Thread):
 
     def __init__(self, directory="data/"):
-        self.data = deque(maxlen=2)
-        self.raw = deque(maxlen=2)
-        self.time = deque(maxlen=2)
+        self.data = deque(maxlen=1)
+        self.raw = deque(maxlen=1)
+        self.time = deque(maxlen=1)
         self.files_index = 0
         self.setDirectory(directory)
         self.dat = None
@@ -70,6 +70,7 @@ class dataLoader(Thread):
                 len_row = len(lines.split(sep))
                 if len_row == 4:
                     #types = dict(BID='np.float64', ASK='np.float64', Volume='np.float64')
+                    #names = ['ID', 'Time', 'Price', 'Volume']
                     names = ['Time', 'BID', 'ASK', 'Volume']
                 elif len_row == 3:
                     #types = dict(Price='np.float64', Volume='np.float64')
@@ -85,7 +86,7 @@ class dataLoader(Thread):
 
             for i in range(0, nlines, chunksize):
                 df = pd.read_csv(path, header=None, sep=sep, nrows=chunksize,
-                    skiprows=i, low_memory=True)
+                    skiprows=i, low_memory=False)
                 df.columns = names
                 if row is not None:
                     row = row.append(df, ignore_index=True)
@@ -104,7 +105,7 @@ class dataLoader(Thread):
 
             elif len_row == 9 and ',' in sep:
                 vec = row['Price'].copy(deep=True)
-                row.drop(row.columns[[0, 2, 5, 6, 7, 8]], axis=1, inplace=True)
+                row.drop(row.columns[[0,5,6,7,8]], axis=1, inplace=True)
 
             elif len_row == 6 and ';' in sep:
                 vec = row['Close'].copy(deep=True)
@@ -164,11 +165,9 @@ def getState(data, t, n, fn_process=sigmoid):
                 else:
                     res.append(block[i])
             temp.append(res)
-
         datas = []
         for idx in range(len(temp[0])):
             datas.append([temp[i][idx] for i in range(len(data.columns))])
-
         return np.array(datas)
 
 def act_processing(act):
